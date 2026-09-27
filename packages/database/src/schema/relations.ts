@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import { accounts } from "./accounts";
+import { bookings, rentals, unitAssignments } from "./bookings";
 import { customers } from "./customers";
 import {
   capacityAllocations,
@@ -18,6 +19,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   facilityAssignments: many(facilityAssignments),
+  bookings: many(bookings),
+  assignedUnits: many(unitAssignments),
+  rentals: many(rentals),
 }));
 
 export const customersRelations = relations(customers, ({ one }) => ({
@@ -34,6 +38,8 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   operatingHours: many(facilityOperatingHours),
   reservationDrafts: many(reservationDrafts),
   capacityAllocations: many(capacityAllocations),
+  bookings: many(bookings),
+  rentals: many(rentals),
 }));
 
 export const unitTypesRelations = relations(unitTypes, ({ one, many }) => ({
@@ -42,6 +48,7 @@ export const unitTypesRelations = relations(unitTypes, ({ one, many }) => ({
     references: [facilities.id],
   }),
   storageUnits: many(storageUnits),
+  bookings: many(bookings),
 }));
 
 export const facilityAssignmentsRelations = relations(facilityAssignments, ({ one }) => ({
@@ -55,7 +62,7 @@ export const facilityAssignmentsRelations = relations(facilityAssignments, ({ on
   }),
 }));
 
-export const storageUnitsRelations = relations(storageUnits, ({ one }) => ({
+export const storageUnitsRelations = relations(storageUnits, ({ one, many }) => ({
   facility: one(facilities, {
     fields: [storageUnits.facilityId],
     references: [facilities.id],
@@ -64,6 +71,8 @@ export const storageUnitsRelations = relations(storageUnits, ({ one }) => ({
     fields: [storageUnits.unitTypeId],
     references: [unitTypes.id],
   }),
+  assignments: many(unitAssignments),
+  rentals: many(rentals),
 }));
 
 export const facilityOperatingHoursRelations = relations(facilityOperatingHours, ({ one }) => ({
@@ -92,6 +101,57 @@ export const capacityAllocationsRelations = relations(capacityAllocations, ({ on
   unitType: one(unitTypes, {
     fields: [capacityAllocations.unitTypeId],
     references: [unitTypes.id],
+  }),
+}));
+
+export const bookingsRelations = relations(bookings, ({ one, many }) => ({
+  customer: one(users, {
+    fields: [bookings.customerId],
+    references: [users.id],
+  }),
+  facility: one(facilities, {
+    fields: [bookings.facilityId],
+    references: [facilities.id],
+  }),
+  unitType: one(unitTypes, {
+    fields: [bookings.unitTypeId],
+    references: [unitTypes.id],
+  }),
+  unitAssignments: many(unitAssignments),
+  rental: one(rentals),
+}));
+
+export const unitAssignmentsRelations = relations(unitAssignments, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [unitAssignments.bookingId],
+    references: [bookings.id],
+  }),
+  physicalUnit: one(storageUnits, {
+    fields: [unitAssignments.physicalUnitId],
+    references: [storageUnits.id],
+  }),
+  assigner: one(users, {
+    fields: [unitAssignments.assignedBy],
+    references: [users.id],
+  }),
+}));
+
+export const rentalsRelations = relations(rentals, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [rentals.bookingId],
+    references: [bookings.id],
+  }),
+  customer: one(users, {
+    fields: [rentals.customerId],
+    references: [users.id],
+  }),
+  facility: one(facilities, {
+    fields: [rentals.facilityId],
+    references: [facilities.id],
+  }),
+  physicalUnit: one(storageUnits, {
+    fields: [rentals.physicalUnitId],
+    references: [storageUnits.id],
   }),
 }));
 

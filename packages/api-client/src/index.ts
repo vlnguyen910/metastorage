@@ -1,6 +1,8 @@
 import type {
   ApiEnvelope,
   ApiUser,
+  AssignPhysicalUnitInput,
+  BookingListItem,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
@@ -8,10 +10,12 @@ import type {
   ConfirmReservationInput,
   CookieSession,
   DashboardSummary,
+  EligibleUnit,
   Facility,
   FacilityListParams,
   LoginInput,
   PaginatedResult,
+  PhysicalUnitAssignment,
   Reservation,
   ReservationDraft,
   ReservationDraftInput,
@@ -195,6 +199,22 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
       mine: () => http.get<ApiEnvelope<Reservation[]>>("/reservations/mine").then(unwrap),
       get: (reservationId: string) =>
         http.get<ApiEnvelope<Reservation>>(`/reservations/${reservationId}`).then(unwrap),
+    },
+    bookings: {
+      listFacilityBookings: (facilityId: string, status?: string) =>
+        http
+          .get<ApiEnvelope<BookingListItem[]>>(`/facilities/${facilityId}/bookings`, {
+            params: { status },
+          })
+          .then(unwrap),
+      get: (bookingId: string) =>
+        http.get<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}`).then(unwrap),
+      getEligibleUnits: (bookingId: string) =>
+        http.get<ApiEnvelope<EligibleUnit[]>>(`/bookings/${bookingId}/eligible-units`).then(unwrap),
+      assignUnit: (bookingId: string, input: AssignPhysicalUnitInput) =>
+        http
+          .post<ApiEnvelope<PhysicalUnitAssignment>>(`/bookings/${bookingId}/assign-unit`, input)
+          .then(unwrap),
     },
     dashboards: {
       get: (role: UserRole) =>

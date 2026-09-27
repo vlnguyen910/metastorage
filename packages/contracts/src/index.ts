@@ -67,6 +67,11 @@ export enum ApiErrorCode {
   PRICING_NOT_CONFIGURED = "PRICING_NOT_CONFIGURED",
   HOLD_CONFLICT = "HOLD_CONFLICT",
   HOLD_EXPIRED = "HOLD_EXPIRED",
+  OUT_OF_FACILITY_SCOPE = "OUT_OF_FACILITY_SCOPE",
+  BOOKING_NOT_FOUND = "BOOKING_NOT_FOUND",
+  PHYSICAL_UNIT_NOT_FOUND = "PHYSICAL_UNIT_NOT_FOUND",
+  INVALID_UNIT_ASSIGNMENT = "INVALID_UNIT_ASSIGNMENT",
+  UNIT_ASSIGNMENT_CONFLICT = "UNIT_ASSIGNMENT_CONFLICT",
 }
 
 export const UserRoleSchema = z.nativeEnum(UserRole);
@@ -369,3 +374,59 @@ export interface DashboardSummary {
   kpis: DashboardKpi[];
   activities: DashboardActivity[];
 }
+
+export const PhysicalUnitAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  bookingId: z.string().uuid(),
+  physicalUnitId: z.string().uuid(),
+  physicalUnitCode: z.string(),
+  assignedBy: z.string().uuid(),
+  assignerName: z.string().optional(),
+  status: z.enum(["ACTIVE", "REASSIGNED", "CANCELLED"]),
+  assignedAt: z.string().datetime(),
+  endedAt: z.string().datetime().nullable(),
+  reason: z.string().nullable().optional(),
+});
+export type PhysicalUnitAssignment = z.infer<typeof PhysicalUnitAssignmentSchema>;
+
+export const BookingListItemSchema = z.object({
+  id: z.string().uuid(),
+  bookingCode: z.string(),
+  facilityId: z.string().uuid(),
+  facilityName: z.string(),
+  unitTypeId: z.string().uuid(),
+  unitTypeName: z.string(),
+  unitTypeSizeLabel: z.string(),
+  customerId: z.string().uuid(),
+  contactName: z.string(),
+  contactEmail: z.string(),
+  contactPhone: z.string(),
+  checkInSlotStart: z.string().datetime(),
+  checkInSlotEnd: z.string().datetime().nullable(),
+  rentalEndAt: z.string().datetime(),
+  requestedMonths: z.number().int(),
+  totalAmount: z.number().nonnegative(),
+  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
+  paidAt: z.string().datetime().nullable(),
+  assignedUnit: PhysicalUnitAssignmentSchema.nullable().optional(),
+  createdAt: z.string().datetime(),
+});
+export type BookingListItem = z.infer<typeof BookingListItemSchema>;
+
+export const EligibleUnitSchema = z.object({
+  id: z.string().uuid(),
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  code: z.string(),
+  floor: z.string().nullable().optional(),
+  locationDescription: z.string().nullable().optional(),
+  status: z.string(),
+  isAvailableForPeriod: z.boolean(),
+});
+export type EligibleUnit = z.infer<typeof EligibleUnitSchema>;
+
+export const AssignPhysicalUnitInputSchema = z.object({
+  physicalUnitId: z.string().uuid(),
+  reason: z.string().max(500).optional(),
+});
+export type AssignPhysicalUnitInput = z.infer<typeof AssignPhysicalUnitInputSchema>;

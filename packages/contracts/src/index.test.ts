@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { ReservationQuoteSchema, SessionSchema, UserRole } from "./index";
+import {
+  AssignPhysicalUnitInputSchema,
+  ReservationQuoteSchema,
+  SessionSchema,
+  UserRole,
+} from "./index";
 
 describe("shared contracts", () => {
   it("accepts a valid authenticated session", () => {
@@ -40,5 +45,18 @@ describe("shared contracts", () => {
       expiresAt: "2026-09-19T00:15:00.000Z",
     });
     expect(parsed.success).toBe(false);
+  });
+
+  it("validates AssignPhysicalUnitInputSchema correctly", () => {
+    const valid = AssignPhysicalUnitInputSchema.safeParse({
+      physicalUnitId: "123e4567-e89b-12d3-a456-426614174000",
+      reason: "Gán ô kho gần cửa ra vào theo yêu cầu khách",
+    });
+    expect(valid.success).toBe(true);
+
+    const invalid = AssignPhysicalUnitInputSchema.safeParse({
+      physicalUnitId: "not-a-uuid",
+    });
+    expect(invalid.success).toBe(false);
   });
 });
