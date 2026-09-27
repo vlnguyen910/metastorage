@@ -3,6 +3,7 @@ import type { AxiosInstance } from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { errorBody } from "./core/http";
 import { registerAuthHandlers } from "./handlers/auth.handlers";
+import { registerBookingHandlers } from "./handlers/bookings.handlers";
 import { registerDashboardHandlers } from "./handlers/dashboards.handlers";
 import { registerFacilityHandlers } from "./handlers/facilities.handlers";
 import { registerReservationHandlers } from "./handlers/reservations.handlers";
@@ -20,6 +21,7 @@ export function installMockApi(http: AxiosInstance): void {
   registerAuthHandlers(mock);
   registerFacilityHandlers(mock);
   registerReservationHandlers(mock);
+  registerBookingHandlers(mock);
   registerDashboardHandlers(mock);
   registerUsersHandlers(mock);
 
