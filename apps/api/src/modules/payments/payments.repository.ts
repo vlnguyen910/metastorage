@@ -1,4 +1,5 @@
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes } from "node:crypto";
+import type { Booking, Facility, UnitType } from "@storex/database";
 import {
   and,
   bookingConfirmationEmails,
@@ -29,6 +30,37 @@ function bookingCode() {
 
 function hashQrToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function qrTokenForBooking(bookingId: string) {
+  return createHmac("sha256", process.env.QR_TOKEN_SECRET ?? "storex-dev-qr-secret")
+    .update(bookingId)
+    .digest("hex");
+}
+
+function toConfirmation(
+  booking: Pick<
+    Booking,
+    "id" | "bookingCode" | "checkInSlotStart" | "checkInSlotEnd" | "rentalEndAt" | "requestedMonths"
+  >,
+  facility: Pick<Facility, "name" | "address">,
+  unitType: Pick<UnitType, "name" | "sizeLabel">,
+) {
+  const qrToken = qrTokenForBooking(booking.id);
+  return {
+    bookingId: booking.id,
+    bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
+    qrToken,
+    qrUrl: `${process.env.PUBLIC_APP_URL ?? "http://localhost:3000"}/check-in?token=${qrToken}`,
+    facility: { name: facility.name, address: facility.address },
+    checkInSlotStart: booking.checkInSlotStart.toISOString(),
+    checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
+    rentalEndAt: booking.rentalEndAt.toISOString(),
+    unitTypeName: unitType.name,
+    sizeLabel: unitType.sizeLabel,
+    durationMonths: booking.requestedMonths,
+    emailStatus: "QUEUED" as const,
+  };
 }
 
 export class PaymentsRepository {
@@ -65,9 +97,11 @@ export class PaymentsRepository {
     holdTokenHash: string,
   ) {
     const [result] = await this.db
-      .select({ payment: payments, booking: bookings })
+      .select({ payment: payments, booking: bookings, facility: facilities, unitType: unitTypes })
       .from(payments)
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .where(
         and(
           eq(payments.idempotencyKey, idempotencyKey),
@@ -76,7 +110,12 @@ export class PaymentsRepository {
           eq(payments.status, "SUCCEEDED"),
         ),
       );
-    return result;
+    return result
+      ? {
+          ...result,
+          confirmation: toConfirmation(result.booking, result.facility, result.unitType),
+        }
+      : undefined;
   }
 
   async createPendingPayment(input: {
@@ -202,7 +241,6 @@ export class PaymentsRepository {
         .where(eq(reservationDrafts.id, input.draftId))
         .for("update");
       if (!checkout) return null;
-      const qrToken = randomBytes(32).toString("hex");
 
       const [booking] = await tx
         .insert(bookings)
@@ -222,12 +260,17 @@ export class PaymentsRepository {
           depositAmount: payment.depositAmount,
           totalAmount: payment.totalAmount,
           currency: payment.currency,
-          qrTokenHash: hashQrToken(qrToken),
           status: "CONFIRMED",
           paidAt: input.paidAt,
         })
         .returning();
       if (!booking) throw new Error("Failed to create booking after payment");
+
+      const qrToken = qrTokenForBooking(booking.id);
+      await tx
+        .update(bookings)
+        .set({ qrTokenHash: hashQrToken(qrToken), updatedAt: input.paidAt })
+        .where(eq(bookings.id, booking.id));
 
       const [updatedPayment] = await tx
         .update(payments)
@@ -263,20 +306,7 @@ export class PaymentsRepository {
       return {
         payment: updatedPayment,
         booking,
-        confirmation: {
-          bookingId: booking.id,
-          bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
-          qrToken,
-          qrUrl: `${process.env.PUBLIC_APP_URL ?? "http://localhost:3000"}/check-in?token=${qrToken}`,
-          facility: { name: checkout.facility.name, address: checkout.facility.address },
-          checkInSlotStart: checkout.draft.checkInAt.toISOString(),
-          checkInSlotEnd: null,
-          rentalEndAt: checkout.draft.rentalEndAt.toISOString(),
-          unitTypeName: checkout.unitType.name,
-          sizeLabel: checkout.unitType.sizeLabel,
-          durationMonths: checkout.draft.durationMonths,
-          emailStatus: "QUEUED" as const,
-        },
+        confirmation: toConfirmation(booking, checkout.facility, checkout.unitType),
       };
     });
   }

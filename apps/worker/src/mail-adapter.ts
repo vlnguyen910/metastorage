@@ -3,6 +3,7 @@ export interface BookingConfirmationEmailInput {
   bookingCode: string | null;
   facilityName: string;
   unitTypeName: string;
+  qrUrl: string;
 }
 
 export interface MailAdapter {
@@ -14,7 +15,7 @@ export interface MailAdapter {
 export class MockMailAdapter implements MailAdapter {
   async sendBookingConfirmation(input: BookingConfirmationEmailInput) {
     console.log(
-      `[mock-mail] booking confirmation ${input.bookingCode ?? "unknown"} -> ${input.recipientEmail} (${input.facilityName}, ${input.unitTypeName})`,
+      `[mock-mail] booking confirmation ${input.bookingCode ?? "unknown"} -> ${input.recipientEmail} (${input.facilityName}, ${input.unitTypeName}, ${input.qrUrl})`,
     );
     return { providerMessageId: `mock_${input.bookingCode ?? Date.now()}` };
   }

@@ -11,6 +11,7 @@ import axios from "axios";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -21,8 +22,7 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAvailability, useFacilities } from "@/features/facilities/hooks";
 import { cn } from "@/lib/cn";
-import { dateInputMin } from "@/lib/format";
-import { useReservationDraft, useReservationHold } from "./hooks";
+import { useReservationDraft, useReservationHold, useReservationPayment } from "./hooks";
 
 const wizardSchema = z.object({
   facilityId: z.string().min(1, "Chọn một cơ sở"),
@@ -47,6 +47,24 @@ function toApiDateTime(localValue: string): string {
   return new Date(`${localValue}:00+07:00`).toISOString();
 }
 
+function toLocalDateTimeInput(value: Date): string {
+  const offset = value.getTimezoneOffset();
+  return new Date(value.getTime() - offset * 60_000).toISOString().slice(0, 16);
+}
+
+function nextCheckInInput(): string {
+  const value = new Date();
+  value.setMinutes(value.getMinutes() + 60);
+  value.setSeconds(0, 0);
+  if (value.getHours() >= 22) {
+    value.setDate(value.getDate() + 1);
+    value.setHours(9, 0, 0, 0);
+  } else if (value.getHours() < 6) {
+    value.setHours(6, 0, 0, 0);
+  }
+  return toLocalDateTimeInput(value);
+}
+
 export function ReservationWizard() {
   const searchParams = useSearchParams();
   const { showToast } = useToast();
@@ -54,16 +72,18 @@ export function ReservationWizard() {
   const [draft, setDraft] = useState<ReservationDraft | null>(null);
   const [hold, setHold] = useState<ReservationHold | null>(null);
   const [holdSeconds, setHoldSeconds] = useState(0);
-  const [confirmation] = useState<BookingConfirmation | null>(null);
+  const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const facilitiesQuery = useFacilities({ pageSize: 20 });
   const draftMutation = useReservationDraft();
   const holdMutation = useReservationHold();
+  const paymentMutation = useReservationPayment();
   const form = useForm<WizardValues>({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
       facilityId: searchParams.get("facilityId") ?? "",
       unitTypeId: "",
-      checkInAt: `${dateInputMin()}T09:00`,
+      checkInAt: nextCheckInInput(),
       durationMonths: 1,
       fullName: "",
       email: "",
@@ -91,6 +111,13 @@ export function ReservationWizard() {
     const timer = window.setInterval(update, 1000);
     return () => window.clearInterval(timer);
   }, [hold]);
+
+  useEffect(() => {
+    if (!confirmation) return;
+    QRCode.toDataURL(confirmation.qrUrl, { margin: 1, width: 320 })
+      .then(setQrDataUrl)
+      .catch(() => setQrDataUrl(null));
+  }, [confirmation]);
 
   async function next() {
     if (step === 0 && (await form.trigger("facilityId"))) setStep(1);
@@ -132,6 +159,28 @@ export function ReservationWizard() {
       } catch (error) {
         showToast(apiErrorMessage(error), "error");
       }
+    }
+  }
+
+  async function pay() {
+    if (!draft || !hold) return;
+    try {
+      const result = await paymentMutation.mutateAsync({
+        draftId: draft.id,
+        input: {
+          holdToken: hold.holdToken,
+          idempotencyKey: crypto.randomUUID(),
+          paymentMethodToken: "mock_success",
+        },
+      });
+      if (!result.confirmation) {
+        showToast("Payment thành công nhưng thiếu dữ liệu confirmation.", "error");
+        return;
+      }
+      setConfirmation(result.confirmation);
+      setStep(4);
+    } catch (error) {
+      showToast(apiErrorMessage(error), "error");
     }
   }
 
@@ -252,7 +301,7 @@ export function ReservationWizard() {
             <FieldShell label="Check-in" error={form.formState.errors.checkInAt?.message}>
               <Input
                 type="datetime-local"
-                min={`${dateInputMin()}T00:00`}
+                min={toLocalDateTimeInput(new Date())}
                 {...form.register("checkInAt")}
               />
             </FieldShell>
@@ -321,7 +370,12 @@ export function ReservationWizard() {
                   Pricing policy chưa cấu hình nên chưa thể tạo Paid Booking.
                 </span>
               </div>
-              <Button type="button" disabled variant="primary">
+              <Button
+                type="button"
+                onClick={pay}
+                loading={paymentMutation.isPending}
+                variant="primary"
+              >
                 Thanh toán
               </Button>
             </div>
@@ -353,14 +407,18 @@ export function ReservationWizard() {
               </div>
             </div>
             <div className="flex justify-center rounded-xl border border-slate-200 bg-white p-5">
-              <Image
-                src={confirmation.qrUrl}
-                alt={`QR check-in cho ${confirmation.bookingCode}`}
-                className="size-48 rounded-lg object-contain"
-                width={192}
-                height={192}
-                unoptimized
-              />
+              {qrDataUrl ? (
+                <Image
+                  src={qrDataUrl}
+                  alt={`QR check-in cho ${confirmation.bookingCode}`}
+                  className="size-48 rounded-lg object-contain"
+                  width={192}
+                  height={192}
+                  unoptimized
+                />
+              ) : (
+                <span className="text-sm text-muted">Đang tạo mã QR…</span>
+              )}
             </div>
             <p className="text-muted">
               Email confirmation sẽ được gửi theo trạng thái hiển thị ở trên.

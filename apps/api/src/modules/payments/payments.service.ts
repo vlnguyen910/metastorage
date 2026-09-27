@@ -59,6 +59,7 @@ export class PaymentsService {
           bookingCode: completed.booking.bookingCode,
           paidAt: completed.booking.paidAt,
         },
+        completed.confirmation,
       );
     }
 
