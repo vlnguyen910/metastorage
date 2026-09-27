@@ -6,6 +6,7 @@ import {
   customers,
   type Database,
   eq,
+  gt,
   payments,
   reservationDrafts,
   sql,
@@ -51,35 +52,125 @@ export class PaymentsRepository {
     return payment;
   }
 
-  async findCompletedByIdempotencyKey(idempotencyKey: string) {
+  async findCompletedByIdempotencyKey(
+    idempotencyKey: string,
+    draftId: string,
+    holdTokenHash: string,
+  ) {
     const [result] = await this.db
       .select({ payment: payments, booking: bookings })
       .from(payments)
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .where(eq(payments.idempotencyKey, idempotencyKey));
+      .where(
+        and(
+          eq(payments.idempotencyKey, idempotencyKey),
+          eq(payments.draftId, draftId),
+          eq(payments.holdTokenHash, holdTokenHash),
+          eq(payments.status, "SUCCEEDED"),
+        ),
+      );
     return result;
   }
 
-  async completeCheckout(input: {
+  async createPendingPayment(input: {
     draftId: string;
-    holdId: string;
+    holdTokenHash: string;
     provider: string;
-    providerPaymentId: string;
     idempotencyKey: string;
     pricing: PricingSnapshot;
+  }) {
+    return this.db.transaction(async (tx) => {
+      const [checkout] = await tx
+        .select({ draft: reservationDrafts, hold: capacityAllocations })
+        .from(reservationDrafts)
+        .innerJoin(
+          capacityAllocations,
+          and(
+            eq(capacityAllocations.referenceId, reservationDrafts.id),
+            eq(capacityAllocations.kind, "HOLD"),
+            eq(capacityAllocations.status, "ACTIVE"),
+            eq(capacityAllocations.accessTokenHash, input.holdTokenHash),
+            gt(capacityAllocations.expiresAt, new Date()),
+          ),
+        )
+        .where(eq(reservationDrafts.id, input.draftId))
+        .for("update");
+      if (!checkout) return null;
+
+      await tx
+        .insert(customers)
+        .values({
+          fullName: checkout.draft.contactName,
+          email: checkout.draft.contactEmail,
+          phone: checkout.draft.contactPhone,
+        })
+        .onConflictDoNothing();
+      const [businessCustomer] = await tx
+        .select()
+        .from(customers)
+        .where(sql`lower(btrim(${customers.email})) = lower(btrim(${checkout.draft.contactEmail}))`)
+        .for("update");
+      if (!businessCustomer) throw new Error("Failed to create customer");
+
+      const values = {
+        customerId: businessCustomer.id,
+        draftId: input.draftId,
+        holdTokenHash: input.holdTokenHash,
+        provider: input.provider,
+        providerPaymentId: `pending_${input.idempotencyKey}`,
+        idempotencyKey: input.idempotencyKey,
+        rentalFeeAmount: input.pricing.rentalFeeAmount,
+        depositAmount: input.pricing.depositAmount,
+        totalAmount: input.pricing.totalAmount,
+        currency: input.pricing.currency,
+        status: "PENDING" as const,
+      };
+      const [createdPayment] = await tx
+        .insert(payments)
+        .values(values)
+        .onConflictDoNothing({ target: payments.idempotencyKey })
+        .returning();
+      const [payment] = createdPayment
+        ? [createdPayment]
+        : await tx
+            .select()
+            .from(payments)
+            .where(eq(payments.idempotencyKey, input.idempotencyKey))
+            .for("update");
+      if (!payment) throw new Error("Failed to create pending payment");
+      return { payment, checkout };
+    });
+  }
+
+  async markFailed(paymentId: string) {
+    const [payment] = await this.db
+      .update(payments)
+      .set({ status: "FAILED", updatedAt: new Date() })
+      .where(and(eq(payments.id, paymentId), eq(payments.status, "PENDING")))
+      .returning();
+    return payment;
+  }
+
+  async completePendingPayment(input: {
+    paymentId: string;
+    providerPaymentId: string;
+    draftId: string;
+    holdId: string;
     paidAt: Date;
   }) {
     return this.db.transaction(async (tx) => {
-      const [existing] = await tx
+      const [payment] = await tx
         .select()
         .from(payments)
-        .where(eq(payments.idempotencyKey, input.idempotencyKey))
+        .where(
+          and(
+            eq(payments.id, input.paymentId),
+            eq(payments.draftId, input.draftId),
+            eq(payments.status, "PENDING"),
+          ),
+        )
         .for("update");
-      if (existing)
-        return {
-          payment: existing,
-          booking: existing.bookingId ? await this.findBooking(tx, existing.bookingId) : null,
-        };
+      if (!payment) return null;
 
       const [checkout] = await tx
         .select({ draft: reservationDrafts, hold: capacityAllocations })
@@ -97,48 +188,11 @@ export class PaymentsRepository {
         .for("update");
       if (!checkout) return null;
 
-      const now = input.paidAt;
-      const [customer] = await tx
-        .select()
-        .from(customers)
-        .where(sql`lower(btrim(${customers.email})) = lower(btrim(${checkout.draft.contactEmail}))`)
-        .for("update");
-      const businessCustomer =
-        customer ??
-        (
-          await tx
-            .insert(customers)
-            .values({
-              fullName: checkout.draft.contactName,
-              email: checkout.draft.contactEmail,
-              phone: checkout.draft.contactPhone,
-            })
-            .returning()
-        )[0];
-      if (!businessCustomer) throw new Error("Failed to create customer");
-
-      const [payment] = await tx
-        .insert(payments)
-        .values({
-          customerId: businessCustomer.id,
-          provider: input.provider,
-          providerPaymentId: input.providerPaymentId,
-          idempotencyKey: input.idempotencyKey,
-          rentalFeeAmount: input.pricing.rentalFeeAmount,
-          depositAmount: input.pricing.depositAmount,
-          totalAmount: input.pricing.totalAmount,
-          currency: input.pricing.currency,
-          status: "SUCCEEDED",
-          paidAt: now,
-        })
-        .returning();
-      if (!payment) throw new Error("Failed to create payment");
-
       const [booking] = await tx
         .insert(bookings)
         .values({
           bookingCode: bookingCode(),
-          customerId: businessCustomer.id,
+          customerId: payment.customerId,
           facilityId: checkout.draft.facilityId,
           unitTypeId: checkout.draft.unitTypeId,
           requestedMonths: checkout.draft.durationMonths,
@@ -147,21 +201,30 @@ export class PaymentsRepository {
           contactPhone: checkout.draft.contactPhone,
           checkInSlotStart: checkout.draft.checkInAt,
           rentalEndAt: checkout.draft.rentalEndAt,
-          rentalFeeAmount: input.pricing.rentalFeeAmount,
-          depositAmount: input.pricing.depositAmount,
-          totalAmount: input.pricing.totalAmount,
-          monthlyRateSnapshot: input.pricing.monthlyRateSnapshot,
-          currency: input.pricing.currency,
+          monthlyRateSnapshot: payment.rentalFeeAmount,
+          rentalFeeAmount: payment.rentalFeeAmount,
+          depositAmount: payment.depositAmount,
+          totalAmount: payment.totalAmount,
+          currency: payment.currency,
           status: "CONFIRMED",
-          paidAt: now,
+          paidAt: input.paidAt,
         })
         .returning();
-      if (!booking) throw new Error("Failed to create booking");
+      if (!booking) throw new Error("Failed to create booking after payment");
 
-      await tx
+      const [updatedPayment] = await tx
         .update(payments)
-        .set({ bookingId: booking.id, updatedAt: now })
-        .where(eq(payments.id, payment.id));
+        .set({
+          bookingId: booking.id,
+          providerPaymentId: input.providerPaymentId,
+          status: "SUCCEEDED",
+          paidAt: input.paidAt,
+          updatedAt: input.paidAt,
+        })
+        .where(eq(payments.id, payment.id))
+        .returning();
+      if (!updatedPayment) throw new Error("Failed to finalize payment");
+
       await tx
         .update(capacityAllocations)
         .set({
@@ -169,19 +232,11 @@ export class PaymentsRepository {
           referenceId: booking.id,
           accessTokenHash: null,
           expiresAt: null,
-          updatedAt: now,
+          updatedAt: input.paidAt,
         })
         .where(eq(capacityAllocations.id, input.holdId));
 
-      return { payment: { ...payment, bookingId: booking.id }, booking };
+      return { payment: updatedPayment, booking };
     });
-  }
-
-  private async findBooking(
-    tx: Parameters<Parameters<Database["transaction"]>[0]>[0],
-    bookingId: string,
-  ) {
-    const [booking] = await tx.select().from(bookings).where(eq(bookings.id, bookingId));
-    return booking ?? null;
   }
 }

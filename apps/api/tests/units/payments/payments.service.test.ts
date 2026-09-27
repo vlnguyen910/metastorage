@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
 import type { PaymentCheckoutInput } from "@storex/contracts";
 import { MockPaymentGateway } from "../../../src/modules/payments/payment-gateway";
@@ -10,6 +11,7 @@ const customerId = "00000000-0000-0000-0000-000000000003";
 const bookingId = "00000000-0000-0000-0000-000000000004";
 const facilityId = "00000000-0000-0000-0000-000000000005";
 const unitTypeId = "00000000-0000-0000-0000-000000000006";
+const holdTokenHash = createHash("sha256").update("a".repeat(64)).digest("hex");
 
 const now = new Date();
 const draft = {
@@ -63,11 +65,17 @@ function booking() {
 
 function repository(overrides: Record<string, unknown> = {}) {
   return {
+    findByIdempotencyKey: async () => undefined,
     findCompletedByIdempotencyKey: async () => undefined,
     findCheckout: async () => ({ draft, hold }),
-    completeCheckout: async () => ({
+    createPendingPayment: async () => ({
+      payment: { id: "00000000-0000-0000-0000-000000000007", status: "PENDING" as const },
+      checkout: { draft, hold },
+    }),
+    markFailed: async () => undefined,
+    completePendingPayment: async () => ({
       payment: {
-        id: "00000000-0000-0000-0000-000000000007",
+        id: "00000000-0000-0000-0000-000000000008",
         provider: "mock",
         providerPaymentId: "mock_checkout-key-000001",
         paidAt: now,
@@ -108,7 +116,7 @@ describe("payments service", () => {
     let completed = false;
     const service = new PaymentsService(
       repository({
-        completeCheckout: async () => {
+        completePendingPayment: async () => {
           completed = true;
           return null;
         },
@@ -132,12 +140,20 @@ describe("payments service", () => {
   it("returns the existing booking for an idempotent retry", async () => {
     const service = new PaymentsService(
       repository({
+        findByIdempotencyKey: async () => ({
+          draftId,
+          holdTokenHash,
+          status: "SUCCEEDED" as const,
+        }),
         findCompletedByIdempotencyKey: async () => ({
           payment: {
             id: "00000000-0000-0000-0000-000000000007",
             provider: "mock",
             providerPaymentId: "mock_existing",
             paidAt: now,
+            draftId,
+            holdTokenHash,
+            status: "SUCCEEDED" as const,
           },
           booking: booking(),
         }),
@@ -147,5 +163,21 @@ describe("payments service", () => {
 
     const result = await service.pay(draftId, paymentInput());
     assert.equal(result.booking.id, bookingId);
+  });
+
+  it("rejects an idempotency key reused by another draft", async () => {
+    const service = new PaymentsService(
+      repository({
+        findByIdempotencyKey: async () => ({
+          draftId: "00000000-0000-0000-0000-000000000099",
+          holdTokenHash,
+          status: "SUCCEEDED" as const,
+        }),
+      }),
+    );
+
+    await assert.rejects(() => service.pay(draftId, paymentInput()), {
+      code: "IDEMPOTENCY_KEY_REUSED",
+    });
   });
 });

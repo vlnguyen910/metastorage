@@ -33,7 +33,7 @@ export const bookings = pgTable(
     unitTypeId: uuid().notNull(),
     requestedMonths: integer().notNull(),
     contactName: varchar({ length: 150 }).notNull(),
-    contactEmail: varchar({ length: 255 }).notNull(),
+    contactEmail: varchar({ length: 320 }).notNull(),
     contactPhone: varchar({ length: 30 }).notNull(),
     checkInSlotStart: timestamp({ withTimezone: true }).notNull(),
     checkInSlotEnd: timestamp({ withTimezone: true }),

@@ -171,17 +171,20 @@ erDiagram
     uuid customer_id FK
     uuid facility_id FK
     uuid unit_type_id FK
-    integer duration_months
-    varchar contact_name_snapshot
-    varchar contact_email_snapshot
-    varchar contact_phone_snapshot
-    timestamptz check_in_at
+    integer requested_months
+    varchar contact_name
+    varchar contact_email
+    varchar contact_phone
+    timestamptz check_in_slot_start
+    timestamptz check_in_slot_end
     timestamptz rental_end_at
+    numeric monthly_rate_snapshot
     numeric rental_fee_amount
     numeric deposit_amount
     numeric total_amount
     varchar currency
-    booking_status status
+    varchar status
+    varchar qr_token UK
     timestamptz paid_at
     timestamptz created_at
     timestamptz updated_at
@@ -190,9 +193,11 @@ erDiagram
   payments {
     uuid id PK
     uuid booking_id FK
+    uuid draft_id FK
     uuid customer_id FK
     varchar provider
-    varchar provider_payment_id UK
+    varchar provider_payment_id
+    varchar hold_token_hash
     varchar idempotency_key UK
     numeric rental_fee_amount
     numeric deposit_amount
@@ -306,3 +311,5 @@ tracking and account-linking implementation.
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
+- `payments.draft_id` and the hash of the hold token scope idempotent replay to
+  the original checkout; plaintext hold tokens are never stored.
