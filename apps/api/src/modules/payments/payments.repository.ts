@@ -1,15 +1,18 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   and,
+  bookingConfirmationEmails,
   bookings,
   capacityAllocations,
   customers,
   type Database,
   eq,
+  facilities,
   gt,
   payments,
   reservationDrafts,
   sql,
+  unitTypes,
 } from "@storex/database";
 
 export type PricingSnapshot = {
@@ -22,6 +25,10 @@ export type PricingSnapshot = {
 
 function bookingCode() {
   return `SX-${randomBytes(5).toString("hex").toUpperCase()}`;
+}
+
+function hashQrToken(token: string) {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 export class PaymentsRepository {
@@ -174,8 +181,15 @@ export class PaymentsRepository {
       if (!payment) return null;
 
       const [checkout] = await tx
-        .select({ draft: reservationDrafts, hold: capacityAllocations })
+        .select({
+          draft: reservationDrafts,
+          hold: capacityAllocations,
+          facility: facilities,
+          unitType: unitTypes,
+        })
         .from(reservationDrafts)
+        .innerJoin(facilities, eq(facilities.id, reservationDrafts.facilityId))
+        .innerJoin(unitTypes, eq(unitTypes.id, reservationDrafts.unitTypeId))
         .innerJoin(
           capacityAllocations,
           and(
@@ -188,6 +202,7 @@ export class PaymentsRepository {
         .where(eq(reservationDrafts.id, input.draftId))
         .for("update");
       if (!checkout) return null;
+      const qrToken = randomBytes(32).toString("hex");
 
       const [booking] = await tx
         .insert(bookings)
@@ -207,6 +222,7 @@ export class PaymentsRepository {
           depositAmount: payment.depositAmount,
           totalAmount: payment.totalAmount,
           currency: payment.currency,
+          qrTokenHash: hashQrToken(qrToken),
           status: "CONFIRMED",
           paidAt: input.paidAt,
         })
@@ -226,6 +242,13 @@ export class PaymentsRepository {
         .returning();
       if (!updatedPayment) throw new Error("Failed to finalize payment");
 
+      await tx.insert(bookingConfirmationEmails).values({
+        bookingId: booking.id,
+        recipientEmail: checkout.draft.contactEmail,
+        template: "BOOKING_CONFIRMATION",
+        status: "PENDING",
+      });
+
       await tx
         .update(capacityAllocations)
         .set({
@@ -237,7 +260,24 @@ export class PaymentsRepository {
         })
         .where(eq(capacityAllocations.id, input.holdId));
 
-      return { payment: updatedPayment, booking };
+      return {
+        payment: updatedPayment,
+        booking,
+        confirmation: {
+          bookingId: booking.id,
+          bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
+          qrToken,
+          qrUrl: `${process.env.PUBLIC_APP_URL ?? "http://localhost:3000"}/check-in?token=${qrToken}`,
+          facility: { name: checkout.facility.name, address: checkout.facility.address },
+          checkInSlotStart: checkout.draft.checkInAt.toISOString(),
+          checkInSlotEnd: null,
+          rentalEndAt: checkout.draft.rentalEndAt.toISOString(),
+          unitTypeName: checkout.unitType.name,
+          sizeLabel: checkout.unitType.sizeLabel,
+          durationMonths: checkout.draft.durationMonths,
+          emailStatus: "QUEUED" as const,
+        },
+      };
     });
   }
 }

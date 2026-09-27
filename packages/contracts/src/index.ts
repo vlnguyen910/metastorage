@@ -389,8 +389,41 @@ export const PaymentResultSchema = z.object({
   paidAt: z.string().datetime(),
   pricing: PaidBookingSchema.shape.pricing,
   booking: PaidBookingSchema,
+  confirmation: z.lazy(() => BookingConfirmationSchema).optional(),
 });
 export type PaymentResult = z.infer<typeof PaymentResultSchema>;
+
+export const BookingConfirmationSchema = z.object({
+  bookingId: z.string().uuid(),
+  bookingCode: z.string(),
+  qrToken: z.string().min(32),
+  qrUrl: z.string().url(),
+  facility: z.object({ name: z.string(), address: z.string() }),
+  checkInSlotStart: z.string().datetime(),
+  checkInSlotEnd: z.string().datetime().nullable(),
+  rentalEndAt: z.string().datetime(),
+  unitTypeName: z.string(),
+  sizeLabel: z.string(),
+  durationMonths: z.number().int().min(1).max(12),
+  emailStatus: z.enum(["QUEUED", "PENDING", "SENT", "FAILED"]),
+});
+export type BookingConfirmation = z.infer<typeof BookingConfirmationSchema>;
+
+export const BookingQrVerificationInputSchema = z.object({
+  qrToken: z.string().min(32),
+});
+export type BookingQrVerificationInput = z.infer<typeof BookingQrVerificationInputSchema>;
+
+export const BookingQrVerificationResultSchema = z.object({
+  bookingId: z.string().uuid(),
+  bookingCode: z.string(),
+  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  checkInSlotStart: z.string().datetime(),
+  rentalEndAt: z.string().datetime(),
+});
+export type BookingQrVerificationResult = z.infer<typeof BookingQrVerificationResultSchema>;
 
 export interface DashboardKpi {
   label: string;

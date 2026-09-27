@@ -22,6 +22,7 @@ erDiagram
   customers ||--o{ bookings : owns
   customers ||--o{ payments : makes
   bookings ||--o{ payments : records
+  bookings ||--o{ booking_confirmation_emails : notifies
 
   users {
     uuid id PK
@@ -184,7 +185,7 @@ erDiagram
     numeric total_amount
     varchar currency
     varchar status
-    varchar qr_token UK
+    varchar qr_token_hash UK
     timestamptz paid_at
     timestamptz created_at
     timestamptz updated_at
@@ -206,6 +207,20 @@ erDiagram
     varchar currency
     payment_status status
     timestamptz paid_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  booking_confirmation_emails {
+    uuid id PK
+    uuid booking_id FK
+    varchar recipient_email
+    varchar template
+    booking_email_status status
+    integer attempts
+    text last_error
+    varchar provider_message_id
+    timestamptz sent_at
     timestamptz created_at
     timestamptz updated_at
   }

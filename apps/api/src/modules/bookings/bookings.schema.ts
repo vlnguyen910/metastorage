@@ -1,4 +1,7 @@
+import { BookingQrVerificationInputSchema } from "@storex/contracts";
 import { z } from "zod";
+
+export const VerifyQrBodySchema = BookingQrVerificationInputSchema;
 
 export const FacilityBookingsParamsSchema = z.object({
   facilityId: z.string().uuid(),

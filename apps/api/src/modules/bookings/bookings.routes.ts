@@ -12,6 +12,7 @@ import {
   BookingIdParamsSchema,
   BookingListQuerySchema,
   FacilityBookingsParamsSchema,
+  VerifyQrBodySchema,
 } from "./bookings.schema";
 import { BookingsService } from "./bookings.service";
 
@@ -41,6 +42,23 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       const { status } = request.query;
       const bookings = await service.getFacilityBookings(facilityId, status);
       return reply.status(200).send(successResponse(bookings));
+    },
+  );
+
+  // GET /api/bookings/:id - Get booking details
+  typedApp.post(
+    "/bookings/verify-qr",
+    { schema: { body: VerifyQrBodySchema }, preHandler: [requireAuth] },
+    async (request, reply) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      const result = await service.verifyQr(request.body.qrToken);
+      const scope = getFacilityAccessScope(user);
+      await requireAssignedFacility(facilitiesRepository, result.facilityId, scope, [
+        "FACILITY_MANAGER",
+        "FACILITY_STAFF",
+      ]);
+      return reply.status(200).send(successResponse(result));
     },
   );
 

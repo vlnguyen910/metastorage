@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { PaidBooking, PaymentResult } from "@storex/contracts";
+import type { BookingConfirmation, PaidBooking, PaymentResult } from "@storex/contracts";
 import type { Booking, Payment } from "@storex/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
@@ -127,6 +127,7 @@ export class PaymentsService {
         bookingCode: completedCheckout.booking.bookingCode,
         paidAt: completedCheckout.booking.paidAt,
       },
+      completedCheckout.confirmation,
     );
   }
 }
@@ -153,6 +154,7 @@ function toPaymentResult(
     | "totalAmount"
     | "currency"
   > & { bookingCode: string; paidAt: Date },
+  confirmation?: BookingConfirmation,
 ): PaymentResult {
   const result: PaidBooking = {
     id: booking.id,
@@ -185,5 +187,6 @@ function toPaymentResult(
     paidAt: payment.paidAt.toISOString(),
     pricing: result.pricing,
     booking: result,
+    confirmation,
   };
 }

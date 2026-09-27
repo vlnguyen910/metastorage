@@ -44,7 +44,7 @@ export const bookings = pgTable(
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     currency: varchar({ length: 3 }).default("VND").notNull(),
     status: varchar({ length: 50 }).default("CONFIRMED").notNull(),
-    qrToken: varchar({ length: 255 }).unique(),
+    qrTokenHash: varchar({ length: 255 }).unique(),
     paidAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),

@@ -1,4 +1,5 @@
 export * from "./accounts";
+export * from "./booking-confirmation-emails";
 export * from "./bookings";
 export * from "./customers";
 export * from "./facilities";

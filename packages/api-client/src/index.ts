@@ -3,6 +3,8 @@ import type {
   ApiUser,
   AssignPhysicalUnitInput,
   BookingListItem,
+  BookingQrVerificationInput,
+  BookingQrVerificationResult,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
@@ -207,6 +209,10 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
         http.get<ApiEnvelope<Reservation>>(`/reservations/${reservationId}`).then(unwrap),
     },
     bookings: {
+      verifyQr: (input: BookingQrVerificationInput) =>
+        http
+          .post<ApiEnvelope<BookingQrVerificationResult>>("/bookings/verify-qr", input)
+          .then(unwrap),
       listFacilityBookings: (facilityId: string, status?: string) =>
         http
           .get<ApiEnvelope<BookingListItem[]>>(`/facilities/${facilityId}/bookings`, {

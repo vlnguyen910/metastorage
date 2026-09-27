@@ -40,6 +40,15 @@ function mockRepository(overrides: Partial<BookingsRepository> = {}): BookingsRe
   return {
     findFacilityBookings: async () => [mockBooking()],
     findBookingById: async () => mockBooking(),
+    findByQrToken: async () => ({
+      bookingId,
+      bookingCode: "BK-2026-0001",
+      status: "CONFIRMED" as const,
+      facilityId,
+      unitTypeId,
+      checkInSlotStart: new Date(Date.now() + 86400000).toISOString(),
+      rentalEndAt: new Date(Date.now() + 30 * 86400000).toISOString(),
+    }),
     findEligibleUnits: async () => [
       {
         id: physicalUnitId,
@@ -85,6 +94,21 @@ describe("BookingsService - Physical Unit Assignment", () => {
     assert.equal(units.length, 1);
     assert.equal(units[0].code, "HN-S-101");
     assert.equal(units[0].isAvailableForPeriod, true);
+  });
+
+  it("verifies an opaque QR without exposing booking contact data", async () => {
+    const service = new BookingsService(mockRepository());
+    const result = await service.verifyQr("a".repeat(64));
+
+    assert.equal(result.bookingId, bookingId);
+    assert.equal("contactEmail" in result, false);
+    assert.equal("totalAmount" in result, false);
+  });
+
+  it("rejects invalid QR tokens", async () => {
+    const service = new BookingsService(mockRepository({ findByQrToken: async () => null }));
+
+    await assert.rejects(() => service.verifyQr("invalid"), { name: "NotFoundError" });
   });
 
   it("successfully assigns an eligible physical unit to a confirmed booking", async () => {
