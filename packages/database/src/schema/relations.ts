@@ -11,6 +11,7 @@ import {
   storageUnits,
   unitTypes,
 } from "./facilities";
+import { payments } from "./payments";
 import { sessions } from "./sessions";
 import { users } from "./users";
 
@@ -29,6 +30,11 @@ export const customersRelations = relations(customers, ({ one }) => ({
     fields: [customers.userId],
     references: [users.id],
   }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one }) => ({
+  booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
+  customer: one(customers, { fields: [payments.customerId], references: [customers.id] }),
 }));
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
@@ -105,9 +111,9 @@ export const capacityAllocationsRelations = relations(capacityAllocations, ({ on
 }));
 
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({
-  customer: one(users, {
+  customer: one(customers, {
     fields: [bookings.customerId],
-    references: [users.id],
+    references: [customers.id],
   }),
   facility: one(facilities, {
     fields: [bookings.facilityId],
@@ -141,9 +147,9 @@ export const rentalsRelations = relations(rentals, ({ one }) => ({
     fields: [rentals.bookingId],
     references: [bookings.id],
   }),
-  customer: one(users, {
+  customer: one(customers, {
     fields: [rentals.customerId],
-    references: [users.id],
+    references: [customers.id],
   }),
   facility: one(facilities, {
     fields: [rentals.facilityId],

@@ -1,8 +1,8 @@
 # storeX database diagram
 
 This diagram records every table and column currently declared in
-`packages/database/src/schema`. Booking, Rental, Payment and guest access tables
-are future work and do not exist in the current schema.
+`packages/database/src/schema`. Rental and guest access remain future work;
+Booking and Payment are introduced by issue #18.
 
 ```mermaid
 erDiagram
@@ -19,6 +19,9 @@ erDiagram
   unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
+  customers ||--o{ bookings : owns
+  customers ||--o{ payments : makes
+  bookings ||--o{ payments : records
 
   users {
     uuid id PK
@@ -161,6 +164,45 @@ erDiagram
     timestamptz created_at
     timestamptz updated_at
   }
+
+  bookings {
+    uuid id PK
+    varchar booking_code UK
+    uuid customer_id FK
+    uuid facility_id FK
+    uuid unit_type_id FK
+    integer duration_months
+    varchar contact_name_snapshot
+    varchar contact_email_snapshot
+    varchar contact_phone_snapshot
+    timestamptz check_in_at
+    timestamptz rental_end_at
+    numeric rental_fee_amount
+    numeric deposit_amount
+    numeric total_amount
+    varchar currency
+    booking_status status
+    timestamptz paid_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  payments {
+    uuid id PK
+    uuid booking_id FK
+    uuid customer_id FK
+    varchar provider
+    varchar provider_payment_id UK
+    varchar idempotency_key UK
+    numeric rental_fee_amount
+    numeric deposit_amount
+    numeric total_amount
+    varchar currency
+    payment_status status
+    timestamptz paid_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
 ```
 
 ## Existing constraints and behavior
@@ -251,3 +293,16 @@ Customer and become visible to that User; this is an accepted consequence of
 the chosen reuse policy. The tracking mechanism (email OTP or signed magic
 link), expiry and claim workflow are **TBD** for the dependent Booking,
 tracking and account-linking implementation.
+
+## Payment and Booking notes (#18)
+
+- `bookings.customer_id` references `customers.id`, never `users.id`.
+- Booking stores contact and pricing snapshots so later Customer profile
+  changes do not rewrite historical transaction data.
+- Payment provider integration is selected through a gateway adapter. The
+  current implementation provides a mock/test adapter; the production provider
+  and pricing policy remain TBD under issue #42.
+- A successful payment changes the matching active capacity allocation from
+  `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
+  at checkout.
+- `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
