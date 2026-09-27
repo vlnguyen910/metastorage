@@ -11,6 +11,15 @@ import type { BookingsRepository } from "./bookings.repository";
 export class BookingsService {
   constructor(private readonly repository: BookingsRepository) {}
 
+  async verifyQr(qrToken: string) {
+    const booking = await this.repository.findByQrToken(qrToken);
+    if (!booking) throw new NotFoundError("QR không hợp lệ hoặc Booking không tồn tại");
+    if (["CANCELLED", "NO_SHOW"].includes(booking.status)) {
+      throw new ConflictError("Booking không thể dùng để check-in");
+    }
+    return booking;
+  }
+
   async getFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     return this.repository.findFacilityBookings(facilityId, status);
   }

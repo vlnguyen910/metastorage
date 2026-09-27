@@ -1,4 +1,10 @@
-import type { BookingListItem, EligibleUnit, PhysicalUnitAssignment } from "@storex/contracts";
+import { createHash } from "node:crypto";
+import type {
+  BookingListItem,
+  BookingQrVerificationResult,
+  EligibleUnit,
+  PhysicalUnitAssignment,
+} from "@storex/contracts";
 import {
   and,
   bookings,
@@ -19,6 +25,32 @@ import {
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
+
+  async findByQrToken(qrToken: string): Promise<BookingQrVerificationResult | null> {
+    const qrTokenHash = createHash("sha256").update(qrToken).digest("hex");
+    const [booking] = await this.db
+      .select({
+        id: bookings.id,
+        bookingCode: bookings.bookingCode,
+        status: bookings.status,
+        facilityId: bookings.facilityId,
+        unitTypeId: bookings.unitTypeId,
+        checkInSlotStart: bookings.checkInSlotStart,
+        rentalEndAt: bookings.rentalEndAt,
+      })
+      .from(bookings)
+      .where(eq(bookings.qrTokenHash, qrTokenHash));
+    if (!booking?.bookingCode) return null;
+    return {
+      bookingId: booking.id,
+      bookingCode: booking.bookingCode,
+      status: booking.status as BookingQrVerificationResult["status"],
+      facilityId: booking.facilityId,
+      unitTypeId: booking.unitTypeId,
+      checkInSlotStart: booking.checkInSlotStart.toISOString(),
+      rentalEndAt: booking.rentalEndAt.toISOString(),
+    };
+  }
 
   async findFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     const conditions = [eq(bookings.facilityId, facilityId)];

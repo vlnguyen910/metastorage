@@ -1,9 +1,15 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import type { ReservationDraft, ReservationHold, UnitAvailabilityOption } from "@storex/contracts";
+import type {
+  BookingConfirmation,
+  ReservationDraft,
+  ReservationHold,
+  UnitAvailabilityOption,
+} from "@storex/contracts";
 import axios from "axios";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -48,6 +54,7 @@ export function ReservationWizard() {
   const [draft, setDraft] = useState<ReservationDraft | null>(null);
   const [hold, setHold] = useState<ReservationHold | null>(null);
   const [holdSeconds, setHoldSeconds] = useState(0);
+  const [confirmation] = useState<BookingConfirmation | null>(null);
   const facilitiesQuery = useFacilities({ pageSize: 20 });
   const draftMutation = useReservationDraft();
   const holdMutation = useReservationHold();
@@ -142,7 +149,7 @@ export function ReservationWizard() {
     <div className="mx-auto w-full max-w-[980px]">
       <Card className="mx-auto flex min-h-[510px] w-full max-w-[900px] flex-col max-[560px]:p-[19px]">
         <ol className="relative mb-7 flex list-none justify-between p-0 before:absolute before:top-[17px] before:right-[7%] before:left-[7%] before:h-0.5 before:bg-slate-200">
-          {["Cơ sở", "Unit Type", "Thông tin thuê", "Draft"].map((label, index) => (
+          {["Cơ sở", "Unit Type", "Thông tin thuê", "Draft", "Confirmation"].map((label, index) => (
             <li
               key={label}
               className={cn(
@@ -318,6 +325,46 @@ export function ReservationWizard() {
                 Thanh toán
               </Button>
             </div>
+          </div>
+        ) : null}
+
+        {step === 4 && confirmation ? (
+          <div className="grid gap-4">
+            <span className="text-xs font-extrabold tracking-[0.13em] text-primary uppercase">
+              Booking confirmed
+            </span>
+            <h2 className="text-2xl font-bold">Xác nhận đặt kho</h2>
+            <div className="grid gap-3 rounded-xl bg-primary-soft p-5">
+              <div className="flex justify-between gap-4">
+                <span>Booking ID</span>
+                <strong>{confirmation.bookingCode}</strong>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Cơ sở</span>
+                <strong>{confirmation.facility.name}</strong>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Check-in</span>
+                <strong>{confirmation.checkInSlotStart}</strong>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span>Email</span>
+                <strong>{confirmation.emailStatus}</strong>
+              </div>
+            </div>
+            <div className="flex justify-center rounded-xl border border-slate-200 bg-white p-5">
+              <Image
+                src={confirmation.qrUrl}
+                alt={`QR check-in cho ${confirmation.bookingCode}`}
+                className="size-48 rounded-lg object-contain"
+                width={192}
+                height={192}
+                unoptimized
+              />
+            </div>
+            <p className="text-muted">
+              Email confirmation sẽ được gửi theo trạng thái hiển thị ở trên.
+            </p>
           </div>
         ) : null}
 
