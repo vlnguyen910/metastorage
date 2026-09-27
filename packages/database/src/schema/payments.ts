@@ -30,6 +30,7 @@ export const payments = pgTable(
     provider: varchar({ length: 32 }).notNull(),
     providerPaymentId: varchar({ length: 128 }).notNull(),
     idempotencyKey: varchar({ length: 128 }).notNull(),
+    monthlyRateSnapshot: numeric({ precision: 14, scale: 2 }).notNull(),
     rentalFeeAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     depositAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
