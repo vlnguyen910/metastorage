@@ -20,11 +20,38 @@ export class PaymentsService {
   ) {}
 
   async pay(draftId: string, input: CheckoutPaymentBody): Promise<PaymentResult> {
-    const completed = await this.repository.findCompletedByIdempotencyKey(input.idempotencyKey);
-    if (completed) {
-      if (!completed.payment.paidAt) throw new AppError("Payment thiếu thời điểm thanh toán", 500);
-      if (!completed.booking.bookingCode || !completed.booking.paidAt)
-        throw new AppError("Booking thiếu thông tin thanh toán", 500);
+    const holdTokenHash = hashToken(input.holdToken);
+    const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
+    if (existing) {
+      if (existing.draftId !== draftId || existing.holdTokenHash !== holdTokenHash) {
+        throw new AppError(
+          "Idempotency key đã được dùng cho checkout khác",
+          409,
+          "IDEMPOTENCY_KEY_REUSED",
+        );
+      }
+      if (existing.status === "PENDING") {
+        throw new AppError("Payment đang được đối soát", 409, "PAYMENT_PENDING");
+      }
+      if (existing.status !== "SUCCEEDED") {
+        throw new AppError(
+          "Payment attempt đã kết thúc, hãy tạo idempotency key mới",
+          409,
+          "PAYMENT_ATTEMPT_FINALIZED",
+        );
+      }
+      const completed = await this.repository.findCompletedByIdempotencyKey(
+        input.idempotencyKey,
+        draftId,
+        holdTokenHash,
+      );
+      if (
+        !completed?.payment.paidAt ||
+        !completed.booking.bookingCode ||
+        !completed.booking.paidAt
+      ) {
+        throw new AppError("Payment thiếu thông tin booking", 500);
+      }
       return toPaymentResult(
         { ...completed.payment, paidAt: completed.payment.paidAt },
         {
@@ -35,7 +62,7 @@ export class PaymentsService {
       );
     }
 
-    const checkout = await this.repository.findCheckout(draftId, hashToken(input.holdToken));
+    const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
     if (!checkout) throw new NotFoundError("Hold không tồn tại hoặc không còn hiệu lực");
     if (checkout.hold.expiresAt && checkout.hold.expiresAt <= new Date()) {
       throw new AppError("Hold đã hết hạn", 409, "HOLD_EXPIRED");
@@ -44,28 +71,50 @@ export class PaymentsService {
     const pricing = await this.pricingProvider(draftId);
     if (!pricing) throw new AppError("Pricing chưa được cấu hình", 409, "PRICING_NOT_CONFIGURED");
 
+    const pending = await this.repository.createPendingPayment({
+      draftId,
+      holdTokenHash,
+      provider: this.gateway.provider,
+      idempotencyKey: input.idempotencyKey,
+      pricing,
+    });
+    if (!pending) throw new AppError("Hold không còn hiệu lực", 409, "HOLD_EXPIRED");
+    if (pending.payment.status !== "PENDING") {
+      throw new AppError("Idempotency key đã được xử lý", 409, "IDEMPOTENCY_KEY_REUSED");
+    }
+
     const gatewayResult = await this.gateway.charge({
       amount: pricing.totalAmount,
       currency: pricing.currency,
       paymentMethodToken: input.paymentMethodToken,
       idempotencyKey: input.idempotencyKey,
     });
+    if (
+      !gatewayResult?.providerPaymentId ||
+      !["SUCCEEDED", "FAILED"].includes(gatewayResult.status)
+    ) {
+      throw new AppError("Payment gateway trả về kết quả không xác định", 503, "PAYMENT_UNCERTAIN");
+    }
     if (gatewayResult.status === "FAILED") {
+      await this.repository.markFailed(pending.payment.id);
       throw new AppError("Payment thất bại", 402, "PAYMENT_FAILED");
     }
 
-    const completedCheckout = await this.repository.completeCheckout({
-      draftId,
-      holdId: checkout.hold.id,
-      provider: this.gateway.provider,
-      providerPaymentId: gatewayResult.providerPaymentId,
-      idempotencyKey: input.idempotencyKey,
-      pricing,
-      paidAt: new Date(),
-    });
-    if (!completedCheckout) throw new AppError("Hold không còn hiệu lực", 409, "HOLD_EXPIRED");
-    if (!completedCheckout.booking)
-      throw new AppError("Payment đã tồn tại nhưng thiếu Booking", 500);
+    let completedCheckout: Awaited<ReturnType<PaymentsRepository["completePendingPayment"]>>;
+    try {
+      completedCheckout = await this.repository.completePendingPayment({
+        paymentId: pending.payment.id,
+        draftId,
+        holdId: checkout.hold.id,
+        providerPaymentId: gatewayResult.providerPaymentId,
+        paidAt: new Date(),
+      });
+    } catch {
+      throw new AppError("Payment đã nhận nhưng đang chờ đối soát", 503, "PAYMENT_UNCERTAIN");
+    }
+    if (!completedCheckout?.booking) {
+      throw new AppError("Payment đã nhận nhưng đang chờ đối soát", 503, "PAYMENT_UNCERTAIN");
+    }
     if (!completedCheckout.payment.paidAt)
       throw new AppError("Payment thiếu thời điểm thanh toán", 500);
     if (!completedCheckout.booking.bookingCode || !completedCheckout.booking.paidAt)

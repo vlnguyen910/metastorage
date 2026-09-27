@@ -10,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { customers } from "./customers";
+import { reservationDrafts } from "./facilities";
 
 export const PAYMENT_STATUSES = ["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"] as const;
 export const paymentStatusEnum = pgEnum("payment_status", PAYMENT_STATUSES);
@@ -19,6 +20,10 @@ export const payments = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
+    draftId: uuid()
+      .notNull()
+      .references(() => reservationDrafts.id, { onDelete: "restrict" }),
+    holdTokenHash: varchar({ length: 128 }).notNull(),
     customerId: uuid()
       .notNull()
       .references(() => customers.id, { onDelete: "restrict" }),
