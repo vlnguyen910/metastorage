@@ -199,6 +199,7 @@ erDiagram
     varchar provider_payment_id
     varchar hold_token_hash
     varchar idempotency_key UK
+    numeric monthly_rate_snapshot
     numeric rental_fee_amount
     numeric deposit_amount
     numeric total_amount
