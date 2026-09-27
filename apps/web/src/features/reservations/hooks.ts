@@ -2,6 +2,7 @@
 
 import type {
   ConfirmReservationInput,
+  PaymentCheckoutInput,
   ReservationDraftInput,
   ReservationQuoteInput,
 } from "@storex/contracts";
@@ -41,6 +42,15 @@ export function useReservationHold() {
   return useMutation({
     mutationFn: ({ draftId, draftAccessToken }: { draftId: string; draftAccessToken: string }) =>
       api.reservations.createHold(draftId, draftAccessToken),
+  });
+}
+
+export function useReservationPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ draftId, input }: { draftId: string; input: PaymentCheckoutInput }) =>
+      api.reservations.pay(draftId, input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
   });
 }
 

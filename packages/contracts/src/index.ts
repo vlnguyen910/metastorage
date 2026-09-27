@@ -353,6 +353,45 @@ export const ReservationHoldSchema = z.object({
 });
 export type ReservationHold = z.infer<typeof ReservationHoldSchema>;
 
+export const PaymentCheckoutInputSchema = z.object({
+  holdToken: z.string().min(32),
+  idempotencyKey: z.string().min(16).max(128),
+  paymentMethodToken: z.string().min(1),
+});
+export type PaymentCheckoutInput = z.infer<typeof PaymentCheckoutInputSchema>;
+
+export const PaidBookingSchema = z.object({
+  id: z.string().uuid(),
+  bookingCode: z.string(),
+  customerId: z.string().uuid(),
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  checkInAt: z.string().datetime(),
+  rentalEndAt: z.string().datetime(),
+  durationMonths: z.number().int().min(1).max(12),
+  status: z.literal("CONFIRMED"),
+  paidAt: z.string().datetime(),
+  contact: ReservationDraftContactSchema,
+  pricing: z.object({
+    rentalFeeAmount: z.string(),
+    depositAmount: z.string(),
+    totalAmount: z.string(),
+    currency: z.string().length(3),
+  }),
+});
+export type PaidBooking = z.infer<typeof PaidBookingSchema>;
+
+export const PaymentResultSchema = z.object({
+  id: z.string().uuid(),
+  status: z.literal("SUCCEEDED"),
+  provider: z.string(),
+  providerPaymentId: z.string(),
+  paidAt: z.string().datetime(),
+  pricing: PaidBookingSchema.shape.pricing,
+  booking: PaidBookingSchema,
+});
+export type PaymentResult = z.infer<typeof PaymentResultSchema>;
+
 export interface DashboardKpi {
   label: string;
   value: string;

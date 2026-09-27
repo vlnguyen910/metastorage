@@ -307,6 +307,17 @@ export function ReservationWizard() {
             <p className="text-muted">
               Draft đã lưu. Rental fee và deposit sẽ được tính khi pricing policy #42 được cấu hình.
             </p>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
+              <div>
+                <strong className="block text-sm text-amber-900">Thanh toán chưa khả dụng</strong>
+                <span className="text-sm text-amber-800">
+                  Pricing policy chưa cấu hình nên chưa thể tạo Paid Booking.
+                </span>
+              </div>
+              <Button type="button" disabled variant="primary">
+                Thanh toán
+              </Button>
+            </div>
           </div>
         ) : null}
 

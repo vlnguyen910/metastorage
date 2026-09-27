@@ -2,6 +2,7 @@ export * from "./accounts";
 export * from "./bookings";
 export * from "./customers";
 export * from "./facilities";
+export * from "./payments";
 export * from "./relations";
 export * from "./sessions";
 export * from "./users";

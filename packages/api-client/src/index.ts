@@ -15,6 +15,8 @@ import type {
   FacilityListParams,
   LoginInput,
   PaginatedResult,
+  PaymentCheckoutInput,
+  PaymentResult,
   PhysicalUnitAssignment,
   Reservation,
   ReservationDraft,
@@ -191,6 +193,10 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
           .post<ApiEnvelope<ReservationHold>>(`/reservations/drafts/${draftId}/hold`, {
             draftAccessToken,
           })
+          .then(unwrap),
+      pay: (draftId: string, input: PaymentCheckoutInput) =>
+        http
+          .post<ApiEnvelope<PaymentResult>>(`/reservations/drafts/${draftId}/pay`, input)
           .then(unwrap),
       quote: (input: ReservationQuoteInput) =>
         http.post<ApiEnvelope<ReservationQuote>>("/reservations/quote", input).then(unwrap),

@@ -1,4 +1,5 @@
 import {
+  foreignKey,
   index,
   integer,
   numeric,
@@ -8,6 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { customers } from "./customers";
 import { facilities, storageUnits, unitTypes } from "./facilities";
 import { users } from "./users";
 
@@ -24,13 +26,11 @@ export const bookings = pgTable(
     bookingCode: varchar({ length: 50 }).unique(),
     customerId: uuid()
       .notNull()
-      .references(() => users.id),
+      .references(() => customers.id),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id),
-    unitTypeId: uuid()
-      .notNull()
-      .references(() => unitTypes.id),
+    unitTypeId: uuid().notNull(),
     requestedMonths: integer().notNull(),
     contactName: varchar({ length: 150 }).notNull(),
     contactEmail: varchar({ length: 255 }).notNull(),
@@ -42,6 +42,7 @@ export const bookings = pgTable(
     rentalFeeAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     depositAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
+    currency: varchar({ length: 3 }).default("VND").notNull(),
     status: varchar({ length: 50 }).default("CONFIRMED").notNull(),
     qrToken: varchar({ length: 255 }).unique(),
     paidAt: timestamp({ withTimezone: true }),
@@ -49,6 +50,10 @@ export const bookings = pgTable(
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    foreignKey({
+      columns: [table.unitTypeId, table.facilityId],
+      foreignColumns: [unitTypes.id, unitTypes.facilityId],
+    }).onDelete("restrict"),
     index("bookings_facility_status_idx").on(table.facilityId, table.status),
     index("bookings_customer_idx").on(table.customerId),
     index("bookings_dates_idx").on(table.checkInSlotStart, table.rentalEndAt),
@@ -90,7 +95,7 @@ export const rentals = pgTable(
       .references(() => bookings.id),
     customerId: uuid()
       .notNull()
-      .references(() => users.id),
+      .references(() => customers.id),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id),
