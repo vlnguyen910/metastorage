@@ -20,6 +20,8 @@ import type {
   PaymentCheckoutInput,
   PaymentResult,
   PhysicalUnitAssignment,
+  RentalDetail,
+  RentalListItem,
   Reservation,
   ReservationDraft,
   ReservationDraftInput,
@@ -227,6 +229,11 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
         http
           .post<ApiEnvelope<PhysicalUnitAssignment>>(`/bookings/${bookingId}/assign-unit`, input)
           .then(unwrap),
+    },
+    rentals: {
+      mine: () => http.get<ApiEnvelope<RentalListItem[]>>("/rentals/mine").then(unwrap),
+      get: (rentalId: string) =>
+        http.get<ApiEnvelope<RentalDetail>>(`/rentals/${rentalId}`).then(unwrap),
     },
     dashboards: {
       get: (role: UserRole) =>

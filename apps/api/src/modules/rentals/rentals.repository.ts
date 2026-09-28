@@ -1,0 +1,111 @@
+import type { RentalDetail, RentalListItem } from "@storex/contracts";
+import {
+  and,
+  bookings,
+  customers,
+  type Database,
+  eq,
+  facilities,
+  rentals,
+  storageUnits,
+  unitTypes,
+} from "@storex/database";
+
+const ACTIONS = {
+  canCancel: false as const,
+  canReschedule: false as const,
+  note: "Các thao tác hủy, đổi lịch và yêu cầu hoàn tiền sẽ được bổ sung ở phiên bản sau.",
+};
+
+export class RentalsRepository {
+  constructor(private readonly db: Database) {}
+
+  private baseQuery() {
+    return this.db
+      .select({
+        rental: rentals,
+        booking: bookings,
+        facility: facilities,
+        unitType: unitTypes,
+        physicalUnit: storageUnits,
+      })
+      .from(rentals)
+      .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(facilities, eq(facilities.id, rentals.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
+  }
+
+  async findCustomerId(userId: string) {
+    const [customer] = await this.db
+      .select({ id: customers.id })
+      .from(customers)
+      .where(eq(customers.userId, userId));
+    return customer?.id ?? null;
+  }
+
+  async listByCustomerId(customerId: string): Promise<RentalListItem[]> {
+    const rows = await this.baseQuery().where(eq(rentals.customerId, customerId));
+    return rows.map(toListItem);
+  }
+
+  async findByIdAndCustomerId(rentalId: string, customerId: string): Promise<RentalDetail | null> {
+    const [row] = await this.baseQuery().where(
+      and(eq(rentals.id, rentalId), eq(rentals.customerId, customerId)),
+    );
+    return row ? toDetail(row) : null;
+  }
+}
+
+type RentalRow = Awaited<ReturnType<RentalsRepository["listByCustomerId"]>>[number] extends never
+  ? never
+  : {
+      rental: typeof rentals.$inferSelect;
+      booking: typeof bookings.$inferSelect;
+      facility: typeof facilities.$inferSelect;
+      unitType: typeof unitTypes.$inferSelect;
+      physicalUnit: typeof storageUnits.$inferSelect | null;
+    };
+
+function toListItem(row: RentalRow): RentalListItem {
+  return {
+    id: row.rental.id,
+    bookingId: row.booking.id,
+    bookingCode: row.booking.bookingCode ?? row.booking.id.slice(0, 8).toUpperCase(),
+    facility: { id: row.facility.id, name: row.facility.name, address: row.facility.address },
+    unitType: { id: row.unitType.id, name: row.unitType.name, sizeLabel: row.unitType.sizeLabel },
+    physicalUnit: row.physicalUnit
+      ? { id: row.physicalUnit.id, code: row.physicalUnit.code }
+      : null,
+    startAt: row.rental.startAt.toISOString(),
+    expectedEndAt: row.rental.expectedEndAt.toISOString(),
+    status: row.rental.status,
+    bookingStatus: row.booking.status,
+    actions: ACTIONS,
+  };
+}
+
+function toDetail(row: RentalRow): RentalDetail {
+  const item = toListItem(row);
+  return {
+    ...item,
+    actualReturnAt: row.rental.actualReturnAt?.toISOString() ?? null,
+    closedAt: row.rental.closedAt?.toISOString() ?? null,
+    depositAmount: row.rental.depositAmount,
+    checkInSlotStart: row.booking.checkInSlotStart.toISOString(),
+    checkInSlotEnd: row.booking.checkInSlotEnd?.toISOString() ?? null,
+    timeline: [
+      { label: "Booking confirmed", status: "DONE", at: row.booking.paidAt?.toISOString() ?? null },
+      {
+        label: "Check-in",
+        status: row.rental.status === "ACTIVE" ? "CURRENT" : "DONE",
+        at: row.booking.checkInSlotStart.toISOString(),
+      },
+      {
+        label: "Return",
+        status: row.rental.closedAt ? "DONE" : "UPCOMING",
+        at: row.rental.expectedEndAt.toISOString(),
+      },
+    ],
+  };
+}

@@ -1,4 +1,11 @@
-import { forwardRef, type InputHTMLAttributes, type SelectHTMLAttributes } from "react";
+import {
+  cloneElement,
+  forwardRef,
+  type InputHTMLAttributes,
+  isValidElement,
+  type ReactElement,
+  type SelectHTMLAttributes,
+} from "react";
 import { cn } from "@/lib/cn";
 
 interface FieldShellProps {
@@ -9,12 +16,31 @@ interface FieldShellProps {
 }
 
 export function FieldShell({ label, error, hint, children }: FieldShellProps) {
+  const fieldId = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const messageId = `${fieldId}-message`;
+  const control = isValidElement(children)
+    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+        id: fieldId,
+        "aria-invalid": error ? true : undefined,
+        "aria-describedby": error || hint ? messageId : undefined,
+      })
+    : children;
   return (
     <div className="grid gap-2">
-      <span className="text-sm font-bold">{label}</span>
-      {children}
-      {error ? <span className="text-[0.82rem] text-danger">{error}</span> : null}
-      {!error && hint ? <span className="text-xs text-muted">{hint}</span> : null}
+      <label className="text-sm font-bold" htmlFor={fieldId}>
+        <span className="text-sm font-bold">{label}</span>
+      </label>
+      {control}
+      {error ? (
+        <span className="text-[0.82rem] text-danger" id={messageId}>
+          {error}
+        </span>
+      ) : null}
+      {!error && hint ? (
+        <span className="text-xs text-muted" id={messageId}>
+          {hint}
+        </span>
+      ) : null}
     </div>
   );
 }
