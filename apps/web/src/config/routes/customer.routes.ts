@@ -4,4 +4,6 @@ export const customerRoutes = {
   reservations: "/customer/reservations",
   newReservation: "/reservations/new",
   reservation: (reservationId: string) => `/customer/reservations/${reservationId}`,
+  rentals: "/customer/storage",
+  rental: (rentalId: string) => `/customer/storage/${rentalId}`,
 } as const;

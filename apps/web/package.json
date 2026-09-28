@@ -30,6 +30,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.55.1",
     "@storex/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "4.1.12",

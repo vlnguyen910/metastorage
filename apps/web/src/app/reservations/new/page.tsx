@@ -7,6 +7,7 @@ export default function PublicReservationPage() {
   return (
     <PublicLayout>
       <main className="min-h-[70vh] py-16">
+        <h1 className="sr-only">Đặt kho mới</h1>
         <Suspense fallback={<LoadingState label="Đang chuẩn bị quy trình đặt kho…" />}>
           <ReservationWizard />
         </Suspense>
