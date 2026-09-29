@@ -22,7 +22,7 @@ async function seedBetterAuth() {
   if (user) {
     await db
       .update(users)
-      .set({ role: "FACILITY_MANAGER", status: "ACTIVE" })
+      .set({ role: "FACILITY_MANAGER", status: "ACTIVE", emailVerified: true })
       .where(eq(users.id, user.id));
 
     console.log(`Updated user ${user.email} with role FACILITY_MANAGER`);
