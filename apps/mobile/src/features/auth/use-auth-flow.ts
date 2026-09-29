@@ -68,6 +68,12 @@ export function useAuthFlow() {
           email: values.email.trim().toLowerCase(),
           password: values.password,
         });
+        if (result.error?.code === "EMAIL_NOT_VERIFIED") {
+          setMessage(
+            "Email chưa xác minh. StoreX đã gửi lại liên kết nếu thông tin đăng nhập đúng.",
+          );
+          return;
+        }
         if (result.error) throw new Error(result.error.message);
         return;
       }

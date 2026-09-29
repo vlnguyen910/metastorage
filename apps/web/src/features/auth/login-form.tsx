@@ -56,9 +56,13 @@ export function LoginForm() {
           : roleHome[session.user.role];
       router.replace(destination);
     } catch (error) {
-      const message = axios.isAxiosError(error)
-        ? (error.response?.data as { message?: string } | undefined)?.message
+      const responseData = axios.isAxiosError(error)
+        ? (error.response?.data as { code?: string; message?: string } | undefined)
         : undefined;
+      const message =
+        responseData?.code === "EMAIL_NOT_VERIFIED"
+          ? "Email chưa xác minh. Nếu thông tin đăng nhập đúng, StoreX đã gửi lại liên kết xác minh."
+          : responseData?.message;
       showToast(message ?? "Không thể đăng nhập", "error");
     }
   }
