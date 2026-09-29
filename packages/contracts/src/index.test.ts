@@ -49,6 +49,21 @@ describe("shared contracts", () => {
     }
   });
 
+  it("rejects email addresses longer than the User email column", () => {
+    const email = `user@${"a".repeat(63)}.${"b".repeat(63)}.${"c".repeat(63)}.${"d".repeat(63)}.com`;
+    const parsed = CustomerSignUpInputSchema.safeParse({
+      name: "Customer",
+      email,
+      phone: "+84901234567",
+      password: "correct-horse-battery",
+      confirmPassword: "correct-horse-battery",
+      callbackTarget: "web",
+    });
+
+    expect(email.length).toBeGreaterThan(255);
+    expect(parsed.success).toBe(false);
+  });
+
   it.each([
     [{ name: "", email: "customer@storex.vn", phone: "+84901234567" }, "missing name"],
     [{ name: "Customer", email: "bad-email", phone: "+84901234567" }, "invalid email"],
