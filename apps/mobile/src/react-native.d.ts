@@ -1,12 +1,11 @@
-declare module "react-native" {
-  import type { ComponentType, ReactNode } from "react";
+import "react-native";
 
-  interface NativeComponentProps {
-    children?: ReactNode;
+declare module "react-native" {
+  interface TextProps {
     className?: string;
-    [key: string]: unknown;
   }
 
-  export const Text: ComponentType<NativeComponentProps>;
-  export const View: ComponentType<NativeComponentProps>;
+  interface ViewProps {
+    className?: string;
+  }
 }
