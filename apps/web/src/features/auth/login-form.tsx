@@ -123,6 +123,14 @@ export function LoginForm() {
           </div>
         </div>
       ) : null}
+      {!isMockMode ? (
+        <p className="mb-0 mt-5 text-center text-sm text-muted">
+          Chưa có tài khoản?{" "}
+          <Link className="font-bold text-primary" href={routes.register}>
+            Đăng ký Customer
+          </Link>
+        </p>
+      ) : null}
     </div>
   );
 }
