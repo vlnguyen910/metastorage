@@ -12,26 +12,43 @@ The browser's stored user object only supports navigation; it does not grant API
    you want to override that URL with a local Docker database.
 2. Copy `apps/web/.env.example` to `apps/web/.env.local`. The default mode is `remote`, with the
    API at `http://localhost:4000/api`. Set `NEXT_PUBLIC_API_MODE=mock` only to use demo accounts.
-3. From the repository root, run `bun run db:migrate` to apply existing migrations to the
-   configured database, then start the API and web workspaces.
-4. Create the first account with Better Auth's email sign-up endpoint:
-
-   ```sh
-   curl -i -X POST http://localhost:4000/api/auth/sign-up/email \
-     -H 'Content-Type: application/json' \
-     -d '{"name":"StoreX Administrator","email":"admin@storex.vn","password":"replace-with-a-long-password"}'
-   ```
-
-5. Promote that account once using a trusted database connection:
+3. Configure Resend in `apps/api/.env`: set `RESEND_API_KEY` and a verified sender in
+   `RESEND_FROM_EMAIL`. Signup returns `503 EMAIL_DELIVERY_UNAVAILABLE` until both are set.
+4. For Mobile, copy `apps/mobile/.env.example` to `apps/mobile/.env.local`. A physical device must
+   use the development machine's LAN address instead of `localhost` for
+   `EXPO_PUBLIC_API_BASE_URL`.
+5. From the repository root, run `bun run db:migrate` to apply existing migrations to the
+   configured database, then start the API and Web/Mobile workspaces.
+6. Register from `/register` on Web or the Customer signup screen on Mobile. Verify the email link
+   before signing in. For the initial System Administrator, promote the verified account once using
+   a trusted database connection:
 
    ```sql
    UPDATE users
    SET role = 'SYSTEM_ADMIN'
-   WHERE email = 'admin@storex.vn';
+   WHERE email = 'admin@storex.vn' AND email_verified = true;
    ```
 
-   Sign in again after promotion. System Administrators can then assign any supported role from
-   **Người dùng & vai trò**. Public sign-up cannot set or change a role.
+   Public signup cannot set or change a role. The raw Better Auth `/sign-up/email` route is blocked;
+   Customer accounts must use `/api/auth/customer-sign-up` so the API can validate and associate the
+   Customer record.
+
+## Customer registration
+
+- Signup requires name, normalized email, phone, password, password confirmation, and a fixed
+  callback target (`web` or `mobile`). `users.phone` remains nullable/optional in the database;
+  signup requires a phone because a Customer profile requires one.
+- Email must not already belong to a User or to a Customer linked to another User. The response
+  directs the person to sign in or recover the existing account.
+- If an unlinked guest Customer already has the verified email, the account is linked only after
+  email verification. The guest's name, phone, and other profile fields remain unchanged, so their
+  existing bookings/rentals become visible through the linked Customer. If no Customer exists, one
+  is created from the verified signup details.
+- Signup never creates a session. Verification redirects to `/verify-email` on Web or the
+  `storex://auth/verified` deep link on Mobile; the user then signs in. An unverified sign-in attempt
+  sends a fresh verification link.
+- No database schema migration is needed: `users.phone` is already nullable, and the existing
+  Customer link/normalized-email constraints support this flow.
 
 ## Session and authorization behavior
 
