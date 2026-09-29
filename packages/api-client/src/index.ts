@@ -11,6 +11,7 @@ import type {
   ClientSession,
   ConfirmReservationInput,
   CookieSession,
+  CustomerSignUpInput,
   DashboardSummary,
   EligibleUnit,
   Facility,
@@ -160,6 +161,10 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
           : http.post("/auth/sign-out").then(() => null),
       forgotPassword: (email: string) =>
         http.post<ApiEnvelope<null>>("/auth/forgot-password", { email }).then(unwrap),
+      registerCustomer: (input: CustomerSignUpInput) =>
+        http
+          .post<{ message: string }>("/auth/customer-sign-up", input)
+          .then((response) => response.data),
     },
     users: {
       list: () =>
