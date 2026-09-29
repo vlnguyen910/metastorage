@@ -13,8 +13,10 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
+    "@better-auth/expo": "1.7.5",
     "@storex/shared": "workspace:*",
     "expo": "~57.0.24",
+    "expo-secure-store": "~57.0.4",
     "expo-status-bar": "~57.0.1",
     "expo-system-ui": "~57.0.4",
     "lightningcss": "1.30.1",
