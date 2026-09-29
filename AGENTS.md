@@ -42,20 +42,31 @@ Project architecture: **Monorepo (Turborepo + Bun) + Modular Monolith**. Scope c
 > - [`docs/backend-patterns.md`](file:///home/owen/Projects/storeX/docs/backend-patterns.md): Route → Service → Repository, State Machines, Strategy/Adapter patterns, Transactions & Idempotency.
 > - [`docs/web-patterns.md`](file:///home/owen/Projects/storeX/docs/web-patterns.md): Next.js App Router, Feature-based structure, Server/Client/Form state separation, TanStack Query, Zustand.
 > - [`docs/mobile-patterns.md`](file:///home/owen/Projects/storeX/docs/mobile-patterns.md): React Native + Expo structure, Screen → Hook → API Client flow.
-> - [`docs/engineering-principles.md`](file:///home/owen/Projects/storeX/docs/engineering-principles.md): The 20 mandatory engineering principles for storeX.
 
 ## 3. Core Engineering Rules for Agents
 
-1. **Follow the Architecture**: Do not introduce new architectural patterns, layers, or microservices.
-2. **Feature-based Slices**: Organize code by feature/domain. Never put business logic in routes, screens, or UI components.
-3. **Strict State Separation**: Server state (TanStack Query), Client state (Zustand when necessary), Form state (React Hook Form + Zod).
-4. **Data Integrity**: Database is the source of truth. Use database transactions and row-level locks for concurrent/consistent flows. Never expose DB models directly to frontend.
-5. **Database Diagram & Schema-First Migrations**: Treat [`docs/db-diagram.md`](file:///home/owen/Projects/storeX/docs/db-diagram.md) as the source of truth for the intended database model. Before designing or changing database schema, read and follow the diagram. For every database change, update the diagram and the Drizzle schema in `packages/database` together so they stay in sync; generate migrations with `bun run db:generate`. Never edit generated migration files directly (`packages/database/drizzle/*`). If the diagram is missing details needed for a change, clarify and update the diagram before implementing the schema.
-6. **Business Clarity & Confidence Threshold (< 95%)**: Always verify domain requirements with the user before implementing features. If confidence in implementing according to exact business rules is below 95%, proactively ask clarifying questions instead of making assumptions. Never speculate; mark unknowns as `TBD`.
-7. **Related-Issue Consistency**: Before implementation, review related, dependent, and potentially conflicting issues and existing domain decisions. Keep shared schemas, APIs, workflows, and data models compatible across those issues; do not optimize a single issue in isolation.
-8. **Propose Further Decisions Before Implementation**: Always provide design choices, trade-offs, alternatives, and further decisions for the user to review and align on before beginning implementation.
-9. **TDD & Business-Driven Testing (No Fabricated Tests)**: Follow Test-Driven Development (TDD). Before creating tests, thoroughly question and clarify all business requirements with the user. Only proceed to write tests when confidence in understanding the business domain reaches at least 95%. Never invent, speculate, or fabricate test cases based on assumptions. Always present the planned test cases and explain what each test is for to the user before implementation.
-10. **No Overengineering**: Shared abstractions only when reused in ≥2 places. Keep code readable and easily handoff-ready.
+These rules consolidate the project's engineering principles and agent-specific implementation requirements.
+
+1. **Simple & Maintainable**: Keep the architecture and implementation simple, readable, testable, and easy to hand over.
+2. **No Overengineering**: Do not design for needs that do not exist or add unnecessary layers, abstractions, or infrastructure.
+3. **Follow the Architecture**: Keep the Monorepo + Modular Monolith architecture. Do not introduce unapproved patterns, layers, Microservices, or Event Sourcing.
+4. **Feature-based Slices**: Organize code by feature/domain. Never put business logic in routes, screens, or UI components.
+5. **Strict State Separation**: Manage server state with TanStack Query, client state with Zustand when necessary, and form state with React Hook Form + Zod.
+6. **Database as Single Source of Truth**: Treat the database as the source of truth for business data. Never expose database models directly to the frontend; use API contracts/DTOs.
+7. **Transactional Consistency**: Use database transactions for consistency-critical workflows and row-level locking when required to prevent race conditions.
+8. **Database Diagram & Schema-first Migrations**: Treat [`docs/db-diagram.md`](file:///home/owen/Projects/storeX/docs/db-diagram.md) as the source of truth for the intended database model. Before designing or changing database schema, read and follow the diagram. For every database change, update the diagram and the Drizzle schema in `packages/database` together so they stay in sync; generate migrations with `bun run db:generate`. Never edit generated migration files directly (`packages/database/drizzle/*`). If the diagram is missing details needed for a change, clarify and update the diagram before implementing the schema.
+9. **External Service Adapters**: Isolate external services behind adapters/interfaces so the core business logic does not depend directly on providers.
+10. **Explicit State Transitions**: Model complex lifecycles with explicit State Machines. Do not update business status arbitrarily outside defined transitions.
+11. **Centralized API Client**: Web and Mobile must call the backend through the centralized API client rather than making scattered direct requests.
+12. **Practical Shared Abstractions**: Create shared packages or abstractions only when they are genuinely reused in at least two places.
+13. **No Generic Repository Overuse**: Avoid generic repository or multi-layer abstractions that make the code harder to understand and debug.
+14. **Prefer Composition**: Prefer component/function composition over complex inheritance hierarchies.
+15. **Limit New Dependencies**: Do not add a framework, library, or infrastructure when the existing stack already solves the problem.
+16. **Business Clarity & Confidence Threshold (< 95%)**: Always verify domain requirements with the user before implementing features. If confidence in implementing exact business rules is below 95%, ask clarifying questions instead of making assumptions. Never speculate; mark unknowns as `TBD`.
+17. **Related-Issue Consistency**: Before implementation, review related, dependent, and potentially conflicting issues and existing domain decisions. Keep shared schemas, APIs, workflows, and data models compatible across those issues; do not optimize a single issue in isolation.
+18. **Propose Decisions Before Implementation**: Present design choices, trade-offs, alternatives, and further decisions for the user to review and align on before beginning implementation.
+19. **TDD & Business-driven Testing**: Follow Test-Driven Development. Before creating tests, clarify the business requirements and planned test cases with the user. Do not invent or fabricate tests from assumptions; write tests only when business understanding reaches at least 95% confidence.
+20. **Team and Time Constraints**: Keep technical choices feasible for a team of four developers working within ten weeks.
 
 ## 4. Build, Lint, and Development Commands
 
