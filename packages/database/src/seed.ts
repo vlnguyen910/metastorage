@@ -1,7 +1,7 @@
 import { queryClient } from "./client";
 
 async function seed() {
-  console.log("🌱 Starting local database seeding via raw SQL client...");
+  console.log("Starting local database seeding via raw SQL client...");
 
   // 1. Facilities
   console.log("1. Seeding facilities...");
