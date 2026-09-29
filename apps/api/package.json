@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@fastify/cors": "^10.0.2",
+    "@fastify/swagger": "^9.9.0",
+    "@fastify/swagger-ui": "^5.0.0",
     "@storex/contracts": "workspace:*",
     "@storex/database": "workspace:*",
     "@storex/shared": "workspace:*",

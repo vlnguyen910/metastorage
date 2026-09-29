@@ -5,6 +5,7 @@ import { setupErrorHandler } from "./common/errors/error-handler";
 import { loggerConfig } from "./common/logger/logger";
 import { corsPlugin } from "./common/plugins/cors";
 import { healthPlugin } from "./common/plugins/health";
+import { swaggerPlugin } from "./common/plugins/swagger";
 import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { bookingsRoutes } from "./modules/bookings/bookings.routes";
@@ -33,6 +34,7 @@ export function buildApp(): FastifyInstance {
   app.register(databasePlugin);
   app.register(authPlugin);
   app.register(facilityContextPlugin);
+  app.register(swaggerPlugin);
 
   // System & Feature Routes
   app.register(healthPlugin, { prefix: "/api" });
