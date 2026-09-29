@@ -281,6 +281,26 @@ export interface LoginInput {
   password: string;
 }
 
+export const CustomerSignUpInputSchema = z
+  .object({
+    name: z.string().trim().min(1).max(150),
+    email: z.string().trim().toLowerCase().email().max(320),
+    phone: z.string().trim().min(1).max(20),
+    password: z.string().min(8).max(128),
+    confirmPassword: z.string().min(8).max(128),
+    callbackTarget: z.enum(["web", "mobile"]),
+  })
+  .superRefine((input, context) => {
+    if (input.password !== input.confirmPassword) {
+      context.addIssue({
+        code: "custom",
+        path: ["confirmPassword"],
+        message: "Passwords do not match",
+      });
+    }
+  });
+export type CustomerSignUpInput = z.infer<typeof CustomerSignUpInputSchema>;
+
 export interface FacilityListParams {
   search?: string;
   city?: string;
