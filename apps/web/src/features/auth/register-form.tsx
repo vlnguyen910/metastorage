@@ -10,6 +10,7 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+import { AUTH_MESSAGES } from "./auth.messages";
 
 export function RegisterForm() {
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
@@ -37,7 +38,7 @@ export function RegisterForm() {
       setRegisteredEmail(values.email.trim().toLowerCase());
     } catch (error) {
       const message = getResponseMessage(error);
-      setFormError(message ?? "Chưa thể tạo tài khoản. Vui lòng thử lại sau.");
+      setFormError(message ?? AUTH_MESSAGES.registrationFailed);
     }
   }
 

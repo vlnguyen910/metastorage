@@ -14,11 +14,12 @@ import { useToast } from "@/components/ui/toast";
 import { roleHome, routes, safeReturnTo } from "@/config/routes";
 import { api } from "@/lib/api";
 import { demoAccounts } from "@/mocks/seeds";
+import { AUTH_MESSAGES } from "./auth.messages";
 import { useAuthStore } from "./auth-store";
 
 const schema = z.object({
-  email: z.string().email("Email chưa đúng định dạng"),
-  password: z.string().min(8, "Mật khẩu cần ít nhất 8 ký tự"),
+  email: z.string().email(AUTH_MESSAGES.invalidEmail),
+  password: z.string().min(8, AUTH_MESSAGES.passwordTooShort),
 });
 type FormValues = z.infer<typeof schema>;
 
@@ -44,7 +45,7 @@ export function LoginForm() {
     try {
       const session = await api.auth.login(values);
       setSession(session);
-      showToast(`Chào mừng ${session.user.name}`);
+      showToast(AUTH_MESSAGES.loginWelcome(session.user.name));
       const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[session.user.role]);
       const roleRoot = `/${roleHome[session.user.role].split("/")[1]}`;
       const customerReservationEntry =
@@ -61,9 +62,9 @@ export function LoginForm() {
         : undefined;
       const message =
         responseData?.code === "EMAIL_NOT_VERIFIED"
-          ? "Email chưa xác minh. Nếu thông tin đăng nhập đúng, metastorage đã gửi lại liên kết xác minh."
+          ? AUTH_MESSAGES.loginEmailNotVerified
           : responseData?.message;
-      showToast(message ?? "Không thể đăng nhập", "error");
+      showToast(message ?? AUTH_MESSAGES.loginFailed, "error");
     }
   }
 
