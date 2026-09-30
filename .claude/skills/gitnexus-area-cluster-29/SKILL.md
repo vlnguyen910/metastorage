@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-cluster-29
-description: "Skill for the Cluster_29 area of storeX. 4 symbols across 1 files."
+description: "Skill for the Cluster_29 area of metastorage. 4 symbols across 1 files."
 ---
 
 # Cluster_29

@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-dashboards
-description: "Skill for the Dashboards area of storeX. 5 symbols across 5 files."
+description: "Skill for the Dashboards area of metastorage. 5 symbols across 5 files."
 ---
 
 # Dashboards

@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-auth
-description: "Skill for the Auth area of storeX. 6 symbols across 4 files."
+description: "Skill for the Auth area of metastorage. 6 symbols across 4 files."
 ---
 
 # Auth

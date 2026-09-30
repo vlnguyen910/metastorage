@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-app
-description: "Skill for the App area of storeX. 6 symbols across 6 files."
+description: "Skill for the App area of metastorage. 6 symbols across 6 files."
 ---
 
 # App
