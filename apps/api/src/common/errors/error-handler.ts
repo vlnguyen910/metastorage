@@ -2,6 +2,7 @@ import type { FastifyError, FastifyInstance } from "fastify";
 import { ZodError } from "zod";
 import { errorResponse } from "../response/api-response";
 import { AppError } from "./app-error";
+import { ERROR_MESSAGES } from "./error.messages";
 
 export function setupErrorHandler(fastify: FastifyInstance): void {
   fastify.setErrorHandler((error: FastifyError | Error, request, reply) => {
@@ -17,7 +18,7 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
       return reply.status(400).send(
         errorResponse({
           code: "VALIDATION_ERROR",
-          message: "Request validation failed",
+          message: ERROR_MESSAGES.requestValidationFailed,
           details,
         }),
       );
@@ -27,7 +28,7 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
     if ("validation" in error && Array.isArray(error.validation)) {
       const details = error.validation.map((v) => ({
         field: v.instancePath?.replace(/^\//, "") || v.keyword,
-        message: v.message || "Invalid value",
+        message: v.message || ERROR_MESSAGES.invalidValue,
       }));
 
       request.log.warn({ err: error, path: request.url, details }, "Fastify validation error");
@@ -35,7 +36,7 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
       return reply.status(400).send(
         errorResponse({
           code: "VALIDATION_ERROR",
-          message: error.message || "Validation failed",
+          message: error.message || ERROR_MESSAGES.validationFailed,
           details,
         }),
       );
@@ -66,7 +67,7 @@ export function setupErrorHandler(fastify: FastifyInstance): void {
     return reply.status(500).send(
       errorResponse({
         code: "INTERNAL_SERVER_ERROR",
-        message: isDev ? error.message : "An unexpected internal server error occurred",
+        message: isDev ? error.message : ERROR_MESSAGES.unexpectedInternalServerError,
       }),
     );
   });
