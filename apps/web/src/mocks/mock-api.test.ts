@@ -83,7 +83,7 @@ describe("mock reservation API", () => {
   it("allows FM to assign staff and allows Staff to view assigned tasks", async () => {
     // 1. FM logs in and assigns staff to BK-2026-0001
     const fmSession = await client.auth.login({
-      email: "manager@storex.vn",
+      email: "manager@metastorage.test",
       password: "Demo@123",
     });
     tokens = fmSession;
@@ -101,7 +101,7 @@ describe("mock reservation API", () => {
 
     // 2. Staff logs in and fetches assigned tasks
     const staffSession = await client.auth.login({
-      email: "staff@storex.vn",
+      email: "staff@metastorage.test",
       password: "Demo@123",
     });
     tokens = staffSession;
