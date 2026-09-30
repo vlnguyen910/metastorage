@@ -6,7 +6,7 @@ import type {
   ReservationDraft,
   ReservationHold,
   UnitAvailabilityOption,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import axios from "axios";
 import { ArrowLeft, ArrowRight, Check, MapPin } from "lucide-react";
 import Image from "next/image";

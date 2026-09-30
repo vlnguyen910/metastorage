@@ -5,7 +5,7 @@ import type {
   PaymentCheckoutInput,
   ReservationDraftInput,
   ReservationQuoteInput,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
