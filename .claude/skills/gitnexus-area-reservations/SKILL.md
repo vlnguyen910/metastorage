@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-reservations
-description: "Skill for the Reservations area of storeX. 18 symbols across 6 files."
+description: "Skill for the Reservations area of metastorage. 18 symbols across 6 files."
 ---
 
 # Reservations

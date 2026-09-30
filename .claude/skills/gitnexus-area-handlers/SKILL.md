@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-handlers
-description: "Skill for the Handlers area of storeX. 13 symbols across 5 files."
+description: "Skill for the Handlers area of metastorage. 13 symbols across 5 files."
 ---
 
 # Handlers

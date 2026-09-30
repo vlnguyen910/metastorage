@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-users
-description: "Skill for the Users area of storeX. 13 symbols across 6 files."
+description: "Skill for the Users area of metastorage. 13 symbols across 6 files."
 ---
 
 # Users
