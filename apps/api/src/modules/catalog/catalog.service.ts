@@ -1,5 +1,6 @@
 import type { CatalogFacility, CatalogUnitType, PaginatedResult } from "@metastorage/contracts";
 import { NotFoundError } from "../../common/errors/app-error";
+import { CATALOG_MESSAGES } from "./catalog.messages";
 import type { CatalogRepository, CatalogRow } from "./catalog.repository";
 import type { CatalogFacilityQuery } from "./catalog.schema";
 
@@ -78,17 +79,17 @@ export class CatalogService {
   async getFacility(facilityId: string): Promise<CatalogFacility> {
     const rows = await this.repository.findRows(facilityId);
     if (!rows.length || !rows.some(isAvailable)) {
-      throw new NotFoundError("Không tìm thấy facility khả dụng");
+      throw new NotFoundError(CATALOG_MESSAGES.availableFacilityNotFound);
     }
     const first = rows[0];
-    if (!first) throw new NotFoundError("Không tìm thấy facility khả dụng");
+    if (!first) throw new NotFoundError(CATALOG_MESSAGES.availableFacilityNotFound);
     return toFacility(first, rows);
   }
 
   async getUnitTypes(facilityId: string): Promise<CatalogUnitType[]> {
     const rows = await this.repository.findRows(facilityId);
     if (!rows.length || !rows.some(isAvailable)) {
-      throw new NotFoundError("Không tìm thấy facility khả dụng");
+      throw new NotFoundError(CATALOG_MESSAGES.availableFacilityNotFound);
     }
     return groupUnitTypes(facilityId, rows);
   }
