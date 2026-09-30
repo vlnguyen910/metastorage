@@ -1,4 +1,4 @@
-import type { RentalDetail, RentalListItem } from "@storex/contracts";
+import type { RentalDetail, RentalListItem } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { envelope } from "../core/http";
 

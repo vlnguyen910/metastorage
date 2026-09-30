@@ -1,4 +1,4 @@
-import { ApiErrorCode, UserRole } from "@storex/contracts";
+import { ApiErrorCode, UserRole } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { dashboardFor } from "../core/dashboard-data";
 import { currentUser, envelope, errorBody } from "../core/http";
