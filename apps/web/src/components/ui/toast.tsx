@@ -3,6 +3,7 @@
 import { CheckCircle2, CircleAlert, X } from "lucide-react";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
+import { TOAST_MESSAGES } from "./toast.messages";
 import type { ToastContextValue, ToastItem, ToastTone } from "./toast.types";
 
 const ToastContext = createContext<ToastContextValue | null>(null);
@@ -51,6 +52,6 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
 export function useToast(): ToastContextValue {
   const context = useContext(ToastContext);
-  if (!context) throw new Error("useToast must be used inside ToastProvider");
+  if (!context) throw new Error(TOAST_MESSAGES.providerRequired);
   return context;
 }
