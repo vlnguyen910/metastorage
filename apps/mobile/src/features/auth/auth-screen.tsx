@@ -10,6 +10,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import type { FormFieldProps } from "./auth-screen.types";
 import { useAuthFlow } from "./use-auth-flow";
 
 export function AuthScreen() {
@@ -159,17 +160,6 @@ export function AuthScreen() {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
-
-interface FormFieldProps {
-  label: string;
-  value: string;
-  error?: string;
-  onChangeText: (value: string) => void;
-  secureTextEntry?: boolean;
-  keyboardType?: "default" | "email-address" | "phone-pad";
-  autoComplete?: "name" | "email" | "tel" | "current-password" | "new-password";
-  autoCapitalize?: "none" | "sentences";
 }
 
 function FormField({ label, value, error, onChangeText, ...inputProps }: FormFieldProps) {

@@ -7,13 +7,7 @@ import {
   type SelectHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/cn";
-
-interface FieldShellProps {
-  label: string;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}
+import type { FieldShellProps } from "./form-controls.types";
 
 export function FieldShell({ label, error, hint, children }: FieldShellProps) {
   const fieldId = `field-${label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
