@@ -1,12 +1,10 @@
 import { ConflictError, ValidationError } from "../../common/errors/app-error";
+import { CUSTOMER_REGISTRATION_MESSAGES } from "./customer-registration.messages";
 import type { CustomerRegistrationRepository } from "./customer-registration.repository";
 import type {
   VerifiedCustomerRegistrationUser,
   VerifiedCustomerUserInput,
 } from "./customer-registration.types";
-
-const accountRecoveryMessage =
-  "Email đã có tài khoản hoặc hồ sơ Customer đã liên kết. Vui lòng đăng nhập hoặc khôi phục mật khẩu.";
 
 export class CustomerRegistrationService {
   constructor(private readonly repository: CustomerRegistrationRepository) {}
@@ -14,7 +12,7 @@ export class CustomerRegistrationService {
   async assertEmailCanRegister(email: string): Promise<void> {
     const identity = await this.repository.findRegistrationIdentity(normalizeEmail(email));
     if (identity.userExists || identity.customerUserId) {
-      throw new ConflictError(accountRecoveryMessage);
+      throw new ConflictError(CUSTOMER_REGISTRATION_MESSAGES.accountRecovery);
     }
   }
 
@@ -23,7 +21,7 @@ export class CustomerRegistrationService {
     const email = normalizeEmail(user.email);
     const phone = user.phone?.trim();
     if (!name || !phone) {
-      throw new ValidationError("Tên và số điện thoại cần có để tạo hồ sơ Customer.");
+      throw new ValidationError(CUSTOMER_REGISTRATION_MESSAGES.customerNameAndPhoneRequired);
     }
 
     const verifiedUser: VerifiedCustomerRegistrationUser = {
