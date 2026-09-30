@@ -1,4 +1,4 @@
-import { Permission } from "@storex/contracts";
+import { Permission } from "@metastorage/contracts";
 
 export const customerPermissions = [
   Permission.VIEW_FACILITIES,

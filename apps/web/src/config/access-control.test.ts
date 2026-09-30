@@ -1,4 +1,4 @@
-import { Permission, UserRole } from "@storex/contracts";
+import { Permission, UserRole } from "@metastorage/contracts";
 import { describe, expect, it } from "vitest";
 import { hasPermission, rolePermissions } from "./access-control";
 
