@@ -10,7 +10,7 @@ import {
   type PhysicalUnitAssignment,
   StorageUnitStatus,
   UserRole,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";

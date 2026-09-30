@@ -1,4 +1,4 @@
-import { ApiErrorCode, type LoginInput, type SessionTokens } from "@storex/contracts";
+import { ApiErrorCode, type LoginInput, type SessionTokens } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import {
   createSession,

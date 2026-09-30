@@ -3,7 +3,7 @@ import {
   type CatalogFacility,
   type Facility,
   type PaginatedResult,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { envelope, errorBody, optionsForUnits } from "../core/http";
 import { getMockDatabase, hydrateFacility } from "../database";

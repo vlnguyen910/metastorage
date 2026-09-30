@@ -10,7 +10,7 @@ import {
   ReservationStatus,
   StorageUnitStatus,
   UserRole,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { addMonths, currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, hydrateFacility, saveMockDatabase } from "../database";
