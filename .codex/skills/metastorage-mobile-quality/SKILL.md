@@ -1,12 +1,12 @@
 ---
-name: storex-mobile-quality
-description: Audit and improve storeX mobile web and React Native UI for viewport behavior, touch targets, accessibility, and repeatable device/viewport tests.
+name: metastorage-mobile-quality
+description: Audit and improve metastorage mobile web and React Native UI for viewport behavior, touch targets, accessibility, and repeatable device/viewport tests.
 metadata:
   category: mobile
   source: Front-End-Checklist-2.0
 ---
 
-# storeX mobile quality
+# metastorage mobile quality
 
 Use this skill for `apps/mobile` screens and mobile web breakpoints in `apps/web`.
 

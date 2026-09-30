@@ -1,12 +1,12 @@
 ---
-name: storex-frontend-quality
-description: Audit and improve storeX web UI for accessibility, responsive visual quality, and regression safety using the local frontend checklist, axe, and Playwright screenshots.
+name: metastorage-frontend-quality
+description: Audit and improve metastorage web UI for accessibility, responsive visual quality, and regression safety using the local frontend checklist, axe, and Playwright screenshots.
 metadata:
   category: frontend
   source: Front-End-Checklist-2.0
 ---
 
-# storeX frontend quality
+# metastorage frontend quality
 
 Use this skill for UI changes, customer flows, reservation screens, and visual/accessibility regressions.
 
