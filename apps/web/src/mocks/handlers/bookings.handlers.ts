@@ -6,8 +6,8 @@ import {
   type CheckInLookupResult,
   type EligibleUnit,
   type FacilityStaffMember,
-  type PhysicalUnitAssignment,
   PaymentStatus,
+  type PhysicalUnitAssignment,
   StorageUnitStatus,
   UserRole,
 } from "@storex/contracts";
