@@ -79,4 +79,35 @@ describe("mock reservation API", () => {
     expect(reservation.payment.last4).toBe("4242");
     expect((await client.reservations.mine())[0]?.id).toBe(reservation.id);
   });
+
+  it("allows FM to assign staff and allows Staff to view assigned tasks", async () => {
+    // 1. FM logs in and assigns staff to BK-2026-0001
+    const fmSession = await client.auth.login({
+      email: "manager@storex.vn",
+      password: "Demo@123",
+    });
+    tokens = fmSession;
+
+    const staffList = await client.facilities.getStaff("fac-hcm-central");
+    expect(staffList.length).toBeGreaterThan(0);
+    const targetStaff = staffList[0];
+    if (!targetStaff) throw new Error("Staff not found");
+
+    const assignedBooking = await client.bookings.assignStaff(
+      "b0000000-0000-0000-0000-000000000001",
+      { staffId: targetStaff.id, notes: "Ca sáng" },
+    );
+    expect(assignedBooking.assignedStaff?.id).toBe(targetStaff.id);
+
+    // 2. Staff logs in and fetches assigned tasks
+    const staffSession = await client.auth.login({
+      email: "staff@storex.vn",
+      password: "Demo@123",
+    });
+    tokens = staffSession;
+
+    const tasks = await client.bookings.getMyStaffTasks("fac-hcm-central");
+    expect(tasks.length).toBeGreaterThan(0);
+    expect(tasks.some((t) => t.bookingCode === "BK-2026-0001")).toBe(true);
+  });
 });

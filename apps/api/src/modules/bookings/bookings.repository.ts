@@ -1,16 +1,20 @@
 import { createHash } from "node:crypto";
-import type {
-  BookingListItem,
-  BookingQrVerificationResult,
-  EligibleUnit,
-  PhysicalUnitAssignment,
+import {
+  type BookingListItem,
+  type BookingQrVerificationResult,
+  type EligibleUnit,
+  type FacilityStaffMember,
+  type PhysicalUnitAssignment,
+  UserRole,
 } from "@storex/contracts";
 import {
+  aliasedTable,
   and,
   bookings,
   type Database,
   eq,
   facilities,
+  facilityAssignments,
   gt,
   inArray,
   lt,
@@ -22,6 +26,8 @@ import {
   unitTypes,
   users,
 } from "@storex/database";
+
+const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
@@ -52,6 +58,33 @@ export class BookingsRepository {
     };
   }
 
+  async findFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
+    const rows = await this.db
+      .select({
+        user: users,
+        assignment: facilityAssignments,
+      })
+      .from(users)
+      .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
+      .where(
+        and(
+          eq(facilityAssignments.facilityId, facilityId),
+          eq(facilityAssignments.role, "FACILITY_STAFF"),
+          eq(facilityAssignments.isActive, true),
+          eq(users.status, "ACTIVE"),
+        ),
+      );
+
+    return rows.map(({ user }) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? null,
+      role: UserRole.FACILITY_STAFF,
+      isActive: true,
+    }));
+  }
+
   async findFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     const conditions = [eq(bookings.facilityId, facilityId)];
     if (status) {
@@ -66,6 +99,7 @@ export class BookingsRepository {
         assignment: unitAssignments,
         assignedUnit: storageUnits,
         assigner: users,
+        assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -76,52 +110,68 @@ export class BookingsRepository {
       )
       .leftJoin(storageUnits, eq(unitAssignments.physicalUnitId, storageUnits.id))
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
+      .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
       .orderBy(bookings.checkInSlotStart);
 
-    return rows.map(({ booking, facility, unitType, assignment, assignedUnit, assigner }) => {
-      let activeAssignment: PhysicalUnitAssignment | null = null;
-      if (assignment && assignedUnit) {
-        activeAssignment = {
-          id: assignment.id,
-          bookingId: assignment.bookingId,
-          physicalUnitId: assignment.physicalUnitId,
-          physicalUnitCode: assignedUnit.code,
-          assignedBy: assignment.assignedBy,
-          assignerName: assigner?.name ?? undefined,
-          status: assignment.status as "ACTIVE" | "REASSIGNED" | "CANCELLED",
-          assignedAt: assignment.assignedAt.toISOString(),
-          endedAt: assignment.endedAt?.toISOString() ?? null,
-          reason: assignment.reason ?? null,
-        };
-      }
+    return rows.map(
+      ({ booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff }) => {
+        let activeAssignment: PhysicalUnitAssignment | null = null;
+        if (assignment && assignedUnit) {
+          activeAssignment = {
+            id: assignment.id,
+            bookingId: assignment.bookingId,
+            physicalUnitId: assignment.physicalUnitId,
+            physicalUnitCode: assignedUnit.code,
+            assignedBy: assignment.assignedBy,
+            assignerName: assigner?.name ?? undefined,
+            status: assignment.status as "ACTIVE" | "REASSIGNED" | "CANCELLED",
+            assignedAt: assignment.assignedAt.toISOString(),
+            endedAt: assignment.endedAt?.toISOString() ?? null,
+            reason: assignment.reason ?? null,
+          };
+        }
 
-      return {
-        id: booking.id,
-        bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
-        facilityId: booking.facilityId,
-        facilityName: facility.name,
-        unitTypeId: booking.unitTypeId,
-        unitTypeName: unitType.name,
-        unitTypeSizeLabel: unitType.sizeLabel,
-        customerId: booking.customerId,
-        contactName: booking.contactName,
-        contactEmail: booking.contactEmail,
-        contactPhone: booking.contactPhone,
-        checkInSlotStart: booking.checkInSlotStart.toISOString(),
-        checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
-        rentalEndAt: booking.rentalEndAt.toISOString(),
-        requestedMonths: booking.requestedMonths,
-        totalAmount: Number(booking.totalAmount),
-        status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
-        paidAt: booking.paidAt?.toISOString() ?? null,
-        assignedUnit: activeAssignment,
-        createdAt: booking.createdAt.toISOString(),
-      };
-    });
+        let staffMember: FacilityStaffMember | null = null;
+        if (assignedStaff) {
+          staffMember = {
+            id: assignedStaff.id,
+            name: assignedStaff.name,
+            email: assignedStaff.email,
+            phone: assignedStaff.phone ?? null,
+            role: UserRole.FACILITY_STAFF,
+            isActive: assignedStaff.status === "ACTIVE",
+          };
+        }
+
+        return {
+          id: booking.id,
+          bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
+          facilityId: booking.facilityId,
+          facilityName: facility.name,
+          unitTypeId: booking.unitTypeId,
+          unitTypeName: unitType.name,
+          unitTypeSizeLabel: unitType.sizeLabel,
+          customerId: booking.customerId,
+          contactName: booking.contactName,
+          contactEmail: booking.contactEmail,
+          contactPhone: booking.contactPhone,
+          checkInSlotStart: booking.checkInSlotStart.toISOString(),
+          checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
+          rentalEndAt: booking.rentalEndAt.toISOString(),
+          requestedMonths: booking.requestedMonths,
+          totalAmount: Number(booking.totalAmount),
+          status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
+          paidAt: booking.paidAt?.toISOString() ?? null,
+          assignedUnit: activeAssignment,
+          assignedStaff: staffMember,
+          createdAt: booking.createdAt.toISOString(),
+        };
+      },
+    );
   }
 
-  async findBookingById(bookingId: string) {
+  async findBookingById(bookingId: string): Promise<BookingListItem | null> {
     const [row] = await this.db
       .select({
         booking: bookings,
@@ -130,6 +180,7 @@ export class BookingsRepository {
         assignment: unitAssignments,
         assignedUnit: storageUnits,
         assigner: users,
+        assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -140,11 +191,12 @@ export class BookingsRepository {
       )
       .leftJoin(storageUnits, eq(unitAssignments.physicalUnitId, storageUnits.id))
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
+      .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(eq(bookings.id, bookingId));
 
     if (!row) return null;
 
-    const { booking, facility, unitType, assignment, assignedUnit, assigner } = row;
+    const { booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff } = row;
     let activeAssignment: PhysicalUnitAssignment | null = null;
     if (assignment && assignedUnit) {
       activeAssignment = {
@@ -158,6 +210,18 @@ export class BookingsRepository {
         assignedAt: assignment.assignedAt.toISOString(),
         endedAt: assignment.endedAt?.toISOString() ?? null,
         reason: assignment.reason ?? null,
+      };
+    }
+
+    let staffMember: FacilityStaffMember | null = null;
+    if (assignedStaff) {
+      staffMember = {
+        id: assignedStaff.id,
+        name: assignedStaff.name,
+        email: assignedStaff.email,
+        phone: assignedStaff.phone ?? null,
+        role: UserRole.FACILITY_STAFF,
+        isActive: assignedStaff.status === "ACTIVE",
       };
     }
 
@@ -181,8 +245,95 @@ export class BookingsRepository {
       status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
       paidAt: booking.paidAt?.toISOString() ?? null,
       assignedUnit: activeAssignment,
+      assignedStaff: staffMember,
       createdAt: booking.createdAt.toISOString(),
     };
+  }
+
+  async findStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
+    const conditions = [eq(bookings.assignedStaffId, staffUserId)];
+    if (facilityId) {
+      conditions.push(eq(bookings.facilityId, facilityId));
+    }
+
+    const rows = await this.db
+      .select({
+        booking: bookings,
+        facility: facilities,
+        unitType: unitTypes,
+        assignment: unitAssignments,
+        assignedUnit: storageUnits,
+        assigner: users,
+        assignedStaff: assignedStaffUsers,
+      })
+      .from(bookings)
+      .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
+      .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
+      .leftJoin(
+        unitAssignments,
+        and(eq(unitAssignments.bookingId, bookings.id), eq(unitAssignments.status, "ACTIVE")),
+      )
+      .leftJoin(storageUnits, eq(unitAssignments.physicalUnitId, storageUnits.id))
+      .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
+      .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
+      .where(and(...conditions))
+      .orderBy(bookings.checkInSlotStart);
+
+    return rows.map(
+      ({ booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff }) => {
+        let activeAssignment: PhysicalUnitAssignment | null = null;
+        if (assignment && assignedUnit) {
+          activeAssignment = {
+            id: assignment.id,
+            bookingId: assignment.bookingId,
+            physicalUnitId: assignment.physicalUnitId,
+            physicalUnitCode: assignedUnit.code,
+            assignedBy: assignment.assignedBy,
+            assignerName: assigner?.name ?? undefined,
+            status: assignment.status as "ACTIVE" | "REASSIGNED" | "CANCELLED",
+            assignedAt: assignment.assignedAt.toISOString(),
+            endedAt: assignment.endedAt?.toISOString() ?? null,
+            reason: assignment.reason ?? null,
+          };
+        }
+
+        let staffMember: FacilityStaffMember | null = null;
+        if (assignedStaff) {
+          staffMember = {
+            id: assignedStaff.id,
+            name: assignedStaff.name,
+            email: assignedStaff.email,
+            phone: assignedStaff.phone ?? null,
+            role: UserRole.FACILITY_STAFF,
+            isActive: assignedStaff.status === "ACTIVE",
+          };
+        }
+
+        return {
+          id: booking.id,
+          bookingCode: booking.bookingCode ?? booking.id.slice(0, 8).toUpperCase(),
+          facilityId: booking.facilityId,
+          facilityName: facility.name,
+          unitTypeId: booking.unitTypeId,
+          unitTypeName: unitType.name,
+          unitTypeSizeLabel: unitType.sizeLabel,
+          customerId: booking.customerId,
+          contactName: booking.contactName,
+          contactEmail: booking.contactEmail,
+          contactPhone: booking.contactPhone,
+          checkInSlotStart: booking.checkInSlotStart.toISOString(),
+          checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
+          rentalEndAt: booking.rentalEndAt.toISOString(),
+          requestedMonths: booking.requestedMonths,
+          totalAmount: Number(booking.totalAmount),
+          status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
+          paidAt: booking.paidAt?.toISOString() ?? null,
+          assignedUnit: activeAssignment,
+          assignedStaff: staffMember,
+          createdAt: booking.createdAt.toISOString(),
+        };
+      },
+    );
   }
 
   async findEligibleUnits(
@@ -376,6 +527,54 @@ export class BookingsRepository {
           reason: newAssignment.reason ?? null,
         },
       };
+    });
+  }
+
+  async assignStaff(bookingId: string, staffId: string) {
+    return this.db.transaction(async (tx) => {
+      // 1. Lock and fetch booking
+      const [booking] = await tx
+        .select()
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .for("update");
+
+      if (!booking) {
+        return { error: "BOOKING_NOT_FOUND" as const };
+      }
+
+      // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
+      const [staff] = await tx
+        .select({
+          user: users,
+          assignment: facilityAssignments,
+        })
+        .from(users)
+        .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
+        .where(
+          and(
+            eq(users.id, staffId),
+            eq(facilityAssignments.facilityId, booking.facilityId),
+            eq(facilityAssignments.role, "FACILITY_STAFF"),
+            eq(facilityAssignments.isActive, true),
+          ),
+        );
+
+      if (!staff) {
+        return { error: "STAFF_NOT_IN_FACILITY" as const };
+      }
+
+      if (staff.user.status !== "ACTIVE") {
+        return { error: "STAFF_INACTIVE" as const };
+      }
+
+      // 3. Update booking assignedStaffId
+      await tx
+        .update(bookings)
+        .set({ assignedStaffId: staffId, updatedAt: new Date() })
+        .where(eq(bookings.id, bookingId));
+
+      return { success: true as const, bookingId, staffId };
     });
   }
 }

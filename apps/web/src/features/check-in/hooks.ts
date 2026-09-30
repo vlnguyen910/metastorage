@@ -1,6 +1,10 @@
 "use client";
 
-import type { AssignPhysicalUnitInput, CheckInLookupInput } from "@storex/contracts";
+import type {
+  AssignBookingStaffInput,
+  AssignPhysicalUnitInput,
+  CheckInLookupInput,
+} from "@storex/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -8,6 +12,8 @@ export const bookingKeys = {
   all: ["bookings"] as const,
   facility: (facilityId: string, status?: string) =>
     [...bookingKeys.all, "facility", facilityId, status] as const,
+  facilityStaff: (facilityId: string) => [...bookingKeys.all, "facility-staff", facilityId] as const,
+  staffTasks: (facilityId?: string) => [...bookingKeys.all, "staff-tasks", facilityId] as const,
   detail: (id: string) => [...bookingKeys.all, "detail", id] as const,
   eligibleUnits: (id: string) => [...bookingKeys.all, "eligible-units", id] as const,
 };
@@ -75,5 +81,35 @@ export function useAssignPhysicalUnitMutation() {
       queryClient.invalidateQueries({ queryKey: bookingKeys.all });
       queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.bookingId) });
     },
+  });
+}
+
+export function useFacilityStaff(facilityId: string) {
+  return useQuery({
+    queryKey: bookingKeys.facilityStaff(facilityId),
+    queryFn: () => api.facilities.getStaff(facilityId),
+    enabled: Boolean(facilityId),
+  });
+}
+
+export function useAssignStaffMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ bookingId, input }: { bookingId: string; input: AssignBookingStaffInput }) =>
+      api.bookings.assignStaff(bookingId, input),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: bookingKeys.all });
+      queryClient.invalidateQueries({ queryKey: bookingKeys.detail(variables.bookingId) });
+    },
+  });
+}
+
+export function useStaffTasks(facilityId?: string) {
+  return useQuery({
+    queryKey: bookingKeys.staffTasks(facilityId),
+    queryFn: () => api.bookings.getMyStaffTasks(facilityId),
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 }

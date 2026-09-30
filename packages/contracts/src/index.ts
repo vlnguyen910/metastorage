@@ -72,6 +72,9 @@ export enum ApiErrorCode {
   PHYSICAL_UNIT_NOT_FOUND = "PHYSICAL_UNIT_NOT_FOUND",
   INVALID_UNIT_ASSIGNMENT = "INVALID_UNIT_ASSIGNMENT",
   UNIT_ASSIGNMENT_CONFLICT = "UNIT_ASSIGNMENT_CONFLICT",
+  STAFF_NOT_IN_FACILITY = "STAFF_NOT_IN_FACILITY",
+  INVALID_STAFF_ROLE = "INVALID_STAFF_ROLE",
+  STAFF_INACTIVE = "STAFF_INACTIVE",
 }
 
 export const UserRoleSchema = z.nativeEnum(UserRole);
@@ -95,6 +98,7 @@ export const ApiUserSchema = z.object({
   phone: z.string().nullable(),
   role: UserRoleSchema,
   status: z.enum(["ACTIVE", "INACTIVE"]),
+  assignedFacilityIds: z.array(z.string()).optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -500,6 +504,22 @@ export const PhysicalUnitAssignmentSchema = z.object({
 });
 export type PhysicalUnitAssignment = z.infer<typeof PhysicalUnitAssignmentSchema>;
 
+export const FacilityStaffMemberSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string(),
+  email: z.string().email(),
+  phone: z.string().nullable().optional(),
+  role: z.literal(UserRole.FACILITY_STAFF),
+  isActive: z.boolean(),
+});
+export type FacilityStaffMember = z.infer<typeof FacilityStaffMemberSchema>;
+
+export const AssignBookingStaffInputSchema = z.object({
+  staffId: z.string().uuid(),
+  notes: z.string().max(500).optional(),
+});
+export type AssignBookingStaffInput = z.infer<typeof AssignBookingStaffInputSchema>;
+
 export const CheckInVerificationStatusSchema = z.enum(["VERIFIED", "CONSUMED", "INVALIDATED"]);
 export type CheckInVerificationStatus = z.infer<typeof CheckInVerificationStatusSchema>;
 
@@ -586,6 +606,7 @@ export const BookingListItemSchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
   paidAt: z.string().datetime().nullable(),
   assignedUnit: PhysicalUnitAssignmentSchema.nullable().optional(),
+  assignedStaff: FacilityStaffMemberSchema.nullable().optional(),
   createdAt: z.string().datetime(),
 });
 export type BookingListItem = z.infer<typeof BookingListItemSchema>;

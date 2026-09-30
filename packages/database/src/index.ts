@@ -1,5 +1,6 @@
 export type { SQL } from "drizzle-orm";
 export {
+  aliasedTable,
   and,
   asc,
   count,

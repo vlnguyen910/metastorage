@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { BookingListItem } from "@storex/contracts";
+import { type BookingListItem, type FacilityStaffMember, UserRole } from "@storex/contracts";
 import type { BookingsRepository } from "../../../src/modules/bookings/bookings.repository";
 import { BookingsService } from "../../../src/modules/bookings/bookings.service";
 
@@ -9,6 +9,16 @@ const unitTypeId = "22222222-2222-2222-2222-222222222222";
 const bookingId = "33333333-3333-3333-3333-333333333333";
 const physicalUnitId = "44444444-4444-4444-4444-444444444444";
 const userId = "55555555-5555-5555-5555-555555555555";
+const staffId = "88888888-8888-8888-8888-888888888888";
+
+const mockStaffMember: FacilityStaffMember = {
+  id: staffId,
+  name: "Tran Quoc Huy",
+  email: "staff@storex.vn",
+  phone: "0900000002",
+  role: UserRole.FACILITY_STAFF,
+  isActive: true,
+};
 
 function mockBooking(overrides: Partial<BookingListItem> = {}): BookingListItem {
   return {
@@ -31,6 +41,7 @@ function mockBooking(overrides: Partial<BookingListItem> = {}): BookingListItem 
     status: "CONFIRMED",
     paidAt: new Date().toISOString(),
     assignedUnit: null,
+    assignedStaff: null,
     createdAt: new Date().toISOString(),
     ...overrides,
   };
@@ -73,6 +84,9 @@ function mockRepository(overrides: Partial<BookingsRepository> = {}): BookingsRe
         reason: "Khách yêu cầu ô kho tầng trệt",
       },
     }),
+    findFacilityStaff: async () => [mockStaffMember],
+    assignStaff: async () => ({ success: true, bookingId, staffId }),
+    findStaffTasks: async () => [mockBooking({ assignedStaff: mockStaffMember })],
     ...overrides,
   } as unknown as BookingsRepository;
 }
@@ -207,5 +221,73 @@ describe("BookingsService - Physical Unit Assignment", () => {
     await assert.rejects(() => service.assignPhysicalUnit(bookingId, physicalUnitId, userId), {
       name: "ConflictError",
     });
+  });
+});
+
+describe("BookingsService - Facility Staff Assignment", () => {
+  it("retrieves active staff members in the facility scope", async () => {
+    const service = new BookingsService(mockRepository());
+    const staff = await service.getFacilityStaff(facilityId);
+
+    assert.equal(staff.length, 1);
+    assert.equal(staff[0].name, "Tran Quoc Huy");
+    assert.equal(staff[0].role, UserRole.FACILITY_STAFF);
+    assert.equal(staff[0].isActive, true);
+  });
+
+  it("successfully assigns an eligible staff member to a booking", async () => {
+    const service = new BookingsService(
+      mockRepository({
+        findBookingById: async () => mockBooking({ assignedStaff: mockStaffMember }),
+      }),
+    );
+    const updated = await service.assignStaff(bookingId, staffId);
+
+    assert.equal(updated.assignedStaff?.id, staffId);
+    assert.equal(updated.assignedStaff?.name, "Tran Quoc Huy");
+  });
+
+  it("rejects staff assignment if booking does not exist", async () => {
+    const service = new BookingsService(
+      mockRepository({
+        assignStaff: async () => ({ error: "BOOKING_NOT_FOUND" }),
+      }),
+    );
+
+    await assert.rejects(() => service.assignStaff(bookingId, staffId), {
+      name: "NotFoundError",
+    });
+  });
+
+  it("rejects staff assignment if staff does not belong to the facility scope", async () => {
+    const service = new BookingsService(
+      mockRepository({
+        assignStaff: async () => ({ error: "STAFF_NOT_IN_FACILITY" }),
+      }),
+    );
+
+    await assert.rejects(() => service.assignStaff(bookingId, staffId), {
+      name: "BadRequestError",
+    });
+  });
+
+  it("rejects staff assignment if staff user is inactive", async () => {
+    const service = new BookingsService(
+      mockRepository({
+        assignStaff: async () => ({ error: "STAFF_INACTIVE" }),
+      }),
+    );
+
+    await assert.rejects(() => service.assignStaff(bookingId, staffId), {
+      name: "BadRequestError",
+    });
+  });
+
+  it("retrieves tasks assigned to a specific staff member", async () => {
+    const service = new BookingsService(mockRepository());
+    const tasks = await service.getStaffTasks(staffId, facilityId);
+
+    assert.equal(tasks.length, 1);
+    assert.equal(tasks[0].assignedStaff?.id, staffId);
   });
 });

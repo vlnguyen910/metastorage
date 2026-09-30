@@ -2,6 +2,7 @@ import type {
   ApiEnvelope,
   ApiFacilityAssignment,
   ApiUser,
+  AssignBookingStaffInput,
   AssignPhysicalUnitInput,
   BookingListItem,
   BookingQrVerificationInput,
@@ -20,6 +21,7 @@ import type {
   EligibleUnit,
   Facility,
   FacilityListParams,
+  FacilityStaffMember,
   LoginInput,
   PaginatedResult,
   PaymentCheckoutInput,
@@ -128,7 +130,7 @@ function toSession(user: ApiUser): CookieSession {
       phone: user.phone,
       role: user.role,
       permissions: [],
-      assignedFacilityIds: [],
+      assignedFacilityIds: user.assignedFacilityIds ?? [],
     },
   };
 }
@@ -187,6 +189,10 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
         http
           .get<ApiEnvelope<UnitAvailabilityOption[]>>(`/facilities/${facilityId}/availability`)
           .then(unwrap),
+      getStaff: (facilityId: string) =>
+        http
+          .get<ApiEnvelope<FacilityStaffMember[]>>(`/facilities/${facilityId}/staff`)
+          .then(unwrap),
     },
     catalog: {
       listFacilities: (params: CatalogFacilityListParams = {}) =>
@@ -239,6 +245,14 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
       assignUnit: (bookingId: string, input: AssignPhysicalUnitInput) =>
         http
           .post<ApiEnvelope<PhysicalUnitAssignment>>(`/bookings/${bookingId}/assign-unit`, input)
+          .then(unwrap),
+      assignStaff: (bookingId: string, input: AssignBookingStaffInput) =>
+        http
+          .post<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}/assign-staff`, input)
+          .then(unwrap),
+      getMyStaffTasks: (facilityId?: string) =>
+        http
+          .get<ApiEnvelope<BookingListItem[]>>("/staff/tasks", { params: { facilityId } })
           .then(unwrap),
     },
     checkIns: {

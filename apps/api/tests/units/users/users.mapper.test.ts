@@ -25,6 +25,7 @@ describe("toApiUser", () => {
       phone: null,
       role: "CUSTOMER",
       status: "ACTIVE",
+      assignedFacilityIds: [],
       createdAt: "2026-09-22T00:00:00.000Z",
       updatedAt: "2026-09-22T00:00:00.000Z",
     });
