@@ -61,7 +61,7 @@ Tương tự như Web, Mobile phân định nghiêm ngặt giữa 3 loại state
 
 ## 4. Tích hợp Monorepo & Metro Bundler
 
-Để Expo Metro có thể đọc và resolve các package nội bộ trong monorepo (`@metastorage/*`), [`apps/mobile/metro.config.js`](file:///home/owen/Projects/metastorage/apps/mobile/metro.config.js) được cấu hình:
+Để Expo Metro có thể đọc và resolve các package nội bộ trong monorepo (`@metastorage/*`), [`apps/mobile/metro.config.js`](file:///home/owen/Projects/storeX/apps/mobile/metro.config.js) được cấu hình:
 
 ```javascript
 const { getDefaultConfig } = require("expo/metro-config");
