@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   AssignPhysicalUnitInputSchema,
+  CONTRACT_MESSAGES,
   CustomerSignUpInputSchema,
   ReservationQuoteSchema,
   SessionSchema,
@@ -93,7 +94,13 @@ describe("shared contracts", () => {
       callbackTarget: "web",
     };
 
-    expect(CustomerSignUpInputSchema.safeParse(base).success).toBe(false);
+    const mismatchedPassword = CustomerSignUpInputSchema.safeParse(base);
+    expect(mismatchedPassword.success).toBe(false);
+    if (!mismatchedPassword.success) {
+      expect(mismatchedPassword.error.issues[0]?.message).toBe(
+        CONTRACT_MESSAGES.passwordsDoNotMatch,
+      );
+    }
     expect(
       CustomerSignUpInputSchema.safeParse({ ...base, callbackTarget: "https://evil.example" })
         .success,
