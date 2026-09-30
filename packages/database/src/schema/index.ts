@@ -1,6 +1,7 @@
 export * from "./accounts";
 export * from "./booking-confirmation-emails";
 export * from "./bookings";
+export * from "./checkin-verifications";
 export * from "./customers";
 export * from "./facilities";
 export * from "./payments";

@@ -3,14 +3,16 @@
 import { UserRole } from "@storex/contracts";
 import { BarChart3, Warehouse } from "lucide-react";
 import { useState } from "react";
-import { useAuthStore } from "@/features/auth/auth-store";
+import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { FacilityBookingsView } from "@/features/check-in/facility-bookings-view";
+import { useMyFacilityAssignments } from "@/features/check-in/hooks";
 import { RoleDashboard } from "@/features/dashboard/role-dashboard";
 
 export function FacilityManagerDashboardScreen() {
   const [activeTab, setActiveTab] = useState<"check-in" | "overview">("check-in");
-  const user = useAuthStore((state) => state.session?.user);
-  const facilityId = user?.assignedFacilityIds?.[0] ?? "f0000000-0000-0000-0000-000000000001";
+  const { data: assignments, isLoading, isError, refetch } = useMyFacilityAssignments();
+
+  const assignment = assignments?.find((item) => item.isActive) ?? assignments?.[0];
 
   return (
     <div className="space-y-6">
@@ -43,7 +45,24 @@ export function FacilityManagerDashboardScreen() {
       </div>
 
       {activeTab === "check-in" ? (
-        <FacilityBookingsView facilityId={facilityId} />
+        isLoading ? (
+          <LoadingState label="Đang tải thông tin cơ sở…" />
+        ) : isError ? (
+          <ErrorState
+            message="Không thể tải cơ sở được phân công. Vui lòng kiểm tra phiên đăng nhập và thử lại."
+            onRetry={() => refetch()}
+          />
+        ) : !assignment ? (
+          <EmptyState
+            title="Chưa được gán cơ sở"
+            description="Tài khoản quản lý hiện chưa có cơ sở hoạt động. Hãy liên hệ quản trị viên để được phân công."
+          />
+        ) : (
+          <FacilityBookingsView
+            facilityId={assignment.facilityId}
+            facilityName={assignment.facilityName}
+          />
+        )
       ) : (
         <RoleDashboard role={UserRole.FACILITY_MANAGER} />
       )}

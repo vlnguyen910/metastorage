@@ -2,7 +2,10 @@ import {
   ApiErrorCode,
   type AssignPhysicalUnitInput,
   type BookingListItem,
+  type CheckInLookupInput,
+  type CheckInLookupResult,
   type EligibleUnit,
+  PaymentStatus,
   type PhysicalUnitAssignment,
   StorageUnitStatus,
 } from "@storex/contracts";
@@ -163,6 +166,132 @@ export function registerBookingHandlers(mock: MockAdapter): void {
       (b) => !facilityId || b.facilityId === facilityId || facilityId === "all",
     );
     return [200, envelope(results)];
+  });
+
+  // POST /check-ins/lookup
+  mock.onPost("/check-ins/lookup").reply((config) => {
+    const database = getMockDatabase();
+    const user = currentUser(config, database);
+    if (!user) {
+      return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Chưa đăng nhập")];
+    }
+
+    const input = parseBody<CheckInLookupInput>(config.data);
+    const value = input.value.trim().toLowerCase();
+    const booking = mockBookings.find((candidate) => {
+      if (input.type === "BOOKING_CODE") {
+        return candidate.bookingCode.toLowerCase() === value;
+      }
+      return value.includes(candidate.id.toLowerCase());
+    });
+    if (!booking) {
+      return [404, errorBody(ApiErrorCode.BOOKING_NOT_FOUND, "QR hoặc Booking ID không hợp lệ")];
+    }
+
+    const graceEndsAt = booking.checkInSlotEnd
+      ? new Date(new Date(booking.checkInSlotEnd).getTime() + 2 * 60 * 60 * 1000).toISOString()
+      : null;
+    const now = Date.now();
+    const reasons: CheckInLookupResult["eligibility"]["reasons"] = [];
+    if (booking.status !== "CONFIRMED") reasons.push("INVALID_BOOKING_STATUS");
+    if (!booking.assignedUnit) reasons.push("UNIT_NOT_ASSIGNED");
+    if (!graceEndsAt) reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
+    else if (now < new Date(booking.checkInSlotStart).getTime()) reasons.push("TOO_EARLY");
+    else if (now > new Date(graceEndsAt).getTime()) reasons.push("DEADLINE_PASSED");
+
+    const result: CheckInLookupResult = {
+      booking: {
+        id: booking.id,
+        bookingCode: booking.bookingCode,
+        status: booking.status,
+        facilityId: booking.facilityId,
+        facilityName: booking.facilityName,
+        unitTypeName: booking.unitTypeName,
+        unitTypeSizeLabel: booking.unitTypeSizeLabel,
+        customerId: booking.customerId,
+        contactName: booking.contactName,
+        contactEmail: booking.contactEmail,
+        contactPhone: booking.contactPhone,
+        totalAmount: booking.totalAmount,
+        requestedMonths: booking.requestedMonths,
+        checkInSlotStart: booking.checkInSlotStart,
+        checkInSlotEnd: booking.checkInSlotEnd,
+        graceEndsAt,
+        rentalEndAt: booking.rentalEndAt,
+      },
+      payment: {
+        status: booking.paidAt ? PaymentStatus.SUCCEEDED : null,
+        paidAt: booking.paidAt,
+        totalAmount: booking.totalAmount,
+        rentalFeeAmount: booking.totalAmount,
+        depositAmount: 0,
+        currency: "VND",
+      },
+      assignedUnit: booking.assignedUnit ?? null,
+      eligibility: { canProceed: reasons.length === 0, reasons },
+      verification: null,
+    };
+    return [200, envelope(result)];
+  });
+
+  // POST /check-ins/:bookingId/confirm
+  mock.onPost(/\/check-ins\/[^/]+\/confirm$/).reply((config) => {
+    const database = getMockDatabase();
+    const user = currentUser(config, database);
+    const match = config.url?.match(/\/check-ins\/([^/]+)\/confirm/);
+    const booking = mockBookings.find((candidate) => candidate.id === match?.[1]);
+    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Chưa đăng nhập")];
+    if (!booking?.assignedUnit) {
+      return [409, errorBody(ApiErrorCode.INVALID_CHECK_IN, "Booking chưa đủ điều kiện check-in")];
+    }
+
+    const verification = {
+      id: crypto.randomUUID(),
+      bookingId: booking.id,
+      facilityId: booking.facilityId,
+      staffId: user.id,
+      unitAssignmentId: booking.assignedUnit.id,
+      status: "VERIFIED" as const,
+      verifiedAt: new Date().toISOString(),
+      consumedAt: null,
+      invalidatedAt: null,
+      invalidatedReason: null,
+    };
+    const result: CheckInLookupResult = {
+      booking: {
+        id: booking.id,
+        bookingCode: booking.bookingCode,
+        status: booking.status,
+        facilityId: booking.facilityId,
+        facilityName: booking.facilityName,
+        unitTypeName: booking.unitTypeName,
+        unitTypeSizeLabel: booking.unitTypeSizeLabel,
+        customerId: booking.customerId,
+        contactName: booking.contactName,
+        contactEmail: booking.contactEmail,
+        contactPhone: booking.contactPhone,
+        totalAmount: booking.totalAmount,
+        requestedMonths: booking.requestedMonths,
+        checkInSlotStart: booking.checkInSlotStart,
+        checkInSlotEnd: booking.checkInSlotEnd,
+        graceEndsAt: booking.checkInSlotEnd
+          ? new Date(new Date(booking.checkInSlotEnd).getTime() + 2 * 60 * 60 * 1000).toISOString()
+          : null,
+        rentalEndAt: booking.rentalEndAt,
+      },
+      payment: {
+        status: booking.paidAt ? PaymentStatus.SUCCEEDED : null,
+        paidAt: booking.paidAt,
+        totalAmount: booking.totalAmount,
+        rentalFeeAmount: booking.totalAmount,
+        depositAmount: 0,
+        currency: "VND",
+      },
+      assignedUnit: booking.assignedUnit,
+      eligibility: { canProceed: true, reasons: [] },
+      verification,
+    };
+    return [200, envelope(result)];
   });
 
   // GET /bookings/:id/eligible-units

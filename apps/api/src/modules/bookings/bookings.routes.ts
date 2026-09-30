@@ -1,3 +1,4 @@
+import type { BookingQrVerificationInput } from "@storex/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
@@ -52,7 +53,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     async (request, reply) => {
       const user = request.user;
       if (!user) throw new UnauthorizedError();
-      const result = await service.verifyQr(request.body.qrToken);
+      const result = await service.verifyQr((request.body as BookingQrVerificationInput).qrToken);
       const scope = getFacilityAccessScope(user);
       await requireAssignedFacility(facilitiesRepository, result.facilityId, scope, [
         "FACILITY_MANAGER",
