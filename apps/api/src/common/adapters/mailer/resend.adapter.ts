@@ -1,4 +1,5 @@
 import type { Mailer, VerificationEmail } from "./mailer.interface";
+import { RESEND_MESSAGES } from "./resend.messages";
 import type { ResendAdapterOptions, ResendResponse } from "./resend.types";
 
 export class ResendMailer implements Mailer {
@@ -10,9 +11,7 @@ export class ResendMailer implements Mailer {
 
   async sendVerificationEmail({ to, name, verificationUrl }: VerificationEmail): Promise<void> {
     if (!this.options.apiKey || !this.options.fromEmail) {
-      throw new Error(
-        "Email delivery is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL.",
-      );
+      throw new Error(RESEND_MESSAGES.deliveryNotConfigured);
     }
 
     const response = await this.fetcher("https://api.resend.com/emails", {
@@ -32,7 +31,10 @@ export class ResendMailer implements Mailer {
     if (!response.ok) {
       const result = (await response.json().catch(() => ({}))) as ResendResponse;
       throw new Error(
-        `Resend rejected verification email (${response.status}): ${result.message ?? "unknown error"}`,
+        RESEND_MESSAGES.verificationEmailRejected(
+          response.status,
+          result.message ?? "unknown error",
+        ),
       );
     }
   }
