@@ -1,4 +1,20 @@
 import { z } from "zod";
+import type { CookieSession } from "./types";
+
+export type {
+  ApiEnvelope,
+  ApiErrorBody,
+  CatalogFacilityListParams,
+  ConfirmReservationInput,
+  CookieSession,
+  DashboardActivity,
+  DashboardKpi,
+  DashboardSummary,
+  FacilityListParams,
+  LoginInput,
+  PaginatedResult,
+  ReservationQuoteInput,
+} from "./types";
 
 export enum UserRole {
   STORAGE_CUSTOMER = "CUSTOMER",
@@ -112,9 +128,6 @@ export const SessionSchema = z.object({
 });
 export type Session = z.infer<typeof SessionSchema>;
 export type SessionTokens = Pick<Session, "accessToken" | "refreshToken" | "expiresAt">;
-export interface CookieSession {
-  user: User;
-}
 export type ClientSession = Session | CookieSession;
 
 export const FacilityAddressSchema = z.object({
@@ -255,36 +268,6 @@ export const ReservationSchema = z.object({
 });
 export type Reservation = z.infer<typeof ReservationSchema>;
 
-export interface PaginatedResult<T> {
-  items: T[];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
-
-export interface ApiEnvelope<T> {
-  success: boolean;
-  message: string;
-  data: T;
-  timestamp: string;
-}
-
-export interface ApiErrorBody {
-  success: false;
-  message: string;
-  error: {
-    code: ApiErrorCode;
-    details?: Record<string, string[]>;
-  };
-  timestamp: string;
-}
-
-export interface LoginInput {
-  email: string;
-  password: string;
-}
-
 export const CustomerSignUpInputSchema = z
   .object({
     name: z.string().trim().min(1).max(150),
@@ -304,36 +287,6 @@ export const CustomerSignUpInputSchema = z
     }
   });
 export type CustomerSignUpInput = z.infer<typeof CustomerSignUpInputSchema>;
-
-export interface FacilityListParams {
-  search?: string;
-  city?: string;
-  page?: number;
-  pageSize?: number;
-  sort?: "name" | "price" | "availability";
-}
-
-export interface CatalogFacilityListParams {
-  search?: string;
-  city?: string;
-  page?: number;
-  pageSize?: number;
-  sort?: "name" | "price" | "availability";
-}
-
-export interface ReservationQuoteInput {
-  facilityId: string;
-  unitTypeId: string;
-  startDate: string;
-  durationMonths: number;
-}
-
-export interface ConfirmReservationInput {
-  quoteId: string;
-  paymentToken: string;
-  cardBrand: string;
-  cardLast4: string;
-}
 
 export const ReservationDraftContactSchema = z.object({
   fullName: z.string().trim().min(2).max(150),
@@ -467,28 +420,6 @@ export const CheckInEligibilityReasonCodeSchema = z.enum([
   "UNIT_NOT_ASSIGNED",
 ]);
 export type CheckInEligibilityReasonCode = z.infer<typeof CheckInEligibilityReasonCodeSchema>;
-
-export interface DashboardKpi {
-  label: string;
-  value: string;
-  helper: string;
-  tone: "primary" | "accent" | "warning" | "neutral";
-}
-
-export interface DashboardActivity {
-  id: string;
-  title: string;
-  description: string;
-  time: string;
-}
-
-export interface DashboardSummary {
-  title: string;
-  subtitle: string;
-  facilityName?: string;
-  kpis: DashboardKpi[];
-  activities: DashboardActivity[];
-}
 
 export const PhysicalUnitAssignmentSchema = z.object({
   id: z.string().uuid(),
