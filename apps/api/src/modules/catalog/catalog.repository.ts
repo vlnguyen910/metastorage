@@ -10,7 +10,7 @@ import {
   sql,
   storageUnits,
   unitTypes,
-} from "@storex/database";
+} from "@metastorage/database";
 import type { CatalogFacilityQuery } from "./catalog.schema";
 
 export type CatalogRow = {

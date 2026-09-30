@@ -7,7 +7,7 @@ import {
   type Role,
   type User,
   users,
-} from "@storex/database";
+} from "@metastorage/database";
 
 export class UsersRepository {
   constructor(private readonly db: Database) {}
