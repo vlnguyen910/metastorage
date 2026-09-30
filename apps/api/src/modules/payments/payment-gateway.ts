@@ -1,17 +1,6 @@
-export type GatewayPaymentResult = {
-  providerPaymentId: string;
-  status: "SUCCEEDED" | "FAILED";
-};
+import type { PaymentGateway } from "./payment-gateway.types";
 
-export interface PaymentGateway {
-  readonly provider: string;
-  charge(input: {
-    amount: string;
-    currency: string;
-    paymentMethodToken: string;
-    idempotencyKey: string;
-  }): Promise<GatewayPaymentResult>;
-}
+export type { GatewayPaymentResult, PaymentGateway } from "./payment-gateway.types";
 
 export class MockPaymentGateway implements PaymentGateway {
   readonly provider = "mock";
