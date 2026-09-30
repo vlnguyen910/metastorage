@@ -15,6 +15,7 @@ import {
   sql,
   unitTypes,
 } from "@metastorage/database";
+import { PAYMENT_MESSAGES } from "./payments.messages";
 
 export type PricingSnapshot = {
   monthlyRateSnapshot: string;
@@ -156,7 +157,7 @@ export class PaymentsRepository {
         .from(customers)
         .where(sql`lower(btrim(${customers.email})) = lower(btrim(${checkout.draft.contactEmail}))`)
         .for("update");
-      if (!businessCustomer) throw new Error("Failed to create customer");
+      if (!businessCustomer) throw new Error(PAYMENT_MESSAGES.failedToCreateCustomer);
 
       const values = {
         customerId: businessCustomer.id,
@@ -184,7 +185,7 @@ export class PaymentsRepository {
             .from(payments)
             .where(eq(payments.idempotencyKey, input.idempotencyKey))
             .for("update");
-      if (!payment) throw new Error("Failed to create pending payment");
+      if (!payment) throw new Error(PAYMENT_MESSAGES.failedToCreatePendingPayment);
       return { payment, checkout };
     });
   }
@@ -264,7 +265,7 @@ export class PaymentsRepository {
           paidAt: input.paidAt,
         })
         .returning();
-      if (!booking) throw new Error("Failed to create booking after payment");
+      if (!booking) throw new Error(PAYMENT_MESSAGES.failedToCreateBookingAfterPayment);
 
       const qrToken = qrTokenForBooking(booking.id);
       await tx
@@ -283,7 +284,7 @@ export class PaymentsRepository {
         })
         .where(eq(payments.id, payment.id))
         .returning();
-      if (!updatedPayment) throw new Error("Failed to finalize payment");
+      if (!updatedPayment) throw new Error(PAYMENT_MESSAGES.failedToFinalizePayment);
 
       await tx.insert(bookingConfirmationEmails).values({
         bookingId: booking.id,

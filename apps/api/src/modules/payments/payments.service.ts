@@ -3,6 +3,7 @@ import type { BookingConfirmation, PaidBooking, PaymentResult } from "@metastora
 import type { Booking, Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
+import { PAYMENT_MESSAGES } from "./payments.messages";
 import type { PaymentsRepository, PricingSnapshot } from "./payments.repository";
 import type { CheckoutPaymentBody } from "./payments.schema";
 
@@ -25,17 +26,17 @@ export class PaymentsService {
     if (existing) {
       if (existing.draftId !== draftId || existing.holdTokenHash !== holdTokenHash) {
         throw new AppError(
-          "Idempotency key đã được dùng cho checkout khác",
+          PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout,
           409,
           "IDEMPOTENCY_KEY_REUSED",
         );
       }
       if (existing.status === "PENDING") {
-        throw new AppError("Payment đang được đối soát", 409, "PAYMENT_PENDING");
+        throw new AppError(PAYMENT_MESSAGES.paymentPendingReconciliation, 409, "PAYMENT_PENDING");
       }
       if (existing.status !== "SUCCEEDED") {
         throw new AppError(
-          "Payment attempt đã kết thúc, hãy tạo idempotency key mới",
+          PAYMENT_MESSAGES.paymentAttemptFinalized,
           409,
           "PAYMENT_ATTEMPT_FINALIZED",
         );
@@ -50,7 +51,7 @@ export class PaymentsService {
         !completed.booking.bookingCode ||
         !completed.booking.paidAt
       ) {
-        throw new AppError("Payment thiếu thông tin booking", 500);
+        throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
       }
       return toPaymentResult(
         { ...completed.payment, paidAt: completed.payment.paidAt },
@@ -64,13 +65,14 @@ export class PaymentsService {
     }
 
     const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
-    if (!checkout) throw new NotFoundError("Hold không tồn tại hoặc không còn hiệu lực");
+    if (!checkout) throw new NotFoundError(PAYMENT_MESSAGES.holdUnavailable);
     if (checkout.hold.expiresAt && checkout.hold.expiresAt <= new Date()) {
-      throw new AppError("Hold đã hết hạn", 409, "HOLD_EXPIRED");
+      throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
     }
 
     const pricing = await this.pricingProvider(draftId);
-    if (!pricing) throw new AppError("Pricing chưa được cấu hình", 409, "PRICING_NOT_CONFIGURED");
+    if (!pricing)
+      throw new AppError(PAYMENT_MESSAGES.pricingNotConfigured, 409, "PRICING_NOT_CONFIGURED");
 
     const pending = await this.repository.createPendingPayment({
       draftId,
@@ -79,9 +81,13 @@ export class PaymentsService {
       idempotencyKey: input.idempotencyKey,
       pricing,
     });
-    if (!pending) throw new AppError("Hold không còn hiệu lực", 409, "HOLD_EXPIRED");
+    if (!pending) throw new AppError(PAYMENT_MESSAGES.holdNoLongerAvailable, 409, "HOLD_EXPIRED");
     if (pending.payment.status !== "PENDING") {
-      throw new AppError("Idempotency key đã được xử lý", 409, "IDEMPOTENCY_KEY_REUSED");
+      throw new AppError(
+        PAYMENT_MESSAGES.idempotencyKeyAlreadyProcessed,
+        409,
+        "IDEMPOTENCY_KEY_REUSED",
+      );
     }
 
     const gatewayResult = await this.gateway.charge({
@@ -94,11 +100,11 @@ export class PaymentsService {
       !gatewayResult?.providerPaymentId ||
       !["SUCCEEDED", "FAILED"].includes(gatewayResult.status)
     ) {
-      throw new AppError("Payment gateway trả về kết quả không xác định", 503, "PAYMENT_UNCERTAIN");
+      throw new AppError(PAYMENT_MESSAGES.paymentGatewayResultUnknown, 503, "PAYMENT_UNCERTAIN");
     }
     if (gatewayResult.status === "FAILED") {
       await this.repository.markFailed(pending.payment.id);
-      throw new AppError("Payment thất bại", 402, "PAYMENT_FAILED");
+      throw new AppError(PAYMENT_MESSAGES.paymentFailed, 402, "PAYMENT_FAILED");
     }
 
     let completedCheckout: Awaited<ReturnType<PaymentsRepository["completePendingPayment"]>>;
@@ -111,15 +117,23 @@ export class PaymentsService {
         paidAt: new Date(),
       });
     } catch {
-      throw new AppError("Payment đã nhận nhưng đang chờ đối soát", 503, "PAYMENT_UNCERTAIN");
+      throw new AppError(
+        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
+        503,
+        "PAYMENT_UNCERTAIN",
+      );
     }
     if (!completedCheckout?.booking) {
-      throw new AppError("Payment đã nhận nhưng đang chờ đối soát", 503, "PAYMENT_UNCERTAIN");
+      throw new AppError(
+        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
+        503,
+        "PAYMENT_UNCERTAIN",
+      );
     }
     if (!completedCheckout.payment.paidAt)
-      throw new AppError("Payment thiếu thời điểm thanh toán", 500);
+      throw new AppError(PAYMENT_MESSAGES.paymentTimestampMissing, 500);
     if (!completedCheckout.booking.bookingCode || !completedCheckout.booking.paidAt)
-      throw new AppError("Booking thiếu thông tin thanh toán", 500);
+      throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
 
     return toPaymentResult(
       { ...completedCheckout.payment, paidAt: completedCheckout.payment.paidAt },
