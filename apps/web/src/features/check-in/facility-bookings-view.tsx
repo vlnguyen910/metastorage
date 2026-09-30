@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookingListItem } from "@storex/contracts";
+import type { BookingListItem } from "@metastorage/contracts";
 import {
   ArrowUpDown,
   Calendar,

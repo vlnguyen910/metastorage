@@ -1,4 +1,4 @@
-import type { BookingListItem } from "@storex/contracts";
+import type { BookingListItem } from "@metastorage/contracts";
 
 export interface UnitAssignmentModalProps {
   booking: BookingListItem;
