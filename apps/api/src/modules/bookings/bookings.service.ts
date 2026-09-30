@@ -11,6 +11,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../common/errors/app-error";
+import { BOOKING_MESSAGES } from "./bookings.messages";
 import type { BookingsRepository } from "./bookings.repository";
 
 export class BookingsService {
@@ -18,9 +19,9 @@ export class BookingsService {
 
   async verifyQr(qrToken: string) {
     const booking = await this.repository.findByQrToken(qrToken);
-    if (!booking) throw new NotFoundError("QR không hợp lệ hoặc Booking không tồn tại");
+    if (!booking) throw new NotFoundError(BOOKING_MESSAGES.invalidQrOrBookingNotFound);
     if (["CANCELLED", "NO_SHOW"].includes(booking.status)) {
-      throw new ConflictError("Booking không thể dùng để check-in");
+      throw new ConflictError(BOOKING_MESSAGES.bookingCannotCheckIn);
     }
     return booking;
   }
@@ -36,7 +37,7 @@ export class BookingsService {
   async getBookingById(bookingId: string): Promise<BookingListItem> {
     const booking = await this.repository.findBookingById(bookingId);
     if (!booking) {
-      throw new NotFoundError("Không tìm thấy thông tin đơn đặt chỗ (Booking)");
+      throw new NotFoundError(BOOKING_MESSAGES.bookingDetailsNotFound);
     }
     return booking;
   }
@@ -44,7 +45,7 @@ export class BookingsService {
   async getEligibleUnits(bookingId: string): Promise<EligibleUnit[]> {
     const booking = await this.repository.findBookingById(bookingId);
     if (!booking) {
-      throw new NotFoundError("Không tìm thấy thông tin đơn đặt chỗ (Booking)");
+      throw new NotFoundError(BOOKING_MESSAGES.bookingDetailsNotFound);
     }
 
     return this.repository.findEligibleUnits(
@@ -72,29 +73,21 @@ export class BookingsService {
     if ("error" in result) {
       switch (result.error) {
         case "BOOKING_NOT_FOUND":
-          throw new NotFoundError("Không tìm thấy đơn đặt chỗ");
+          throw new NotFoundError(BOOKING_MESSAGES.bookingNotFound);
         case "PHYSICAL_UNIT_NOT_FOUND":
-          throw new NotFoundError("Không tìm thấy ô kho vật lý (Physical Unit)");
+          throw new NotFoundError(BOOKING_MESSAGES.physicalUnitNotFound);
         case "INVALID_BOOKING_STATUS":
-          throw new BadRequestError(
-            `Đơn đặt chỗ ở trạng thái '${result.currentStatus}', không thể gán ô kho`,
-          );
+          throw new BadRequestError(BOOKING_MESSAGES.invalidBookingStatus(result.currentStatus));
         case "UNIT_TYPE_OR_FACILITY_MISMATCH":
-          throw new ValidationError("Ô kho vật lý không khớp với cơ sở hoặc loại kho đã đặt");
+          throw new ValidationError(BOOKING_MESSAGES.physicalUnitDoesNotMatchReservation);
         case "UNIT_STATUS_INVALID":
-          throw new BadRequestError(
-            `Ô kho vật lý đang ở trạng thái không khả dụng ('${result.unitStatus}')`,
-          );
+          throw new BadRequestError(BOOKING_MESSAGES.physicalUnitUnavailable(result.unitStatus));
         case "UNIT_RENTAL_CONFLICT":
-          throw new ConflictError(
-            "Ô kho vật lý hiện đang có hợp đồng thuê khác chồng lấn khoảng thời gian này",
-          );
+          throw new ConflictError(BOOKING_MESSAGES.physicalUnitRentalConflict);
         case "UNIT_ASSIGNMENT_CONFLICT":
-          throw new ConflictError(
-            "Ô kho vật lý đã được gán cho một đơn đặt chỗ khác trong cùng kỳ thuê",
-          );
+          throw new ConflictError(BOOKING_MESSAGES.physicalUnitAssignmentConflict);
         default:
-          throw new AppError("Không thể gán ô kho vật lý", 500);
+          throw new AppError(BOOKING_MESSAGES.physicalUnitAssignmentFailed, 500);
       }
     }
 

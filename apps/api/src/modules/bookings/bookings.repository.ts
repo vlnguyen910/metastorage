@@ -26,6 +26,7 @@ import {
   unitTypes,
   users,
 } from "@metastorage/database";
+import { BOOKING_MESSAGES } from "./bookings.messages";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
@@ -510,7 +511,7 @@ export class BookingsRepository {
         .returning();
 
       if (!newAssignment) {
-        throw new Error("Failed to create unit assignment");
+        throw new Error(BOOKING_MESSAGES.failedToCreateUnitAssignment);
       }
 
       return {
