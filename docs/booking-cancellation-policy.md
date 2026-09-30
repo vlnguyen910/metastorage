@@ -67,6 +67,6 @@ Các kịch bản dưới đây là acceptance cases; hiện chưa có Booking/P
 
 ## Ngoài phạm vi quyết định này
 
-- Cancellation do STOREX không thể cung cấp unit phù hợp hoặc customer từ chối unit tại check-in vẫn **TBD** tại [issue #26](https://github.com/vlnguyen910/storeX/issues/26). Không tự động áp dụng forfeiture deposit của customer-initiated cancellation cho các trường hợp đó.
+- Cancellation do METASTORAGE không thể cung cấp unit phù hợp hoặc customer từ chối unit tại check-in vẫn **TBD** tại [issue #26](https://github.com/vlnguyen910/storeX/issues/26). Không tự động áp dụng forfeiture deposit của customer-initiated cancellation cho các trường hợp đó.
 - Tài liệu này chốt outcome nghiệp vụ, chưa chốt thời điểm/chi tiết kỹ thuật thực hiện refund qua payment provider.
 - Chưa thay đổi database schema hoặc API contract. Booking/Payment implementation sẽ bổ sung state machine, `rescheduleCount`, history và payment/refund state theo policy này. `ReservationStatus` hiện tại trong shared contract phục vụ reservation flow mẫu, không phải Booking state machine cuối cùng.

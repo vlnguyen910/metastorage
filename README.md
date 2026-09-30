@@ -1,11 +1,11 @@
-# storeX Monorepo
+# metastorage Monorepo
 
 Dự án monorepo được quản lý bởi **Turborepo** và **Bun**, sử dụng **TypeScript** từ frontend tới backend.
 
 ## 🏗️ Cấu trúc dự án
 
 ```text
-storeX/
+metastorage/
 ├── apps/
 │   ├── api/                   # Backend Node.js + Fastify + TypeScript
 │   │   ├── src/
@@ -85,7 +85,7 @@ Docker Compose cung cấp PostgreSQL local với các thông tin kết nối m�
 
 - **Host**: `localhost`
 - **Port**: `5432`
-- **Database**: `storex`
+- **Database**: `metastorage`
 - **User**: `postgres`
 - **Password**: `postgres`
 
@@ -126,7 +126,7 @@ cp apps/api/.env.example apps/api/.env
 Để chạy với PostgreSQL trong Docker Compose, giữ `DATABASE_URL` như sau:
 
 ```env
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/storex
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/metastorage
 ```
 
 API mặc định chạy tại port `4000`. Có thể thay đổi port trong `apps/api/.env`.

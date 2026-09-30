@@ -1,4 +1,4 @@
-# storeX database diagram
+# metastorage database diagram
 
 This diagram records every table and column currently declared in
 `packages/database/src/schema`. Rental and guest access remain future work;
