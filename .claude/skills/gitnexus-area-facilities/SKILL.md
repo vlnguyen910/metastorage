@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-facilities
-description: "Skill for the Facilities area of storeX. 45 symbols across 9 files."
+description: "Skill for the Facilities area of metastorage. 45 symbols across 9 files."
 ---
 
 # Facilities

@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-errors
-description: "Skill for the Errors area of storeX. 4 symbols across 4 files."
+description: "Skill for the Errors area of metastorage. 4 symbols across 4 files."
 ---
 
 # Errors

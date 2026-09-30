@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-ui
-description: "Skill for the Ui area of storeX. 14 symbols across 13 files."
+description: "Skill for the Ui area of metastorage. 14 symbols across 13 files."
 ---
 
 # Ui

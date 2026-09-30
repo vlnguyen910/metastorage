@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-layout
-description: "Skill for the Layout area of storeX. 9 symbols across 7 files."
+description: "Skill for the Layout area of metastorage. 9 symbols across 7 files."
 ---
 
 # Layout

@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-mocks
-description: "Skill for the Mocks area of storeX. 7 symbols across 5 files."
+description: "Skill for the Mocks area of metastorage. 7 symbols across 5 files."
 ---
 
 # Mocks
