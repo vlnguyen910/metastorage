@@ -26,7 +26,7 @@ The browser's stored user object only supports navigation; it does not grant API
    ```sql
    UPDATE users
    SET role = 'SYSTEM_ADMIN'
-   WHERE email = 'admin@storex.vn' AND email_verified = true;
+   WHERE email = 'admin@metastorage.test' AND email_verified = true;
    ```
 
    Public signup cannot set or change a role. The raw Better Auth `/sign-up/email` route is blocked;
@@ -45,7 +45,7 @@ The browser's stored user object only supports navigation; it does not grant API
   existing bookings/rentals become visible through the linked Customer. If no Customer exists, one
   is created from the verified signup details.
 - Signup never creates a session. Verification redirects to `/verify-email` on Web or the
-  `storex://auth/verified` deep link on Mobile; the user then signs in. An unverified sign-in attempt
+  `metastorage://auth/verified` deep link on Mobile; the user then signs in. An unverified sign-in attempt
   sends a fresh verification link.
 - No database schema migration is needed: `users.phone` is already nullable, and the existing
   Customer link/normalized-email constraints support this flow.
