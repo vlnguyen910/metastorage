@@ -1,6 +1,6 @@
 "use client";
 
-import type { BookingListItem } from "@storex/contracts";
+import type { BookingListItem } from "@metastorage/contracts";
 import { Check, Mail, Phone, ShieldCheck, UserCheck, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";

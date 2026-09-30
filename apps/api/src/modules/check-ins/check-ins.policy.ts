@@ -1,5 +1,5 @@
-import type { CheckInEligibility, CheckInEligibilityReasonCode } from "@storex/contracts";
-import type { CheckInVerification } from "@storex/database";
+import type { CheckInEligibility, CheckInEligibilityReasonCode } from "@metastorage/contracts";
+import type { CheckInVerification } from "@metastorage/database";
 
 const GRACE_PERIOD_MS = 2 * 60 * 60 * 1000;
 

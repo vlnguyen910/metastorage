@@ -6,8 +6,8 @@ import type {
   CheckInPaymentSummary,
   CheckInVerification,
   PhysicalUnitAssignment,
-} from "@storex/contracts";
-import type { CheckInVerification as DbCheckInVerification } from "@storex/database";
+} from "@metastorage/contracts";
+import type { CheckInVerification as DbCheckInVerification } from "@metastorage/database";
 import { ConflictError, NotFoundError } from "../../common/errors/app-error";
 import { type CheckInPolicyEvaluation, evaluateCheckInEligibility } from "./check-ins.policy";
 import type { CheckInRecord, CheckInsRepository } from "./check-ins.repository";

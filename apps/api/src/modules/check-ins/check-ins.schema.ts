@@ -1,4 +1,4 @@
-import { CheckInLookupInputSchema } from "@storex/contracts";
+import { CheckInLookupInputSchema } from "@metastorage/contracts";
 import { z } from "zod";
 
 export const CheckInLookupBodySchema = CheckInLookupInputSchema;

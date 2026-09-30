@@ -1,4 +1,4 @@
-import type { CheckInLookupInput } from "@storex/contracts";
+import type { CheckInLookupInput } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";

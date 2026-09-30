@@ -1,4 +1,4 @@
-import { type BookingListItem, type FacilityStaffMember, UserRole } from "@storex/contracts";
+import { type BookingListItem, type FacilityStaffMember, UserRole } from "@metastorage/contracts";
 
 export const mockStaffHuy: FacilityStaffMember = {
   id: "user-2",

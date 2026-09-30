@@ -1,6 +1,6 @@
 "use client";
 
-import type { CheckInLookupInput, CheckInLookupResult } from "@storex/contracts";
+import type { CheckInLookupInput, CheckInLookupResult } from "@metastorage/contracts";
 import axios from "axios";
 import { AlertTriangle, CheckCircle2, Clock3, QrCode, Search, User, Warehouse } from "lucide-react";
 import { type FormEvent, type ReactNode, useState } from "react";
