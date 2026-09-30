@@ -69,7 +69,7 @@ export default function HomePage() {
             <div className="relative grid min-h-[470px] place-items-center max-[800px]:min-h-[420px] max-[560px]:min-h-[330px]">
               <div className="relative h-[410px] w-full overflow-hidden rounded-[32px_32px_20px_20px] bg-[#173f35] p-6 shadow-card before:absolute before:inset-0 before:bg-[linear-gradient(120deg,transparent,rgb(255_255_255_/_8%))] max-[560px]:h-[300px] max-[560px]:p-[18px]">
                 <div className="relative flex justify-between text-xl font-extrabold text-white">
-                  <span>storeX</span>
+                  <span>metastorage</span>
                   <small className="text-[0.7rem] tracking-[0.2em] text-[#b8d5ce]">
                     SELF STORAGE
                   </small>
@@ -190,8 +190,8 @@ export default function HomePage() {
               <span className={eyebrow}>Được thiết kế cho sự an tâm</span>
               <h2 className="mb-4 text-[2.6rem] font-bold">Không chỉ là một chỗ để đồ</h2>
               <p className="text-muted">
-                Mỗi cơ sở storeX được vận hành theo quy trình rõ ràng, từ kiểm tra kho đến quản lý
-                quyền truy cập.
+                Mỗi cơ sở metastorage được vận hành theo quy trình rõ ràng, từ kiểm tra kho đến quản
+                lý quyền truy cập.
               </p>
               <ul className="my-6 grid list-none gap-3.5 p-0 [&_li]:flex [&_li]:items-center [&_li]:gap-3 [&_li]:font-semibold [&_svg]:text-primary">
                 <li>

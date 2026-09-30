@@ -5,8 +5,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "storeX - Kho lưu trữ linh hoạt",
-    template: "%s | storeX",
+    default: "metastorage - Kho lưu trữ linh hoạt",
+    template: "%s | metastorage",
   },
   description: "Đặt và quản lý kho lưu trữ tự phục vụ an toàn, minh bạch.",
 };
