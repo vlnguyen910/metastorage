@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Database } from "@storex/database";
+import type { Database } from "@metastorage/database";
 import { ConflictError } from "../../../src/common/errors/app-error";
 import { CustomerRegistrationRepository } from "../../../src/modules/customers/customer-registration.repository";
 

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expo } from "@better-auth/expo";
-import { accounts, db, eq, sessions, users, verifications } from "@storex/database";
+import { accounts, db, eq, sessions, users, verifications } from "@metastorage/database";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { ResendMailer } from "../../common/adapters/mailer/resend.adapter";
