@@ -1,4 +1,4 @@
-import { APP_NAME } from "@storex/shared";
+import { APP_NAME } from "@metastorage/shared";
 import { StatusBar } from "expo-status-bar";
 import {
   ActivityIndicator,
