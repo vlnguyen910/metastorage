@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import type { Booking, Facility, UnitType } from "@storex/database";
+import type { Booking, Facility, UnitType } from "@metastorage/database";
 import {
   and,
   bookingConfirmationEmails,
@@ -14,7 +14,7 @@ import {
   reservationDrafts,
   sql,
   unitTypes,
-} from "@storex/database";
+} from "@metastorage/database";
 
 export type PricingSnapshot = {
   monthlyRateSnapshot: string;
