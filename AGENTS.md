@@ -3,7 +3,7 @@
 ## 1. Project Structure & Architecture
 
 ```text
-storex/
+metastorage/
 ├── apps/
 │   ├── web/          # Next.js (Web Frontend)
 │   ├── mobile/       # React Native + Expo
@@ -92,7 +92,7 @@ bun run check:fix                    # Apply Biome auto-fixes
 - **TypeScript**: Strict mode across all packages.
 - **Formatting & Linting**: Biome is the source of truth (2 spaces, double quotes, semicolons, 100 max line length). Run `bun run check:fix` before committing.
 - **Naming**: PascalCase for components/types, camelCase for functions/variables, kebab-case for route and config filenames.
-- **Contracts**: Always use shared types/schemas (`packages/contracts` or `@storex/shared`).
+- **Contracts**: Always use shared types/schemas (`packages/contracts` or `@metastorage/shared`).
 
 ## 6. Commit & Git Hook Guidelines
 
