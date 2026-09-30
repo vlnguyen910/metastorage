@@ -15,7 +15,7 @@ export function PublicHeader() {
         <Link
           href={routes.home}
           className="inline-flex items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.04em]"
-          aria-label="storeX trang chủ"
+          aria-label="metastorage trang chủ"
         >
           <span className="grid size-[38px] place-items-center rounded-[11px] bg-primary text-white">
             <Warehouse size={22} />

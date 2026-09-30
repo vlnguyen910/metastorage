@@ -46,7 +46,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         {ready ? (
           children
         ) : (
-          <div className="grid min-h-screen place-items-center p-8">Đang khởi tạo storeX…</div>
+          <div className="grid min-h-screen place-items-center p-8">Đang khởi tạo metastorage…</div>
         )}
       </ToastProvider>
     </QueryClientProvider>

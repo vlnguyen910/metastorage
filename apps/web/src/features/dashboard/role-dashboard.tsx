@@ -34,7 +34,7 @@ export function RoleDashboard({ role }: { role: UserRole }) {
   return (
     <>
       <PageHeader
-        eyebrow={data.facilityName ?? "storeX operations"}
+        eyebrow={data.facilityName ?? "metastorage operations"}
         title={data.title}
         description={data.subtitle}
       />
