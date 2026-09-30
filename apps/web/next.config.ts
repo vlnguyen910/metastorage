@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@storex/shared", "@storex/contracts", "@storex/api-client"],
+  transpilePackages: ["@metastorage/shared", "@metastorage/contracts", "@metastorage/api-client"],
   reactStrictMode: true,
 };
 
