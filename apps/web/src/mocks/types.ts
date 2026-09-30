@@ -6,7 +6,7 @@ import type {
   ReservationQuote,
   StorageUnitStatus,
   User,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 
 export interface MockUser extends User {
   password: string;
