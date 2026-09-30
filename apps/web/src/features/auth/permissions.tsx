@@ -1,6 +1,6 @@
 "use client";
 
-import type { Permission } from "@storex/contracts";
+import type { Permission } from "@metastorage/contracts";
 import type { ReactNode } from "react";
 import { hasPermission } from "@/config/access-control";
 import { useAuthStore } from "./auth-store";

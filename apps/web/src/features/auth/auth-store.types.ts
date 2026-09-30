@@ -1,4 +1,4 @@
-import type { ClientSession, SessionTokens } from "@storex/contracts";
+import type { ClientSession, SessionTokens } from "@metastorage/contracts";
 
 export interface AuthState {
   session: ClientSession | null;

@@ -1,4 +1,4 @@
-import { Permission, type Session, UserRole } from "@storex/contracts";
+import { Permission, type Session, UserRole } from "@metastorage/contracts";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { rolePermissions } from "@/config/access-control";
