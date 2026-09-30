@@ -3,9 +3,11 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync } from "fastify";
 import { AppError, ConflictError } from "../../common/errors/app-error";
 import { env } from "../../config/env";
+import { CUSTOMER_REGISTRATION_MESSAGES } from "../customers/customer-registration.messages";
 import { CustomerRegistrationRepository } from "../customers/customer-registration.repository";
 import { CustomerRegistrationService } from "../customers/customer-registration.service";
 import { auth } from "./auth";
+import { AUTH_MESSAGES } from "./auth.messages";
 import { getCustomerSignupCallbackUrl } from "./customer-signup.callback";
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
@@ -19,7 +21,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
     if (!env.RESEND_API_KEY || !env.RESEND_FROM_EMAIL) {
       throw new AppError(
-        "Customer signup email delivery is not configured.",
+        AUTH_MESSAGES.customerSignupEmailDeliveryUnavailable,
         503,
         "EMAIL_DELIVERY_UNAVAILABLE",
       );
@@ -31,7 +33,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     );
 
     if (!callbackURL) {
-      throw new Error("No trusted web origin is configured for email verification.");
+      throw new Error(AUTH_MESSAGES.noTrustedWebOriginForEmailVerification);
     }
 
     try {
@@ -47,15 +49,13 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
       });
     } catch (error) {
       if (isEmailConflict(error)) {
-        throw new ConflictError(
-          "Email đã có tài khoản hoặc hồ sơ Customer đã liên kết. Vui lòng đăng nhập hoặc khôi phục mật khẩu.",
-        );
+        throw new ConflictError(CUSTOMER_REGISTRATION_MESSAGES.accountRecovery);
       }
       throw error;
     }
 
     return reply.status(202).send({
-      message: "Đã gửi liên kết xác minh. Vui lòng kiểm tra email trước khi đăng nhập.",
+      message: AUTH_MESSAGES.customerSignupVerificationEmailSent,
     });
   });
 
@@ -68,7 +68,7 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
       if (request.method === "POST" && url.pathname.endsWith("/sign-up/email")) {
         return reply.status(404).send({
-          message: "Customer signup must use the customer-sign-up endpoint.",
+          message: AUTH_MESSAGES.customerSignupMustUseCustomerEndpoint,
         });
       }
 

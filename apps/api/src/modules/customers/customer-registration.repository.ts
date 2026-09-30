@@ -9,6 +9,7 @@ import {
   users,
 } from "@metastorage/database";
 import { ConflictError } from "../../common/errors/app-error";
+import { CUSTOMER_REGISTRATION_MESSAGES } from "./customer-registration.messages";
 import type { VerifiedCustomerRegistrationUser } from "./customer-registration.types";
 
 export class CustomerRegistrationRepository {
@@ -65,7 +66,7 @@ export class CustomerRegistrationRepository {
         .where(sql`lower(btrim(${customers.email})) = ${normalizedEmail}`)
         .for("update");
       if (!concurrentCustomer) {
-        throw new Error("Customer reconciliation failed after a concurrent insert");
+        throw new Error(CUSTOMER_REGISTRATION_MESSAGES.concurrentReconciliationFailed);
       }
 
       return this.attachUserToCustomer(tx, concurrentCustomer, user.id);
@@ -79,9 +80,7 @@ export class CustomerRegistrationRepository {
   ): Promise<Customer> {
     if (customer.userId === userId) return customer;
     if (customer.userId) {
-      throw new ConflictError(
-        "Email đã liên kết với tài khoản khác. Vui lòng đăng nhập hoặc khôi phục mật khẩu.",
-      );
+      throw new ConflictError(CUSTOMER_REGISTRATION_MESSAGES.accountLinkedToAnotherUser);
     }
 
     const [linkedCustomer] = await tx
@@ -98,8 +97,6 @@ export class CustomerRegistrationRepository {
       .where(eq(customers.id, customer.id))
       .for("update");
     if (currentCustomer?.userId === userId) return currentCustomer;
-    throw new ConflictError(
-      "Email đã liên kết với tài khoản khác. Vui lòng đăng nhập hoặc khôi phục mật khẩu.",
-    );
+    throw new ConflictError(CUSTOMER_REGISTRATION_MESSAGES.accountLinkedToAnotherUser);
   }
 }
