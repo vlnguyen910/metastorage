@@ -1,6 +1,6 @@
 "use client";
 
-import type { CatalogFacility } from "@storex/contracts";
+import type { CatalogFacility } from "@metastorage/contracts";
 import { ArrowRight, Clock3, MapPin, ShieldCheck, Warehouse } from "lucide-react";
 import Link from "next/link";
 import { buttonClassName } from "@/components/ui/button";

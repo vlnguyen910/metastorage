@@ -1,6 +1,6 @@
 "use client";
 
-import type { CatalogFacilityListParams } from "@storex/contracts";
+import type { CatalogFacilityListParams } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
