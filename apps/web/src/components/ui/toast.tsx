@@ -3,16 +3,7 @@
 import { CheckCircle2, CircleAlert, X } from "lucide-react";
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
-
-type ToastTone = "success" | "error";
-interface ToastItem {
-  id: number;
-  message: string;
-  tone: ToastTone;
-}
-interface ToastContextValue {
-  showToast: (message: string, tone?: ToastTone) => void;
-}
+import type { ToastContextValue, ToastItem, ToastTone } from "./toast.types";
 
 const ToastContext = createContext<ToastContextValue | null>(null);
 
