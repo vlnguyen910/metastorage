@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { accounts, and, db, eq, facilities, facilityAssignments, users } from "@storex/database";
+import { accounts, and, db, eq, facilities, facilityAssignments, users } from "@metastorage/database";
 import { hashPassword } from "better-auth/crypto";
 import { auth } from "./modules/auth/auth";
 

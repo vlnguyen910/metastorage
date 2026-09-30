@@ -1,4 +1,4 @@
-import type { Role } from "@storex/database";
+import type { Role } from "@metastorage/database";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";

@@ -1,4 +1,4 @@
-import { ROLES, type Role } from "@storex/database";
+import { ROLES, type Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
 
 type AuthorizationUser = {

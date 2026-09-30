@@ -1,4 +1,4 @@
-import { CustomerSignUpInputSchema } from "@storex/contracts";
+import { CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync } from "fastify";
 import { AppError, ConflictError } from "../../common/errors/app-error";

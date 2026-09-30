@@ -7,7 +7,7 @@ import {
   isNull,
   sql,
   users,
-} from "@storex/database";
+} from "@metastorage/database";
 import { ConflictError } from "../../common/errors/app-error";
 import type { VerifiedCustomerRegistrationUser } from "./customer-registration.types";
 
