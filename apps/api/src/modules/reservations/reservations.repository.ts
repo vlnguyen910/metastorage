@@ -16,6 +16,7 @@ import {
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
+import { RESERVATION_MESSAGES } from "./reservations.messages";
 
 export class ReservationsRepository {
   constructor(private readonly db: Database) {}
@@ -79,7 +80,7 @@ export class ReservationsRepository {
   async createDraft(data: NewReservationDraft) {
     return this.db.transaction(async (tx) => {
       const [draft] = await tx.insert(reservationDrafts).values(data).returning();
-      if (!draft) throw new Error("Failed to create reservation draft");
+      if (!draft) throw new Error(RESERVATION_MESSAGES.failedToCreateDraft);
       return draft;
     });
   }
