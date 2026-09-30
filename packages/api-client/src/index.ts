@@ -39,7 +39,7 @@ import type {
   SessionTokens,
   UnitAvailabilityOption,
   UserRole,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
 import type { HttpClientOptions, RetryConfig } from "./types";
 
