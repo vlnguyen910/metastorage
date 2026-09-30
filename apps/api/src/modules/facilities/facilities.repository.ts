@@ -17,6 +17,7 @@ import {
   users,
 } from "@metastorage/database";
 import type { AssignedFacilityScope, FacilityListScope, FacilityScope } from "./facilities.access";
+import { FACILITY_MESSAGES } from "./facilities.messages";
 
 export class FacilitiesRepository {
   constructor(private readonly db: Database) {}
@@ -49,7 +50,7 @@ export class FacilitiesRepository {
   async createFacility(data: NewFacility): Promise<Facility> {
     const [created] = await this.db.insert(facilities).values(data).returning();
     if (!created) {
-      throw new Error("Failed to create facility");
+      throw new Error(FACILITY_MESSAGES.failedToCreateFacility);
     }
     return created;
   }
@@ -163,7 +164,7 @@ export class FacilitiesRepository {
       })
       .returning();
     if (!assignment) {
-      throw new Error("Failed to upsert assignment");
+      throw new Error(FACILITY_MESSAGES.failedToUpsertAssignment);
     }
     return assignment;
   }
