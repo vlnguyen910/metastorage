@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { BookingConfirmation, PaidBooking, PaymentResult } from "@storex/contracts";
-import type { Booking, Payment } from "@storex/database";
+import type { BookingConfirmation, PaidBooking, PaymentResult } from "@metastorage/contracts";
+import type { Booking, Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
 import type { PaymentsRepository, PricingSnapshot } from "./payments.repository";

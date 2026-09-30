@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { describe, it } from "node:test";
-import type { PaymentCheckoutInput } from "@storex/contracts";
+import type { PaymentCheckoutInput } from "@metastorage/contracts";
 import { MockPaymentGateway } from "../../../src/modules/payments/payment-gateway";
 import { PaymentsService } from "../../../src/modules/payments/payments.service";
 

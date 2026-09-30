@@ -1,4 +1,4 @@
-import { type PaymentCheckoutInput, PaymentCheckoutInputSchema } from "@storex/contracts";
+import { type PaymentCheckoutInput, PaymentCheckoutInputSchema } from "@metastorage/contracts";
 import { z } from "zod";
 
 export const paymentDraftIdParamSchema = z.object({
