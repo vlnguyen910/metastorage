@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { CONTRACT_MESSAGES } from "./messages";
 import type { CookieSession } from "./types";
+
+export { CONTRACT_MESSAGES } from "./messages";
 
 export type {
   ApiEnvelope,
@@ -282,7 +285,7 @@ export const CustomerSignUpInputSchema = z
       context.addIssue({
         code: "custom",
         path: ["confirmPassword"],
-        message: "Passwords do not match",
+        message: CONTRACT_MESSAGES.passwordsDoNotMatch,
       });
     }
   });
