@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { LoadingState } from "@/components/ui/states";

@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import { BarChart3, UserCheck } from "lucide-react";
 import { useState } from "react";
 import { useAuthStore } from "@/features/auth/auth-store";
