@@ -1,25 +1,10 @@
-import type { FacilityAssignmentRole } from "@storex/contracts";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { BadRequestError, UnauthorizedError } from "../../common/errors/app-error";
 import { requireAuth } from "../auth/auth.guard";
-import {
-  type FacilityScope,
-  getFacilityAccessScope,
-  requireAssignedFacility,
-} from "./facilities.access";
+import { getFacilityAccessScope, requireAssignedFacility } from "./facilities.access";
+import type { FacilityContext, RequireFacilityAccessOptions } from "./facilities.guard.types";
 import { FacilitiesRepository } from "./facilities.repository";
-
-export interface FacilityContext {
-  facilityId: string;
-  scope: FacilityScope;
-}
-
-declare module "fastify" {
-  interface FastifyRequest {
-    facilityContext: FacilityContext | null;
-  }
-}
 
 const facilityContextPluginCallback: FastifyPluginAsync = async (fastify) => {
   fastify.decorateRequest("facilityContext", null);
@@ -34,11 +19,6 @@ export function getFacilityContext(request: FastifyRequest): FacilityContext {
     throw new UnauthorizedError("Bạn cần đăng nhập để thực hiện thao tác này");
   }
   return request.facilityContext;
-}
-
-export interface RequireFacilityAccessOptions {
-  allowedFacilityRoles?: readonly FacilityAssignmentRole[];
-  resolveFacilityId?: (request: FastifyRequest) => string | undefined;
 }
 
 export function requireFacilityAccess(options: RequireFacilityAccessOptions = {}) {
