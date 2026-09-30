@@ -1,5 +1,5 @@
-import type { ReservationDraftInput } from "@storex/contracts";
-import { ReservationDraftInputSchema } from "@storex/contracts";
+import type { ReservationDraftInput } from "@metastorage/contracts";
+import { ReservationDraftInputSchema } from "@metastorage/contracts";
 import { z } from "zod";
 
 export const createReservationDraftBodySchema = ReservationDraftInputSchema;

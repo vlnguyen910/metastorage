@@ -1,5 +1,9 @@
 import { createHash, randomBytes } from "node:crypto";
-import type { ReservationDraft, ReservationDraftContact, ReservationHold } from "@storex/contracts";
+import type {
+  ReservationDraft,
+  ReservationDraftContact,
+  ReservationHold,
+} from "@metastorage/contracts";
 import { AppError, BadRequestError, NotFoundError } from "../../common/errors/app-error";
 import type { ReservationsRepository } from "./reservations.repository";
 import type { CreateReservationDraftBody } from "./reservations.schema";
