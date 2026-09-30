@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
-    "@storex/api-client": "workspace:*",
-    "@storex/contracts": "workspace:*",
-    "@storex/shared": "workspace:*",
+    "@metastorage/api-client": "workspace:*",
+    "@metastorage/contracts": "workspace:*",
+    "@metastorage/shared": "workspace:*",
     "@tanstack/react-query": "^5.90.2",
     "axios": "^1.12.2",
     "axios-mock-adapter": "^2.1.0",
@@ -32,7 +32,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.55.1",
-    "@storex/typescript-config": "workspace:*",
+    "@metastorage/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "4.1.12",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",

@@ -1,5 +1,5 @@
 {
-  "extends": "@storex/typescript-config/nextjs.json",
+  "extends": "@metastorage/typescript-config/nextjs.json",
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {

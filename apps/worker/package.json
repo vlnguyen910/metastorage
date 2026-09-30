@@ -11,12 +11,12 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@storex/database": "workspace:*",
+    "@metastorage/database": "workspace:*",
     "bullmq": "^5.58.5",
     "ioredis": "^5.8.2"
   },
   "devDependencies": {
-    "@storex/typescript-config": "workspace:*",
+    "@metastorage/typescript-config": "workspace:*",
     "@types/node": "^22.13.4",
     "tsup": "^8.5.1",
     "tsx": "^4.19.3",

@@ -14,9 +14,9 @@
   },
   "dependencies": {
     "@better-auth/expo": "1.7.5",
-    "@storex/api-client": "workspace:*",
-    "@storex/contracts": "workspace:*",
-    "@storex/shared": "workspace:*",
+    "@metastorage/api-client": "workspace:*",
+    "@metastorage/contracts": "workspace:*",
+    "@metastorage/shared": "workspace:*",
     "better-auth": "1.7.5",
     "expo": "~57.0.25",
     "expo-camera": "~57.0.6",
@@ -37,7 +37,7 @@
     "react-native-worklets": "0.10.1"
   },
   "devDependencies": {
-    "@storex/typescript-config": "workspace:*",
+    "@metastorage/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "4.1.12",
     "@types/react": "~19.2.2",
     "babel-preset-expo": "~57.0.0",
