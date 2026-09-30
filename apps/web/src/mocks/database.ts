@@ -1,5 +1,5 @@
-import type { Facility } from "@storex/contracts";
-import { StorageUnitStatus } from "@storex/contracts";
+import type { Facility } from "@metastorage/contracts";
+import { StorageUnitStatus } from "@metastorage/contracts";
 import { createSeedDatabase } from "./seeds";
 import type { MockDatabase } from "./types";
 

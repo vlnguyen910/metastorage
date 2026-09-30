@@ -1,4 +1,4 @@
-import { ApiErrorCode } from "@storex/contracts";
+import { ApiErrorCode } from "@metastorage/contracts";
 import type { AxiosInstance } from "axios";
 import MockAdapter from "axios-mock-adapter";
 import { errorBody } from "./core/http";

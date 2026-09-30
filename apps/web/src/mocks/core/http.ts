@@ -6,7 +6,7 @@ import {
   StorageUnitStatus,
   type UnitAvailabilityOption,
   type User,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import type { AxiosRequestConfig } from "axios";
 import type { MockDatabase, MockStorageUnit, MockUser } from "../types";
 
