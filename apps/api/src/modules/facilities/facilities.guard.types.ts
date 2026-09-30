@@ -1,4 +1,4 @@
-import type { FacilityAssignmentRole } from "@storex/contracts";
+import type { FacilityAssignmentRole } from "@metastorage/contracts";
 import type { FastifyRequest } from "fastify";
 import type { FacilityScope } from "./facilities.access";
 

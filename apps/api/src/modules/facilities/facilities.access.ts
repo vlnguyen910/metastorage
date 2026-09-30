@@ -1,5 +1,5 @@
-import type { FacilityAssignmentRole } from "@storex/contracts";
-import type { Role } from "@storex/database";
+import type { FacilityAssignmentRole } from "@metastorage/contracts";
+import type { Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
 import type { FacilitiesRepository } from "./facilities.repository";
 

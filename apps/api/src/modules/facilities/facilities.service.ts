@@ -1,5 +1,5 @@
-import type { ApiFacility, ApiFacilityAssignment } from "@storex/contracts";
-import type { Role } from "@storex/database";
+import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
+import type { Role } from "@metastorage/database";
 import {
   BadRequestError,
   ConflictError,

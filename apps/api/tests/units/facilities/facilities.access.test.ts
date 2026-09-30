@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Facility, FacilityAssignment } from "@storex/database";
+import type { Facility, FacilityAssignment } from "@metastorage/database";
 import { BadRequestError, ForbiddenError } from "../../../src/common/errors/app-error";
 import {
   getFacilityAccessScope,
