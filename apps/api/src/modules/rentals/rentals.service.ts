@@ -1,4 +1,5 @@
 import { NotFoundError } from "../../common/errors/app-error";
+import { RENTAL_MESSAGES } from "./rentals.messages";
 import type { RentalsRepository } from "./rentals.repository";
 
 export class RentalsService {
@@ -11,9 +12,9 @@ export class RentalsService {
 
   async getMine(rentalId: string, userId: string) {
     const customerId = await this.repository.findCustomerId(userId);
-    if (!customerId) throw new NotFoundError("Không tìm thấy Rental");
+    if (!customerId) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
     const rental = await this.repository.findByIdAndCustomerId(rentalId, customerId);
-    if (!rental) throw new NotFoundError("Không tìm thấy Rental");
+    if (!rental) throw new NotFoundError(RENTAL_MESSAGES.rentalNotFound);
     return rental;
   }
 }
