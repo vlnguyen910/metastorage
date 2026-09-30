@@ -1,6 +1,6 @@
 ---
 name: gitnexus-area-catalog
-description: "Skill for the Catalog area of storeX. 13 symbols across 4 files."
+description: "Skill for the Catalog area of metastorage. 13 symbols across 4 files."
 ---
 
 # Catalog
