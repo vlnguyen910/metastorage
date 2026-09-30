@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { NewReservationDraft } from "@storex/database";
+import type { NewReservationDraft } from "@metastorage/database";
 import type { ReservationsRepository } from "../../../src/modules/reservations/reservations.repository";
 import { ReservationsService } from "../../../src/modules/reservations/reservations.service";
 

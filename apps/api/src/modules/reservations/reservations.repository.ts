@@ -1,4 +1,4 @@
-import type { NewReservationDraft } from "@storex/database";
+import type { NewReservationDraft } from "@metastorage/database";
 import {
   and,
   capacityAllocations,
@@ -15,7 +15,7 @@ import {
   reservationDrafts,
   storageUnits,
   unitTypes,
-} from "@storex/database";
+} from "@metastorage/database";
 
 export class ReservationsRepository {
   constructor(private readonly db: Database) {}
