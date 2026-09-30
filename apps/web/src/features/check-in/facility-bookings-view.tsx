@@ -19,14 +19,10 @@ import { Button } from "@/components/ui/button";
 import { Card, Currency, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { formatDate, formatDateTime } from "@/lib/format";
+import type { FacilityBookingsViewProps } from "./facility-bookings-view.types";
 import { useFacilityBookings } from "./hooks";
 import { StaffAssignmentModal } from "./staff-assignment-modal";
 import { UnitAssignmentModal } from "./unit-assignment-modal";
-
-interface FacilityBookingsViewProps {
-  facilityId: string;
-  facilityName?: string;
-}
 
 type CheckInReadiness =
   | "READY"

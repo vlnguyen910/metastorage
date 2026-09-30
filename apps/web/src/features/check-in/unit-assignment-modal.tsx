@@ -1,6 +1,5 @@
 "use client";
 
-import type { BookingListItem } from "@storex/contracts";
 import { AlertTriangle, CheckCircle, Warehouse, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -8,12 +7,7 @@ import { StatusBadge } from "@/components/ui/display";
 import { LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAssignPhysicalUnitMutation, useEligibleUnits } from "./hooks";
-
-interface UnitAssignmentModalProps {
-  booking: BookingListItem;
-  isOpen: boolean;
-  onClose: () => void;
-}
+import type { UnitAssignmentModalProps } from "./unit-assignment-modal.types";
 
 export function UnitAssignmentModal({ booking, isOpen, onClose }: UnitAssignmentModalProps) {
   const [selectedUnitId, setSelectedUnitId] = useState<string>(
