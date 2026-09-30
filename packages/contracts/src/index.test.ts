@@ -13,7 +13,7 @@ describe("shared contracts", () => {
       user: {
         id: "user-1",
         name: "Nguyễn Minh Anh",
-        email: "customer@storex.vn",
+        email: "customer@metastorage.test",
         role: UserRole.STORAGE_CUSTOMER,
         permissions: [],
         assignedFacilityIds: [],
@@ -34,7 +34,7 @@ describe("shared contracts", () => {
   it("normalizes and validates customer sign-up input", () => {
     const parsed = CustomerSignUpInputSchema.safeParse({
       name: " Nguyễn Minh Anh ",
-      email: " CUSTOMER@STOREX.VN ",
+      email: " CUSTOMER@metastorage.test ",
       phone: " +84901234567 ",
       password: "correct-horse-battery",
       confirmPassword: "correct-horse-battery",
@@ -44,7 +44,7 @@ describe("shared contracts", () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.name).toBe("Nguyễn Minh Anh");
-      expect(parsed.data.email).toBe("customer@storex.vn");
+      expect(parsed.data.email).toBe("customer@metastorage.test");
       expect(parsed.data.phone).toBe("+84901234567");
     }
   });
@@ -65,14 +65,14 @@ describe("shared contracts", () => {
   });
 
   it.each([
-    [{ name: "", email: "customer@storex.vn", phone: "+84901234567" }, "missing name"],
+    [{ name: "", email: "customer@metastorage.test", phone: "+84901234567" }, "missing name"],
     [{ name: "Customer", email: "bad-email", phone: "+84901234567" }, "invalid email"],
-    [{ name: "Customer", email: "customer@storex.vn", phone: "" }, "missing phone"],
-    [{ name: "Customer", email: "customer@storex.vn", phone: "x".repeat(33) }, "long phone"],
+    [{ name: "Customer", email: "customer@metastorage.test", phone: "" }, "missing phone"],
+    [{ name: "Customer", email: "customer@metastorage.test", phone: "x".repeat(33) }, "long phone"],
   ])("rejects sign-up with %s", (fields) => {
     const parsed = CustomerSignUpInputSchema.safeParse({
       name: "Customer",
-      email: "customer@storex.vn",
+      email: "customer@metastorage.test",
       phone: "+84901234567",
       password: "correct-horse-battery",
       confirmPassword: "correct-horse-battery",
@@ -86,7 +86,7 @@ describe("shared contracts", () => {
   it("rejects mismatched passwords and unsupported verification callback targets", () => {
     const base = {
       name: "Customer",
-      email: "customer@storex.vn",
+      email: "customer@metastorage.test",
       phone: "+84901234567",
       password: "correct-horse-battery",
       confirmPassword: "different-password",

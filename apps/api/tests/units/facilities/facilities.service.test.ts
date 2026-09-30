@@ -76,7 +76,7 @@ describe("facilities service", () => {
       findById: async () => ({
         id: "u1",
         name: "User Inactive",
-        email: "inactive@storex.vn",
+        email: "inactive@metastorage.test",
         status: "INACTIVE" as const,
         role: "FACILITY_STAFF" as const,
         emailVerified: true,
@@ -128,7 +128,7 @@ describe("facilities service", () => {
       findById: async () => ({
         id: "u1",
         name: "User Active",
-        email: "active@storex.vn",
+        email: "active@metastorage.test",
         status: "ACTIVE" as const,
         role: "FACILITY_STAFF" as const,
         emailVerified: true,

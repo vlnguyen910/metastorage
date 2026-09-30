@@ -7,7 +7,7 @@ describe("toApiUser", () => {
     const result = toApiUser({
       id: "3ae5ce7d-42f1-4411-99d3-954d8fda245f",
       name: "Nguyễn Minh Anh",
-      email: "customer@storex.vn",
+      email: "customer@metastorage.test",
       emailVerified: false,
       image: null,
       phone: null,
@@ -21,7 +21,7 @@ describe("toApiUser", () => {
     assert.deepEqual(result, {
       id: "3ae5ce7d-42f1-4411-99d3-954d8fda245f",
       name: "Nguyễn Minh Anh",
-      email: "customer@storex.vn",
+      email: "customer@metastorage.test",
       phone: null,
       role: "CUSTOMER",
       status: "ACTIVE",

@@ -45,7 +45,7 @@ describe("facilities mapper", () => {
 
     const mapped = toApiFacilityAssignment(assignment, {
       userName: "Nguyễn Văn A",
-      userEmail: "staff@storex.vn",
+      userEmail: "staff@metastorage.test",
       facilityName: "Kho Cầu Giấy",
       facilityCode: "HN-KHO-01",
     });
