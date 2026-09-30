@@ -1,15 +1,9 @@
 import { ConflictError, ValidationError } from "../../common/errors/app-error";
+import type { CustomerRegistrationRepository } from "./customer-registration.repository";
 import type {
-  CustomerRegistrationRepository,
   VerifiedCustomerRegistrationUser,
-} from "./customer-registration.repository";
-
-export interface VerifiedCustomerUserInput {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string | null;
-}
+  VerifiedCustomerUserInput,
+} from "./customer-registration.types";
 
 const accountRecoveryMessage =
   "Email đã có tài khoản hoặc hồ sơ Customer đã liên kết. Vui lòng đăng nhập hoặc khôi phục mật khẩu.";

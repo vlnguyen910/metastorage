@@ -9,13 +9,7 @@ import {
   users,
 } from "@storex/database";
 import { ConflictError } from "../../common/errors/app-error";
-
-export interface VerifiedCustomerRegistrationUser {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-}
+import type { VerifiedCustomerRegistrationUser } from "./customer-registration.types";
 
 export class CustomerRegistrationRepository {
   constructor(private readonly db: Database) {}
