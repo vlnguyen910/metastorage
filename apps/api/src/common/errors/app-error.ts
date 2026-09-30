@@ -1,4 +1,4 @@
-import type { ApiErrorDetail } from "@storex/shared";
+import type { ApiErrorDetail } from "@metastorage/shared";
 
 export class AppError extends Error {
   public readonly statusCode: number;
