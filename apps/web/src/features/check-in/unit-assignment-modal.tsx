@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/ui/display";
 import { LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAssignPhysicalUnitMutation, useEligibleUnits } from "./hooks";
+import { UNIT_ASSIGNMENT_MESSAGES } from "./unit-assignment.messages";
 import type { UnitAssignmentModalProps } from "./unit-assignment-modal.types";
 
 export function UnitAssignmentModal({ booking, isOpen, onClose }: UnitAssignmentModalProps) {
@@ -24,7 +25,7 @@ export function UnitAssignmentModal({ booking, isOpen, onClose }: UnitAssignment
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedUnitId) {
-      showToast("Vui lòng chọn một ô kho vật lý hợp lệ từ danh sách.", "error");
+      showToast(UNIT_ASSIGNMENT_MESSAGES.unitRequired, "error");
       return;
     }
 
@@ -37,10 +38,10 @@ export function UnitAssignmentModal({ booking, isOpen, onClose }: UnitAssignment
         },
       });
 
-      showToast(`Đã gán ô kho vật lý cho đơn đặt chỗ ${booking.bookingCode}.`, "success");
+      showToast(UNIT_ASSIGNMENT_MESSAGES.assignmentSucceeded(booking.bookingCode), "success");
       onClose();
     } catch (err) {
-      let message = "Không thể gán ô kho vật lý. Vui lòng kiểm tra lại.";
+      let message: string = UNIT_ASSIGNMENT_MESSAGES.assignmentFailed;
       if (err && typeof err === "object" && "response" in err) {
         const res = err as { response?: { data?: { message?: string } } };
         if (res.response?.data?.message) {
