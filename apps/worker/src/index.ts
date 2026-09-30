@@ -12,7 +12,7 @@ import {
   queryClient,
   sql,
   unitTypes,
-} from "@storex/database";
+} from "@metastorage/database";
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
 import { MockMailAdapter } from "./mail-adapter";
