@@ -75,7 +75,7 @@ export function RegisterForm() {
           <span className="mb-2 inline-block text-xs font-extrabold tracking-[0.13em] text-primary uppercase">
             Tài khoản khách hàng
           </span>
-          <h1 className="m-0 text-3xl font-bold">Tạo tài khoản storeX</h1>
+          <h1 className="m-0 text-3xl font-bold">Tạo tài khoản metastorage</h1>
         </div>
       </div>
       <p className="mb-6 mt-3 text-muted">

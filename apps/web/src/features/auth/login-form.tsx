@@ -36,7 +36,7 @@ export function LoginForm() {
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: isMockMode
-      ? { email: "customer@storex.vn", password: "Demo@123" }
+      ? { email: "customer@metastorage.test", password: "Demo@123" }
       : { email: "", password: "" },
   });
 
@@ -61,7 +61,7 @@ export function LoginForm() {
         : undefined;
       const message =
         responseData?.code === "EMAIL_NOT_VERIFIED"
-          ? "Email chưa xác minh. Nếu thông tin đăng nhập đúng, StoreX đã gửi lại liên kết xác minh."
+          ? "Email chưa xác minh. Nếu thông tin đăng nhập đúng, metastorage đã gửi lại liên kết xác minh."
           : responseData?.message;
       showToast(message ?? "Không thể đăng nhập", "error");
     }
@@ -77,7 +77,7 @@ export function LoginForm() {
           <span className="mb-2.5 inline-block text-xs font-extrabold tracking-[0.13em] text-primary uppercase">
             Khu vực thành viên
           </span>
-          <h1 className="m-0 text-3xl font-bold">Đăng nhập storeX</h1>
+          <h1 className="m-0 text-3xl font-bold">Đăng nhập metastorage</h1>
         </div>
       </div>
       <p className="mb-6 text-muted">
