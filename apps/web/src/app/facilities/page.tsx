@@ -10,7 +10,7 @@ export default function FacilitiesPage() {
         <div className="mx-auto w-[min(1180px,calc(100%_-_40px))] max-[800px]:w-[min(100%_-_28px,680px)]">
           <div className="mb-8 max-w-[680px]">
             <span className="mb-2.5 inline-block text-xs font-extrabold tracking-[0.13em] text-primary uppercase">
-              Mạng lưới storeX
+              Mạng lưới metastorage
             </span>
             <h1 className="mb-3 text-5xl font-bold max-[560px]:text-4xl">Tìm kho gần bạn</h1>
             <p className="text-muted">

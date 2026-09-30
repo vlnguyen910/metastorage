@@ -9,7 +9,7 @@ export default function LoginPage() {
         <div className="mx-auto grid w-[min(1180px,calc(100%_-_40px))] grid-cols-[0.8fr_1.2fr] items-center gap-20 max-[1024px]:gap-9 max-[800px]:w-[min(100%_-_28px,680px)] max-[800px]:grid-cols-1">
           <div className="text-white max-[800px]:hidden">
             <span className="mb-2.5 inline-block text-xs font-extrabold tracking-[0.13em] text-[#cce7df] uppercase">
-              storeX workspace
+              metastorage workspace
             </span>
             <h2 className="my-3 text-[3.4rem] font-bold max-[1024px]:text-[2.7rem]">
               Một tài khoản.
