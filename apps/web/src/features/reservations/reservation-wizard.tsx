@@ -23,23 +23,24 @@ import { useToast } from "@/components/ui/toast";
 import { useAvailability, useFacilities } from "@/features/facilities/hooks";
 import { cn } from "@/lib/cn";
 import { useReservationDraft, useReservationHold, useReservationPayment } from "./hooks";
+import { RESERVATION_MESSAGES } from "./reservation.messages";
 
 const wizardSchema = z.object({
-  facilityId: z.string().min(1, "Chọn một cơ sở"),
-  unitTypeId: z.string().min(1, "Chọn loại kho"),
-  checkInAt: z.string().min(1, "Chọn thời gian check-in"),
+  facilityId: z.string().min(1, RESERVATION_MESSAGES.facilityRequired),
+  unitTypeId: z.string().min(1, RESERVATION_MESSAGES.unitTypeRequired),
+  checkInAt: z.string().min(1, RESERVATION_MESSAGES.checkInRequired),
   durationMonths: z.number().int().min(1).max(12),
-  fullName: z.string().trim().min(2, "Nhập họ tên"),
-  email: z.string().email("Email chưa đúng định dạng"),
-  phone: z.string().regex(/^\+[1-9]\d{7,14}$/, "Dùng số điện thoại dạng +84901234567"),
+  fullName: z.string().trim().min(2, RESERVATION_MESSAGES.nameRequired),
+  email: z.string().email(RESERVATION_MESSAGES.invalidEmail),
+  phone: z.string().regex(/^\+[1-9]\d{7,14}$/, RESERVATION_MESSAGES.invalidPhone),
 });
 type WizardValues = z.input<typeof wizardSchema>;
 
 function apiErrorMessage(error: unknown): string {
-  if (!axios.isAxiosError(error)) return "Đã có lỗi xảy ra, vui lòng thử lại.";
+  if (!axios.isAxiosError(error)) return RESERVATION_MESSAGES.unexpectedError;
   return (
     (error.response?.data as { message?: string } | undefined)?.message ??
-    "Không thể tạo reservation draft."
+    RESERVATION_MESSAGES.draftCreationFailed
   );
 }
 
@@ -174,7 +175,7 @@ export function ReservationWizard() {
         },
       });
       if (!result.confirmation) {
-        showToast("Payment thành công nhưng thiếu dữ liệu confirmation.", "error");
+        showToast(RESERVATION_MESSAGES.paymentConfirmationMissing, "error");
         return;
       }
       setConfirmation(result.confirmation);
