@@ -28,7 +28,7 @@ export const auth = betterAuth({
   baseURL: env.BETTER_AUTH_URL,
   trustedOrigins: [
     ...env.AUTH_TRUSTED_ORIGINS.split(",").map((origin) => origin.trim()),
-    "storex://",
+    "metastorage://",
   ],
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -93,7 +93,7 @@ export const auth = betterAuth({
   },
   plugins: [expo()],
   advanced: {
-    cookiePrefix: "storex-auth",
+    cookiePrefix: "metastorage-auth",
     useSecureCookies: env.NODE_ENV === "production",
     database: {
       generateId: () => randomUUID(),

@@ -30,7 +30,7 @@ export function useAuthFlow() {
         return;
       }
       if (
-        verificationUrl.protocol !== "storex:" ||
+        verificationUrl.protocol !== "metastorage:" ||
         verificationUrl.hostname !== "auth" ||
         verificationUrl.pathname !== "/verified"
       ) {
@@ -70,7 +70,7 @@ export function useAuthFlow() {
         });
         if (result.error?.code === "EMAIL_NOT_VERIFIED") {
           setMessage(
-            "Email chưa xác minh. StoreX đã gửi lại liên kết nếu thông tin đăng nhập đúng.",
+            "Email chưa xác minh. metastorage đã gửi lại liên kết nếu thông tin đăng nhập đúng.",
           );
           return;
         }

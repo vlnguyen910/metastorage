@@ -4,7 +4,7 @@ export function getCustomerSignupCallbackUrl(
   target: CustomerSignupCallbackTarget,
   trustedOrigins: string[],
 ): string | undefined {
-  if (target === "mobile") return "storex://auth/verified";
+  if (target === "mobile") return "metastorage://auth/verified";
 
   const trustedWebOrigin = trustedOrigins.find((origin) => {
     try {

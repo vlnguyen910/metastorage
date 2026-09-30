@@ -8,9 +8,9 @@ export const authClient = createAuthClient({
   baseURL: `${apiBaseUrl}/auth`,
   plugins: [
     expoClient({
-      scheme: "storex",
-      storagePrefix: "storex",
-      cookiePrefix: "storex-auth",
+      scheme: "metastorage",
+      storagePrefix: "metastorage",
+      cookiePrefix: "metastorage-auth",
       storage: SecureStore,
     }),
   ],
