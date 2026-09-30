@@ -3,15 +3,8 @@ import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from "fastify";
 import fp from "fastify-plugin";
 import { UnauthorizedError } from "../../common/errors/app-error";
-import { type AuthSession, type AuthUser, auth } from "./auth";
+import { auth } from "./auth";
 import { assertActiveUser, assertUserHasRole } from "./auth.authorization";
-
-declare module "fastify" {
-  interface FastifyRequest {
-    user: AuthUser | null;
-    session: AuthSession["session"] | null;
-  }
-}
 
 const authPluginCallback: FastifyPluginAsync = async (fastify) => {
   fastify.decorateRequest("user", null);

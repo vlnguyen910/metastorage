@@ -11,9 +11,3 @@ export interface RequireFacilityAccessOptions {
   allowedFacilityRoles?: readonly FacilityAssignmentRole[];
   resolveFacilityId?: (request: FastifyRequest) => string | undefined;
 }
-
-declare module "fastify" {
-  interface FastifyRequest {
-    facilityContext: FacilityContext | null;
-  }
-}

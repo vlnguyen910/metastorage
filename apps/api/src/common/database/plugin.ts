@@ -1,12 +1,6 @@
-import { type Database, db, queryClient } from "@storex/database";
+import { db, queryClient } from "@storex/database";
 import type { FastifyPluginAsync } from "fastify";
 import fp from "fastify-plugin";
-
-declare module "fastify" {
-  interface FastifyInstance {
-    db: Database;
-  }
-}
 
 const databasePluginAsync: FastifyPluginAsync = async (fastify) => {
   fastify.decorate("db", db);
