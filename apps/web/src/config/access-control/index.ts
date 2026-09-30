@@ -1,4 +1,4 @@
-import { type Permission, UserRole } from "@storex/contracts";
+import { type Permission, UserRole } from "@metastorage/contracts";
 import { businessOperationsPermissions } from "./business-operations.permissions";
 import { customerPermissions } from "./customer.permissions";
 import { facilityManagerPermissions } from "./facility-manager.permissions";

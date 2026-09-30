@@ -1,4 +1,4 @@
-import { Permission } from "@storex/contracts";
+import { Permission } from "@metastorage/contracts";
 
 export const facilityManagerPermissions = [
   Permission.VIEW_ASSIGNED_FACILITY,
