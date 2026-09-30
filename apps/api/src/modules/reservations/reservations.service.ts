@@ -5,6 +5,7 @@ import type {
   ReservationHold,
 } from "@metastorage/contracts";
 import { AppError, BadRequestError, NotFoundError } from "../../common/errors/app-error";
+import { RESERVATION_MESSAGES } from "./reservations.messages";
 import type { ReservationsRepository } from "./reservations.repository";
 import type { CreateReservationDraftBody } from "./reservations.schema";
 
@@ -52,13 +53,13 @@ export class ReservationsService {
 
   async createDraft(input: CreateReservationDraftBody): Promise<ReservationDraft> {
     const context = await this.repository.findActiveContext(input.facilityId, input.unitTypeId);
-    if (!context) throw new NotFoundError("Không tìm thấy facility hoặc Unit Type khả dụng");
+    if (!context) throw new NotFoundError(RESERVATION_MESSAGES.facilityOrUnitTypeUnavailable);
 
     const checkInAt = new Date(input.checkInAt);
     const now = new Date();
     const latest = new Date(now.getTime() + MAX_ADVANCE_BOOKING_DAYS * 24 * 60 * 60 * 1000);
     if (Number.isNaN(checkInAt.getTime()) || checkInAt < now || checkInAt > latest) {
-      throw new BadRequestError("Check-in phải từ hiện tại đến tối đa 30 ngày tới");
+      throw new BadRequestError(RESERVATION_MESSAGES.checkInOutsideAdvanceWindow);
     }
 
     const local = parseParts(checkInAt);
@@ -66,13 +67,17 @@ export class ReservationsService {
     const openTime = hours?.openTime ?? DEFAULT_OPEN_TIME;
     const closeTime = hours?.closeTime ?? DEFAULT_CLOSE_TIME;
     if (!isWithinHours(local.time, openTime, closeTime)) {
-      throw new BadRequestError("Check-in nằm ngoài giờ hoạt động của facility");
+      throw new BadRequestError(RESERVATION_MESSAGES.checkInOutsideOperatingHours);
     }
 
     const rentalEndAt = addMonths(checkInAt, input.durationMonths);
     const capacity = await this.repository.countCapacity(input.unitTypeId, checkInAt, rentalEndAt);
     if (capacity < 1) {
-      throw new AppError("Unit Type không còn capacity trong kỳ thuê", 409, "CAPACITY_UNAVAILABLE");
+      throw new AppError(
+        RESERVATION_MESSAGES.unitTypeCapacityUnavailable,
+        409,
+        "CAPACITY_UNAVAILABLE",
+      );
     }
 
     const draftAccessToken = randomBytes(32).toString("hex");
@@ -111,9 +116,9 @@ export class ReservationsService {
 
   async createHold(draftId: string, draftAccessToken: string): Promise<ReservationHold> {
     const hold = await this.repository.createHold(draftId, hashToken(draftAccessToken));
-    if (hold === null) throw new NotFoundError("Không tìm thấy reservation draft");
+    if (hold === null) throw new NotFoundError(RESERVATION_MESSAGES.reservationDraftNotFound);
     if (!hold) {
-      throw new AppError("Unit Type không còn capacity trong kỳ thuê", 409, "HOLD_CONFLICT");
+      throw new AppError(RESERVATION_MESSAGES.unitTypeCapacityUnavailable, 409, "HOLD_CONFLICT");
     }
     return {
       holdId: hold.id,
