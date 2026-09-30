@@ -25,4 +25,4 @@ export interface User {
   createdAt: string;
 }
 
-export const APP_NAME = "storeX";
+export const APP_NAME = "metastorage";
