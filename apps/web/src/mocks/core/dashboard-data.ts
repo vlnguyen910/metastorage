@@ -1,4 +1,4 @@
-import { type DashboardSummary, StorageUnitStatus, UserRole } from "@storex/contracts";
+import { type DashboardSummary, StorageUnitStatus, UserRole } from "@metastorage/contracts";
 import { businessOperationsDashboard } from "../seeds/dashboards/business-operations.dashboard";
 import { facilityManagerDashboard } from "../seeds/dashboards/facility-manager.dashboard";
 import { facilityStaffDashboard } from "../seeds/dashboards/facility-staff.dashboard";

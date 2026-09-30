@@ -1,5 +1,5 @@
-import { createHttpClient, createMetastorageApiClient } from "@storex/api-client";
-import type { SessionTokens } from "@storex/contracts";
+import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
+import type { SessionTokens } from "@metastorage/contracts";
 import { beforeAll, describe, expect, it } from "vitest";
 import { resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
