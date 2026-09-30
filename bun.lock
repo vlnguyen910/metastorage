@@ -23,9 +23,9 @@
         "@fastify/cors": "^10.0.2",
         "@fastify/swagger": "^9.9.0",
         "@fastify/swagger-ui": "^5.0.0",
-        "@storex/contracts": "workspace:*",
-        "@storex/database": "workspace:*",
-        "@storex/shared": "workspace:*",
+        "@metastorage/contracts": "workspace:*",
+        "@metastorage/database": "workspace:*",
+        "@metastorage/shared": "workspace:*",
         "argon2": "^0.45.1",
         "better-auth": "^1.7.5",
         "dotenv": "^18.0.0",
@@ -35,7 +35,7 @@
         "zod": "^4.6.5",
       },
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "@types/node": "^22.13.4",
         "tsup": "^8.3.6",
         "tsx": "^4.19.3",
@@ -47,9 +47,9 @@
       "version": "1.0.0",
       "dependencies": {
         "@better-auth/expo": "1.7.5",
-        "@storex/api-client": "workspace:*",
-        "@storex/contracts": "workspace:*",
-        "@storex/shared": "workspace:*",
+        "@metastorage/api-client": "workspace:*",
+        "@metastorage/contracts": "workspace:*",
+        "@metastorage/shared": "workspace:*",
         "better-auth": "1.7.5",
         "expo": "~57.0.25",
         "expo-camera": "~57.0.6",
@@ -70,7 +70,7 @@
         "react-native-worklets": "0.10.1",
       },
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "@tailwindcss/postcss": "4.1.12",
         "@types/react": "~19.2.2",
         "babel-preset-expo": "~57.0.0",
@@ -83,9 +83,9 @@
       "version": "0.0.1",
       "dependencies": {
         "@hookform/resolvers": "^5.2.2",
-        "@storex/api-client": "workspace:*",
-        "@storex/contracts": "workspace:*",
-        "@storex/shared": "workspace:*",
+        "@metastorage/api-client": "workspace:*",
+        "@metastorage/contracts": "workspace:*",
+        "@metastorage/shared": "workspace:*",
         "@tanstack/react-query": "^5.90.2",
         "axios": "^1.12.2",
         "axios-mock-adapter": "^2.1.0",
@@ -100,8 +100,8 @@
       },
       "devDependencies": {
         "@axe-core/playwright": "^4.13.0",
+        "@metastorage/typescript-config": "workspace:*",
         "@playwright/test": "^1.55.1",
-        "@storex/typescript-config": "workspace:*",
         "@tailwindcss/postcss": "4.1.12",
         "@testing-library/jest-dom": "^6.8.0",
         "@testing-library/react": "^16.3.0",
@@ -121,12 +121,12 @@
       "name": "worker",
       "version": "0.0.1",
       "dependencies": {
-        "@storex/database": "workspace:*",
+        "@metastorage/database": "workspace:*",
         "bullmq": "^5.58.5",
         "ioredis": "^5.8.2",
       },
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "@types/node": "^22.13.4",
         "tsup": "^8.5.1",
         "tsx": "^4.19.3",
@@ -134,31 +134,31 @@
       },
     },
     "packages/api-client": {
-      "name": "@storex/api-client",
+      "name": "@metastorage/api-client",
       "version": "0.0.1",
       "dependencies": {
-        "@storex/contracts": "workspace:*",
+        "@metastorage/contracts": "workspace:*",
         "axios": "^1.12.2",
       },
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "typescript": "^5.7.3",
       },
     },
     "packages/contracts": {
-      "name": "@storex/contracts",
+      "name": "@metastorage/contracts",
       "version": "0.0.1",
       "dependencies": {
         "zod": "^4.6.5",
       },
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "typescript": "^5.7.3",
         "vitest": "^3.2.4",
       },
     },
     "packages/database": {
-      "name": "@storex/database",
+      "name": "@metastorage/database",
       "version": "0.0.1",
       "dependencies": {
         "dotenv": "^16.4.7",
@@ -166,22 +166,22 @@
         "postgres": "^3.4.9",
       },
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "@types/node": "^22.13.4",
         "drizzle-kit": "^0.31.10",
         "typescript": "^5.7.3",
       },
     },
     "packages/shared": {
-      "name": "@storex/shared",
+      "name": "@metastorage/shared",
       "version": "0.0.1",
       "devDependencies": {
-        "@storex/typescript-config": "workspace:*",
+        "@metastorage/typescript-config": "workspace:*",
         "typescript": "^5.7.3",
       },
     },
     "packages/typescript-config": {
-      "name": "@storex/typescript-config",
+      "name": "@metastorage/typescript-config",
       "version": "0.0.1",
     },
   },
@@ -624,6 +624,16 @@
 
     "@lukeed/ms": ["@lukeed/ms@2.0.2", "", {}, "sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA=="],
 
+    "@metastorage/api-client": ["@metastorage/api-client@workspace:packages/api-client"],
+
+    "@metastorage/contracts": ["@metastorage/contracts@workspace:packages/contracts"],
+
+    "@metastorage/database": ["@metastorage/database@workspace:packages/database"],
+
+    "@metastorage/shared": ["@metastorage/shared@workspace:packages/shared"],
+
+    "@metastorage/typescript-config": ["@metastorage/typescript-config@workspace:packages/typescript-config"],
+
     "@msgpackr-extract/msgpackr-extract-darwin-arm64": ["@msgpackr-extract/msgpackr-extract-darwin-arm64@3.0.4", "", { "os": "darwin", "cpu": "arm64" }, "sha512-LCkGo6JDfaBhgST7UpPWgNgLINpcpabaHfyz5OBx75nUYxBsaEPxjnyNjWpeb/xBup/682QnBfRBy2/LvPutZQ=="],
 
     "@msgpackr-extract/msgpackr-extract-darwin-x64": ["@msgpackr-extract/msgpackr-extract-darwin-x64@3.0.4", "", { "os": "darwin", "cpu": "x64" }, "sha512-zExlW9zUJKZH/tOtVMttwjKa4Xm/3KcNjnE3dPN92uCktwavMxpgCA3MoJK/DOnTWsQgo224OaST27/mPNAf+w=="],
@@ -751,16 +761,6 @@
     "@standard-schema/spec": ["@standard-schema/spec@1.1.0", "", {}, "sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w=="],
 
     "@standard-schema/utils": ["@standard-schema/utils@0.3.0", "", {}, "sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g=="],
-
-    "@storex/api-client": ["@storex/api-client@workspace:packages/api-client"],
-
-    "@storex/contracts": ["@storex/contracts@workspace:packages/contracts"],
-
-    "@storex/database": ["@storex/database@workspace:packages/database"],
-
-    "@storex/shared": ["@storex/shared@workspace:packages/shared"],
-
-    "@storex/typescript-config": ["@storex/typescript-config@workspace:packages/typescript-config"],
 
     "@swc/helpers": ["@swc/helpers@0.5.15", "", { "dependencies": { "tslib": "^2.8.0" } }, "sha512-JQ5TuMi45Owi4/BIMAJBoSQoOJu12oOk/gADqlcUL9JEdHB8vyjUSsxqeNXnmXHjYKMi2WcYtezGEEhqUI/E2g=="],
 
