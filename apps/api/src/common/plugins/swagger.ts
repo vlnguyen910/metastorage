@@ -18,8 +18,8 @@ const swaggerPluginCallback: FastifyPluginAsync = async (fastify) => {
     openapi: {
       openapi: "3.0.3",
       info: {
-        title: "storeX API",
-        description: "HTTP API for the storeX platform",
+        title: "metastorage API",
+        description: "HTTP API for the metastorage platform",
         version: "0.0.1",
       },
       paths: {
