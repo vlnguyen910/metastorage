@@ -1,4 +1,4 @@
-import type { Database } from "@storex/database";
+import type { Database } from "@metastorage/database";
 import type { AuthSession, AuthUser } from "../../modules/auth/auth";
 import type { FacilityContext } from "../../modules/facilities/facilities.guard.types";
 

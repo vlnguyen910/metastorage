@@ -1,4 +1,4 @@
-import type { RentalDetail, RentalListItem } from "@storex/contracts";
+import type { RentalDetail, RentalListItem } from "@metastorage/contracts";
 import {
   and,
   bookings,
@@ -9,7 +9,7 @@ import {
   rentals,
   storageUnits,
   unitTypes,
-} from "@storex/database";
+} from "@metastorage/database";
 
 const ACTIONS = {
   canCancel: false as const,
