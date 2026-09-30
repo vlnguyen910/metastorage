@@ -9,6 +9,7 @@ import {
 import type { UsersRepository } from "../users/users.repository";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { toApiFacility, toApiFacilityAssignment } from "./facilities.mapper";
+import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
 import type {
   CreateAssignmentBody,
@@ -25,7 +26,7 @@ export class FacilitiesService {
   async createFacility(input: CreateFacilityBody): Promise<ApiFacility> {
     const existing = await this.facilitiesRepository.findByCode(input.code);
     if (existing) {
-      throw new ConflictError(`Cơ sở với mã "${input.code}" đã tồn tại`);
+      throw new ConflictError(FACILITY_MESSAGES.facilityCodeAlreadyExists(input.code));
     }
 
     const facility = await this.facilitiesRepository.createFacility({
@@ -43,8 +44,8 @@ export class FacilitiesService {
     const facility = await this.facilitiesRepository.findAccessibleById(id, scope);
     if (!facility) {
       if (scope.kind === "assigned")
-        throw new ForbiddenError("Bạn không có quyền truy cập cơ sở này");
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${id}"`);
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
     return toApiFacility(facility);
   }
@@ -68,22 +69,22 @@ export class FacilitiesService {
     const existing = await this.facilitiesRepository.findAccessibleById(id, scope);
     if (!existing) {
       if (scope.kind === "assigned")
-        throw new ForbiddenError("Bạn không có quyền truy cập cơ sở này");
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${id}"`);
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
 
     if (input.code && input.code !== existing.code) {
       const codeDuplicate = await this.facilitiesRepository.findByCode(input.code);
       if (codeDuplicate) {
-        throw new ConflictError(`Cơ sở với mã "${input.code}" đã tồn tại`);
+        throw new ConflictError(FACILITY_MESSAGES.facilityCodeAlreadyExists(input.code));
       }
     }
 
     const updated = await this.facilitiesRepository.updateAccessible(id, input, scope);
     if (!updated) {
       if (scope.kind === "assigned")
-        throw new ForbiddenError("Bạn không có quyền truy cập cơ sở này");
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${id}"`);
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
     return toApiFacility(updated);
   }
@@ -94,20 +95,20 @@ export class FacilitiesService {
   ): Promise<ApiFacilityAssignment> {
     const facility = await this.facilitiesRepository.findById(facilityId);
     if (!facility) {
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${facilityId}"`);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
     }
 
     const user = await this.usersRepository.findById(input.userId);
     if (!user) {
-      throw new NotFoundError(`Không tìm thấy người dùng với id "${input.userId}"`);
+      throw new NotFoundError(FACILITY_MESSAGES.userNotFound(input.userId));
     }
 
     if (user.status !== "ACTIVE") {
-      throw new BadRequestError("Không thể phân công cho tài khoản đang bị vô hiệu hóa");
+      throw new BadRequestError(FACILITY_MESSAGES.inactiveUserAssignment);
     }
 
     if (user.role !== input.role) {
-      throw new BadRequestError("Vai trò phân công phải trùng với vai trò của tài khoản");
+      throw new BadRequestError(FACILITY_MESSAGES.assignmentRoleMismatch);
     }
 
     const assignment = await this.facilitiesRepository.upsertAssignment({
@@ -128,12 +129,12 @@ export class FacilitiesService {
   async revokeAssignment(facilityId: string, userId: string): Promise<ApiFacilityAssignment> {
     const existing = await this.facilitiesRepository.findAssignment(facilityId, userId);
     if (!existing) {
-      throw new NotFoundError("Không tìm thấy phân công nhân sự tương ứng");
+      throw new NotFoundError(FACILITY_MESSAGES.staffAssignmentNotFound);
     }
 
     const deactivated = await this.facilitiesRepository.deactivateAssignment(facilityId, userId);
     if (!deactivated) {
-      throw new NotFoundError("Không tìm thấy phân công nhân sự tương ứng");
+      throw new NotFoundError(FACILITY_MESSAGES.staffAssignmentNotFound);
     }
 
     return toApiFacilityAssignment(deactivated);
@@ -149,8 +150,8 @@ export class FacilitiesService {
     const facility = await this.facilitiesRepository.findAccessibleById(facilityId, scope);
     if (!facility) {
       if (scope.kind === "assigned")
-        throw new ForbiddenError("Bạn không có quyền truy cập cơ sở này");
-      throw new NotFoundError(`Không tìm thấy cơ sở với id "${facilityId}"`);
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
     }
 
     const rows = await this.facilitiesRepository.listAssignmentsWithUsers(
@@ -185,7 +186,7 @@ export class FacilitiesService {
 
   private assertManagerScope(scope: FacilityScope): void {
     if (scope.kind === "assigned" && scope.role !== "FACILITY_MANAGER") {
-      throw new ForbiddenError("Bạn không có quyền thực hiện thao tác này tại cơ sở");
+      throw new ForbiddenError(FACILITY_MESSAGES.facilityOperationDenied);
     }
   }
 }

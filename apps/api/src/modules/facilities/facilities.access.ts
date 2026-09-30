@@ -1,6 +1,7 @@
 import type { FacilityAssignmentRole } from "@metastorage/contracts";
 import type { Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
+import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
 
 export type AssignedFacilityScope = {
@@ -38,7 +39,7 @@ export function getFacilityListScope(user: FacilityUser): FacilityListScope {
   if (user.role === "CUSTOMER") {
     return { kind: "public" };
   }
-  throw new ForbiddenError("Bạn không có quyền xem danh sách cơ sở");
+  throw new ForbiddenError(FACILITY_MESSAGES.facilityListAccessDenied);
 }
 
 export function getFacilityAccessScope(user: FacilityUser): FacilityScope {
@@ -48,7 +49,7 @@ export function getFacilityAccessScope(user: FacilityUser): FacilityScope {
   if (isGlobalFacilityRole(user.role)) {
     return { kind: "global", userId: user.id, role: user.role };
   }
-  throw new ForbiddenError("Bạn không có quyền truy cập cơ sở này");
+  throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
 }
 
 export async function requireAssignedFacility(
@@ -60,12 +61,12 @@ export async function requireAssignedFacility(
   if (scope.kind === "global") return scope;
 
   if (allowedRoles && !allowedRoles.includes(scope.role)) {
-    throw new ForbiddenError("Bạn không có quyền thực hiện thao tác này tại cơ sở");
+    throw new ForbiddenError(FACILITY_MESSAGES.facilityOperationDenied);
   }
 
   const assignment = await repository.findActiveAssignment(facilityId, scope.userId, scope.role);
   if (!assignment) {
-    throw new ForbiddenError("Bạn không có quyền truy cập cơ sở này");
+    throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
   }
   return scope;
 }

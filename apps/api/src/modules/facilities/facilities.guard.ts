@@ -4,6 +4,7 @@ import { BadRequestError, UnauthorizedError } from "../../common/errors/app-erro
 import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "./facilities.access";
 import type { FacilityContext, RequireFacilityAccessOptions } from "./facilities.guard.types";
+import { FACILITY_MESSAGES } from "./facilities.messages";
 import { FacilitiesRepository } from "./facilities.repository";
 
 const facilityContextPluginCallback: FastifyPluginAsync = async (fastify) => {
@@ -16,7 +17,7 @@ export const facilityContextPlugin = fp(facilityContextPluginCallback, {
 
 export function getFacilityContext(request: FastifyRequest): FacilityContext {
   if (!request.facilityContext) {
-    throw new UnauthorizedError("Bạn cần đăng nhập để thực hiện thao tác này");
+    throw new UnauthorizedError(FACILITY_MESSAGES.loginRequired);
   }
   return request.facilityContext;
 }
@@ -30,14 +31,14 @@ export function requireFacilityAccess(options: RequireFacilityAccessOptions = {}
 
     const currentUser = request.user;
     if (!currentUser) {
-      throw new UnauthorizedError("Bạn cần đăng nhập để thực hiện thao tác này");
+      throw new UnauthorizedError(FACILITY_MESSAGES.loginRequired);
     }
 
     const params = (request.params ?? {}) as Record<string, string | undefined>;
     const facilityId = options.resolveFacilityId?.(request) ?? params.facilityId ?? params.id;
 
     if (!facilityId) {
-      throw new BadRequestError("Mã định danh cơ sở (facilityId) là bắt buộc");
+      throw new BadRequestError(FACILITY_MESSAGES.facilityIdRequired);
     }
 
     const scope = getFacilityAccessScope(currentUser);
