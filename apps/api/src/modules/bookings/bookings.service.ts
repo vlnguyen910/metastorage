@@ -3,7 +3,7 @@ import type {
   EligibleUnit,
   FacilityStaffMember,
   PhysicalUnitAssignment,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import {
   AppError,
   BadRequestError,
