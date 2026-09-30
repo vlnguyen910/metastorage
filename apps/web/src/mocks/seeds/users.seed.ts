@@ -3,15 +3,19 @@ import { rolePermissions } from "@/config/access-control";
 import type { MockUser } from "../types";
 
 export const demoAccounts = [
-  { role: UserRole.STORAGE_CUSTOMER, email: "customer@storex.vn", label: "Khách thuê kho" },
-  { role: UserRole.FACILITY_STAFF, email: "staff@storex.vn", label: "Nhân viên cơ sở" },
-  { role: UserRole.FACILITY_MANAGER, email: "manager@storex.vn", label: "Quản lý cơ sở" },
+  { role: UserRole.STORAGE_CUSTOMER, email: "customer@metastorage.test", label: "Khách thuê kho" },
+  { role: UserRole.FACILITY_STAFF, email: "staff@metastorage.test", label: "Nhân viên cơ sở" },
+  { role: UserRole.FACILITY_MANAGER, email: "manager@metastorage.test", label: "Quản lý cơ sở" },
   {
     role: UserRole.BUSINESS_OPERATIONS_MANAGER,
-    email: "operations@storex.vn",
+    email: "operations@metastorage.test",
     label: "Quản lý vận hành",
   },
-  { role: UserRole.SYSTEM_ADMINISTRATOR, email: "admin@storex.vn", label: "Quản trị hệ thống" },
+  {
+    role: UserRole.SYSTEM_ADMINISTRATOR,
+    email: "admin@metastorage.test",
+    label: "Quản trị hệ thống",
+  },
 ] as const;
 
 export const userSeeds: MockUser[] = demoAccounts.map((account, index) => ({

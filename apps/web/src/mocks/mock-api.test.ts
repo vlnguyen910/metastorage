@@ -26,7 +26,7 @@ describe("mock reservation API", () => {
     resetMockDatabase();
     installMockApi(http);
     const session = await client.auth.login({
-      email: "customer@storex.vn",
+      email: "customer@metastorage.test",
       password: "Demo@123",
     });
     tokens = session;

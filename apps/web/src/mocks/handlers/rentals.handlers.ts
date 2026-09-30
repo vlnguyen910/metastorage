@@ -8,7 +8,7 @@ const rental: RentalDetail = {
   bookingCode: "BK-2026-0001",
   facility: {
     id: "33333333-3333-3333-3333-333333333333",
-    name: "storeX Đà Nẵng Riverside",
+    name: "metastorage Đà Nẵng Riverside",
     address: "95 Ngô Quyền, Đà Nẵng",
   },
   unitType: {

@@ -7,7 +7,7 @@ export function businessOperationsDashboard(
 ): DashboardSummary {
   return {
     title: "Điều hành toàn hệ thống",
-    subtitle: "So sánh hiệu suất giữa các cơ sở storeX.",
+    subtitle: "So sánh hiệu suất giữa các cơ sở metastorage.",
     kpis: [
       {
         label: "Cơ sở hoạt động",
