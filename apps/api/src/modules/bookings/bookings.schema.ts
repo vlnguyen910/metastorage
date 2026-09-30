@@ -1,4 +1,4 @@
-import { BookingQrVerificationInputSchema } from "@storex/contracts";
+import { BookingQrVerificationInputSchema } from "@metastorage/contracts";
 import { z } from "zod";
 
 export const VerifyQrBodySchema = BookingQrVerificationInputSchema;

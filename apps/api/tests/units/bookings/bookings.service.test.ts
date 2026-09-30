@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { type BookingListItem, type FacilityStaffMember, UserRole } from "@storex/contracts";
+import { UserRole, type BookingListItem, type FacilityStaffMember } from "@metastorage/contracts";
 import type { BookingsRepository } from "../../../src/modules/bookings/bookings.repository";
 import { BookingsService } from "../../../src/modules/bookings/bookings.service";
 

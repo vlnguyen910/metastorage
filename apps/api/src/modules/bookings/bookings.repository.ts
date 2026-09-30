@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 import {
+  UserRole,
   type BookingListItem,
   type BookingQrVerificationResult,
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
-  UserRole,
-} from "@storex/contracts";
+} from "@metastorage/contracts";
 import {
   aliasedTable,
   and,
@@ -25,7 +25,7 @@ import {
   unitAssignments,
   unitTypes,
   users,
-} from "@storex/database";
+} from "@metastorage/database";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
