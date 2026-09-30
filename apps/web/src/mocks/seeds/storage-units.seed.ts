@@ -1,4 +1,4 @@
-import { StorageUnitStatus } from "@storex/contracts";
+import { StorageUnitStatus } from "@metastorage/contracts";
 import type { MockStorageUnit } from "../types";
 import { facilitySeeds } from "./facilities.seed";
 
