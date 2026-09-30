@@ -1,4 +1,4 @@
-import type { BookingQrVerificationInput } from "@storex/contracts";
+import type { BookingQrVerificationInput } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";

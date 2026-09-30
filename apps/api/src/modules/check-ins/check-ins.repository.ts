@@ -9,7 +9,7 @@ import type {
   StorageUnit,
   UnitAssignment,
   UnitType,
-} from "@storex/database";
+} from "@metastorage/database";
 import {
   and,
   bookings,
@@ -22,7 +22,7 @@ import {
   storageUnits,
   unitAssignments,
   unitTypes,
-} from "@storex/database";
+} from "@metastorage/database";
 import type { CheckInPolicyEvaluation } from "./check-ins.policy";
 
 type QueryExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
