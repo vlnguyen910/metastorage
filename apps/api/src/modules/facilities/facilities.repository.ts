@@ -15,7 +15,7 @@ import {
   or,
   sql,
   users,
-} from "@storex/database";
+} from "@metastorage/database";
 import type { AssignedFacilityScope, FacilityListScope, FacilityScope } from "./facilities.access";
 
 export class FacilitiesRepository {
