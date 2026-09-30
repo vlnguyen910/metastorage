@@ -1,11 +1,11 @@
 import { createHash } from "node:crypto";
 import {
-  UserRole,
   type BookingListItem,
   type BookingQrVerificationResult,
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
+  UserRole,
 } from "@metastorage/contracts";
 import {
   aliasedTable,
