@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { roleHome } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
+import { ADMIN_USER_MESSAGES } from "./users.messages";
 
 const roleOptions = [
   { value: UserRole.STORAGE_CUSTOMER, label: "Khách thuê kho" },
@@ -29,7 +30,7 @@ export function SystemAdministratorUsersScreen() {
       api.users.setRole(userId, role),
     onSuccess: async (updatedUser) => {
       await queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      showToast("Vai trò đã được cập nhật");
+      showToast(ADMIN_USER_MESSAGES.roleUpdated);
 
       if (session?.user.id === updatedUser.id) {
         try {
@@ -42,7 +43,7 @@ export function SystemAdministratorUsersScreen() {
         }
       }
     },
-    onError: () => showToast("Không thể cập nhật vai trò", "error"),
+    onError: () => showToast(ADMIN_USER_MESSAGES.roleUpdateFailed, "error"),
   });
 
   if (usersQuery.isLoading) return <LoadingState label="Đang tải người dùng…" />;
