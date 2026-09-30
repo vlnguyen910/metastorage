@@ -1,4 +1,4 @@
-import { createHttpClient, createStorexApiClient } from "@storex/api-client";
+import { createHttpClient, createMetastorageApiClient } from "@storex/api-client";
 import type { SessionTokens } from "@storex/contracts";
 import { beforeAll, describe, expect, it } from "vitest";
 import { resetMockDatabase } from "./database";
@@ -18,7 +18,7 @@ const http = createHttpClient({
     },
   },
 });
-const client = createStorexApiClient(http);
+const client = createMetastorageApiClient(http);
 
 describe("mock reservation API", () => {
   beforeAll(async () => {
