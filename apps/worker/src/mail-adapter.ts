@@ -1,16 +1,6 @@
-export interface BookingConfirmationEmailInput {
-  recipientEmail: string;
-  bookingCode: string | null;
-  facilityName: string;
-  unitTypeName: string;
-  qrUrl: string;
-}
+import type { BookingConfirmationEmailInput, MailAdapter } from "./mail-adapter.types";
 
-export interface MailAdapter {
-  sendBookingConfirmation(input: BookingConfirmationEmailInput): Promise<{
-    providerMessageId: string;
-  }>;
-}
+export type { BookingConfirmationEmailInput, MailAdapter } from "./mail-adapter.types";
 
 export class MockMailAdapter implements MailAdapter {
   async sendBookingConfirmation(input: BookingConfirmationEmailInput) {
