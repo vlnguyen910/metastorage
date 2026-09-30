@@ -1,4 +1,4 @@
-import { createHttpClient, createStorexApiClient } from "@storex/api-client";
+import { createHttpClient, createMetastorageApiClient } from "@storex/api-client";
 import { authStore } from "@/features/auth/auth-store";
 
 const http = createHttpClient({
@@ -17,7 +17,7 @@ const http = createHttpClient({
   },
 });
 
-export const api = createStorexApiClient(
+export const api = createMetastorageApiClient(
   http,
   process.env.NEXT_PUBLIC_API_MODE === "mock" ? "mock" : "better-auth",
 );

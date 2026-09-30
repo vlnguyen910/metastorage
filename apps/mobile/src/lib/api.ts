@@ -1,4 +1,4 @@
-import { createHttpClient, createStorexApiClient } from "@storex/api-client";
+import { createHttpClient, createMetastorageApiClient } from "@storex/api-client";
 
 const http = createHttpClient({
   baseURL: process.env.EXPO_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api",
@@ -10,4 +10,4 @@ const http = createHttpClient({
   },
 });
 
-export const api = createStorexApiClient(http, "better-auth");
+export const api = createMetastorageApiClient(http, "better-auth");

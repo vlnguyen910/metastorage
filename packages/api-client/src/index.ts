@@ -135,7 +135,7 @@ function toSession(user: ApiUser): CookieSession {
   };
 }
 
-function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
+function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
   return {
     http,
     auth: {
@@ -275,32 +275,32 @@ function createStorexApiClientImpl(http: AxiosInstance, authMode: AuthMode) {
   };
 }
 
-export type StorexApiClient<Mode extends AuthMode = "mock"> = Omit<
-  ReturnType<typeof createStorexApiClientImpl>,
+export type MetastorageApiClient<Mode extends AuthMode = "mock"> = Omit<
+  ReturnType<typeof createMetastorageApiClientImpl>,
   "auth"
 > & {
-  auth: Omit<ReturnType<typeof createStorexApiClientImpl>["auth"], "login" | "me"> & {
+  auth: Omit<ReturnType<typeof createMetastorageApiClientImpl>["auth"], "login" | "me"> & {
     login: (input: LoginInput) => Promise<SessionFor<Mode>>;
     me: () => Promise<SessionFor<Mode>["user"]>;
   };
 };
 
-export function createStorexApiClient(http: AxiosInstance): StorexApiClient<"mock">;
-export function createStorexApiClient(
+export function createMetastorageApiClient(http: AxiosInstance): MetastorageApiClient<"mock">;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: "mock",
-): StorexApiClient<"mock">;
-export function createStorexApiClient(
+): MetastorageApiClient<"mock">;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: "better-auth",
-): StorexApiClient<"better-auth">;
-export function createStorexApiClient(
+): MetastorageApiClient<"better-auth">;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: AuthMode,
-): StorexApiClient<AuthMode>;
-export function createStorexApiClient(
+): MetastorageApiClient<AuthMode>;
+export function createMetastorageApiClient(
   http: AxiosInstance,
   authMode: AuthMode = "mock",
-): StorexApiClient<AuthMode> {
-  return createStorexApiClientImpl(http, authMode) as StorexApiClient<AuthMode>;
+): MetastorageApiClient<AuthMode> {
+  return createMetastorageApiClientImpl(http, authMode) as MetastorageApiClient<AuthMode>;
 }
