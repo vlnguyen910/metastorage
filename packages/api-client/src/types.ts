@@ -1,4 +1,4 @@
-import type { SessionTokens } from "@storex/contracts";
+import type { SessionTokens } from "@metastorage/contracts";
 import type { InternalAxiosRequestConfig } from "axios";
 
 export interface RetryConfig extends InternalAxiosRequestConfig {
