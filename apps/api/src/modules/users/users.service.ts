@@ -1,5 +1,5 @@
-import type { ApiUser } from "@storex/contracts";
-import type { Role } from "@storex/database";
+import type { ApiUser } from "@metastorage/contracts";
+import type { Role } from "@metastorage/database";
 import { NotFoundError } from "../../common/errors/app-error";
 import { toApiUser } from "./users.mapper";
 import type { UsersRepository } from "./users.repository";

@@ -1,4 +1,4 @@
-import type { CatalogFacility, CatalogUnitType, PaginatedResult } from "@storex/contracts";
+import type { CatalogFacility, CatalogUnitType, PaginatedResult } from "@metastorage/contracts";
 import { NotFoundError } from "../../common/errors/app-error";
 import type { CatalogRepository, CatalogRow } from "./catalog.repository";
 import type { CatalogFacilityQuery } from "./catalog.schema";
