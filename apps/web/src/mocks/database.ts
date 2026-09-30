@@ -3,11 +3,7 @@ import { StorageUnitStatus } from "@metastorage/contracts";
 import { createSeedDatabase } from "./seeds";
 import type { MockDatabase } from "./types";
 
-<<<<<<< HEAD
-const DATABASE_KEY = "storex.mock-db.v3";
-=======
-const DATABASE_KEY = "metastorage.mock-db.v2";
->>>>>>> d6c39de (chore(web): rename persisted storage keys)
+const DATABASE_KEY = "metastorage.mock-db.v3";
 
 export function getMockDatabase(): MockDatabase {
   if (typeof window === "undefined") {
