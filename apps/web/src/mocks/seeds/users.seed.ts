@@ -1,4 +1,4 @@
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import { rolePermissions } from "@/config/access-control";
 import type { MockUser } from "../types";
 

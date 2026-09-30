@@ -1,4 +1,4 @@
-import type { DashboardSummary } from "@storex/contracts";
+import type { DashboardSummary } from "@metastorage/contracts";
 import type { MockDatabase } from "../../types";
 
 export function businessOperationsDashboard(

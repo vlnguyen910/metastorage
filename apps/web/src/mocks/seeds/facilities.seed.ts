@@ -1,4 +1,4 @@
-import { type Facility, FacilityStatus } from "@storex/contracts";
+import { type Facility, FacilityStatus } from "@metastorage/contracts";
 
 export const facilitySeeds: Facility[] = [
   {
