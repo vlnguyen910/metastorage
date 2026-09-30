@@ -6,7 +6,7 @@ describe("ResendMailer", () => {
     const fetcher = mock(async () => new Response(null, { status: 200 }));
     const mailer = new ResendMailer({
       apiKey: "re_test_key",
-      fromEmail: "StoreX <verify@example.com>",
+      fromEmail: "metastorage <verify@example.com>",
       fetcher,
     });
 
@@ -22,9 +22,9 @@ describe("ResendMailer", () => {
     expect(init.method).toBe("POST");
     expect(new Headers(init.headers).get("authorization")).toBe("Bearer re_test_key");
     expect(JSON.parse(String(init.body))).toMatchObject({
-      from: "StoreX <verify@example.com>",
+      from: "metastorage <verify@example.com>",
       to: ["customer@example.com"],
-      subject: "Xác minh email StoreX",
+      subject: "Xác minh email metastorage",
     });
     expect(String(init.body)).toContain("A Customer");
   });

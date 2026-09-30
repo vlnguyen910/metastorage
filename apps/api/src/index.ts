@@ -22,7 +22,9 @@ async function start() {
 
   try {
     await app.listen({ port: env.PORT, host: env.HOST });
-    app.log.info(`storeX API listening at http://${env.HOST}:${env.PORT} in ${env.NODE_ENV} mode`);
+    app.log.info(
+      `metastorage API listening at http://${env.HOST}:${env.PORT} in ${env.NODE_ENV} mode`,
+    );
   } catch (err) {
     app.log.error(err);
     process.exit(1);

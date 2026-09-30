@@ -25,7 +25,7 @@ function mockBooking(overrides: Partial<BookingListItem> = {}): BookingListItem 
     id: bookingId,
     bookingCode: "BK-2026-0001",
     facilityId,
-    facilityName: "STOREX Cau Giay",
+    facilityName: "METASTORAGE Cau Giay",
     unitTypeId,
     unitTypeName: "Small Storage (1.5m²)",
     unitTypeSizeLabel: "Small",

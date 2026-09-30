@@ -24,8 +24,8 @@ export class ResendMailer implements Mailer {
       body: JSON.stringify({
         from: this.options.fromEmail,
         to: [to],
-        subject: "Xác minh email StoreX",
-        html: `<p>Xin chào ${escapeHtml(name)},</p><p>Vui lòng <a href="${escapeAttribute(verificationUrl)}">xác minh email</a> để hoàn tất đăng ký StoreX.</p>`,
+        subject: "Xác minh email metastorage",
+        html: `<p>Xin chào ${escapeHtml(name)},</p><p>Vui lòng <a href="${escapeAttribute(verificationUrl)}">xác minh email</a> để hoàn tất đăng ký metastorage.</p>`,
       }),
     });
 
