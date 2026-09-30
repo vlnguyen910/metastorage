@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>()(
       setAuthReady: (authReady) => set({ authReady }),
     }),
     {
-      name: "storex.auth-session.v2",
+      name: "metastorage.auth-session.v2",
       storage: createJSONStorage(() =>
         typeof window === "undefined" ? noopStorage : window.sessionStorage,
       ),
