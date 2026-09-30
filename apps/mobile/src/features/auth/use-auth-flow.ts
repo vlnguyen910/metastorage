@@ -1,4 +1,4 @@
-import { CustomerSignUpInputSchema } from "@storex/contracts";
+import { CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { useEffect, useState } from "react";
 import { Linking as NativeLinking } from "react-native";
 import { api } from "../../lib/api";
