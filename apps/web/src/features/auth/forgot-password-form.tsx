@@ -10,8 +10,9 @@ import { Button, buttonClassName } from "@/components/ui/button";
 import { FieldShell, Input } from "@/components/ui/form-controls";
 import { routes } from "@/config/routes";
 import { api } from "@/lib/api";
+import { AUTH_MESSAGES } from "./auth.messages";
 
-const schema = z.object({ email: z.string().email("Email chưa đúng định dạng") });
+const schema = z.object({ email: z.string().email(AUTH_MESSAGES.invalidEmail) });
 
 export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
@@ -27,9 +28,7 @@ export function ForgotPasswordForm() {
           <MailCheck />
         </span>
         <h1 className="m-0 text-3xl font-bold">Kiểm tra hộp thư</h1>
-        <p className="text-muted">
-          Nếu email tồn tại trong hệ thống, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu.
-        </p>
+        <p className="text-muted">{AUTH_MESSAGES.forgotPasswordRequestAccepted}</p>
         <Link className={buttonClassName("primary")} href={routes.login}>
           <ArrowLeft size={18} />
           Về trang đăng nhập

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Linking as NativeLinking } from "react-native";
 import { api } from "../../lib/api";
 import { authClient } from "../../lib/auth-client";
+import { AUTH_MESSAGES } from "./auth.messages";
 
 type AuthMode = "login" | "register";
 type SignupField = "name" | "email" | "phone" | "password" | "confirmPassword";
@@ -38,11 +39,7 @@ export function useAuthFlow() {
       }
       const hasError = verificationUrl.searchParams.has("error");
       setVerificationFailed(hasError);
-      setMessage(
-        hasError
-          ? "Liên kết xác minh hết hạn hoặc không hợp lệ. Hãy đăng ký lại hoặc yêu cầu hỗ trợ."
-          : "Email đã được xác minh. Đăng nhập để tiếp tục.",
-      );
+      setMessage(hasError ? AUTH_MESSAGES.verificationLinkInvalid : AUTH_MESSAGES.emailVerified);
       setRegisteredEmail(null);
       setValues((current) => ({ ...current, password: "", confirmPassword: "" }));
       setMode("login");
@@ -69,9 +66,7 @@ export function useAuthFlow() {
           password: values.password,
         });
         if (result.error?.code === "EMAIL_NOT_VERIFIED") {
-          setMessage(
-            "Email chưa xác minh. metastorage đã gửi lại liên kết nếu thông tin đăng nhập đúng.",
-          );
+          setMessage(AUTH_MESSAGES.emailNotVerified);
           return;
         }
         if (result.error) throw new Error(result.error.message);
@@ -148,5 +143,5 @@ function getErrorMessage(error: unknown): string {
     }
   }
   if (error instanceof Error && error.message) return error.message;
-  return "Không thể hoàn tất yêu cầu. Vui lòng thử lại.";
+  return AUTH_MESSAGES.requestFailed;
 }
