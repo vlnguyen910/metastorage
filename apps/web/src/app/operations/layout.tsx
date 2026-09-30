@@ -1,4 +1,4 @@
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import type { ReactNode } from "react";
 import { ProtectedArea } from "@/components/layout/protected-area";
 export default function OperationsLayout({ children }: { children: ReactNode }) {

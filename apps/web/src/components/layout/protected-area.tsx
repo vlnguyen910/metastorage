@@ -1,6 +1,6 @@
 "use client";
 
-import type { UserRole } from "@storex/contracts";
+import type { UserRole } from "@metastorage/contracts";
 import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect } from "react";
 import { LoadingState } from "@/components/ui/states";
