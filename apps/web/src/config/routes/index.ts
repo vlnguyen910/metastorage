@@ -1,4 +1,4 @@
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import { businessOperationsRoutes } from "./business-operations.routes";
 import { customerRoutes } from "./customer.routes";
 import { facilityManagerRoutes } from "./facility-manager.routes";

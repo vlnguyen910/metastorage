@@ -1,4 +1,4 @@
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import { businessOperationsNavigation } from "./business-operations.navigation";
 import { customerNavigation } from "./customer.navigation";
 import { facilityManagerNavigation } from "./facility-manager.navigation";
