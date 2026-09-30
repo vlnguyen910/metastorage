@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import axios from "axios";
 import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
 import Link from "next/link";

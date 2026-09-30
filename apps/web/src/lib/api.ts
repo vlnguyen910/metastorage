@@ -1,4 +1,4 @@
-import { createHttpClient, createMetastorageApiClient } from "@storex/api-client";
+import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
 import { authStore } from "@/features/auth/auth-store";
 
 const http = createHttpClient({

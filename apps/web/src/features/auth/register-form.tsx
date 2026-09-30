@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { type CustomerSignUpInput, CustomerSignUpInputSchema } from "@storex/contracts";
+import { type CustomerSignUpInput, CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { ArrowRight, MailCheck, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
