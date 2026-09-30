@@ -1,6 +1,6 @@
 "use client";
 
-import { UserRole } from "@storex/contracts";
+import { UserRole } from "@metastorage/contracts";
 import { LogOut, Menu, RotateCcw, Warehouse, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
