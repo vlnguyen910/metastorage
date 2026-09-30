@@ -1,15 +1,5 @@
 import type { Mailer, VerificationEmail } from "./mailer.interface";
-
-interface ResendAdapterOptions {
-  apiKey?: string;
-  fromEmail?: string;
-  fetcher?: typeof fetch;
-}
-
-interface ResendResponse {
-  id?: string;
-  message?: string;
-}
+import type { ResendAdapterOptions, ResendResponse } from "./resend.types";
 
 export class ResendMailer implements Mailer {
   private readonly fetcher: typeof fetch;
