@@ -1,4 +1,13 @@
-import { type Database, desc, eq, type Role, type User, users } from "@storex/database";
+import {
+  and,
+  type Database,
+  desc,
+  eq,
+  facilityAssignments,
+  type Role,
+  type User,
+  users,
+} from "@storex/database";
 
 export class UsersRepository {
   constructor(private readonly db: Database) {}
@@ -6,6 +15,14 @@ export class UsersRepository {
   async findById(id: string): Promise<User | undefined> {
     const [user] = await this.db.select().from(users).where(eq(users.id, id));
     return user;
+  }
+
+  async findAssignedFacilityIds(userId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ facilityId: facilityAssignments.facilityId })
+      .from(facilityAssignments)
+      .where(and(eq(facilityAssignments.userId, userId), eq(facilityAssignments.isActive, true)));
+    return rows.map((r) => r.facilityId);
   }
 
   async list(limit: number, offset: number): Promise<User[]> {

@@ -11,6 +11,7 @@ import {
   Phone,
   Search,
   User,
+  UserCheck,
   Warehouse,
 } from "lucide-react";
 import { useState } from "react";
@@ -19,6 +20,7 @@ import { Card, Currency, PageHeader, StatusBadge } from "@/components/ui/display
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { useFacilityBookings } from "./hooks";
+import { StaffAssignmentModal } from "./staff-assignment-modal";
 import { UnitAssignmentModal } from "./unit-assignment-modal";
 
 interface FacilityBookingsViewProps {
@@ -83,6 +85,7 @@ function canAssignUnit(readiness: CheckInReadiness): boolean {
 
 export function FacilityBookingsView({ facilityId, facilityName }: FacilityBookingsViewProps) {
   const [selectedBooking, setSelectedBooking] = useState<BookingListItem | null>(null);
+  const [selectedStaffBooking, setSelectedStaffBooking] = useState<BookingListItem | null>(null);
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState<string>("");
 
@@ -233,7 +236,7 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                     </p>
                   </div>
 
-                  <div>
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant={booking.assignedUnit ? "outline" : "primary"}
                       className="min-h-9 px-3 text-xs"
@@ -251,6 +254,14 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                         : booking.assignedUnit
                           ? "Đổi ô kho"
                           : "Gán ô kho vật lý"}
+                    </Button>
+                    <Button
+                      variant={booking.assignedStaff ? "outline" : "secondary"}
+                      className="min-h-9 px-3 text-xs"
+                      onClick={() => setSelectedStaffBooking(booking)}
+                    >
+                      <UserCheck className="h-4 w-4" />
+                      {booking.assignedStaff ? "Đổi Staff" : "Chỉ định Staff"}
                     </Button>
                   </div>
                 </div>
@@ -323,6 +334,9 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
                       <p className="text-xs text-muted">
                         Thanh toán: {booking.paidAt ? "Đã thanh toán" : "Chưa thanh toán"}
                       </p>
+                      <p className="text-xs text-muted">
+                        Staff: {booking.assignedStaff?.name ?? "Chưa chỉ định"}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -338,6 +352,13 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
           booking={selectedBooking}
           isOpen={Boolean(selectedBooking)}
           onClose={() => setSelectedBooking(null)}
+        />
+      )}
+      {selectedStaffBooking && (
+        <StaffAssignmentModal
+          booking={selectedStaffBooking}
+          isOpen={Boolean(selectedStaffBooking)}
+          onClose={() => setSelectedStaffBooking(null)}
         />
       )}
     </div>

@@ -9,7 +9,7 @@ const apiRoleByDatabaseRole: Record<Role, UserRole> = {
   SYSTEM_ADMIN: UserRole.SYSTEM_ADMINISTRATOR,
 };
 
-export function toApiUser(user: User): ApiUser {
+export function toApiUser(user: User, assignedFacilityIds?: string[]): ApiUser {
   return {
     id: user.id,
     name: user.name,
@@ -17,6 +17,7 @@ export function toApiUser(user: User): ApiUser {
     phone: user.phone,
     role: user.role ? apiRoleByDatabaseRole[user.role] : UserRole.STORAGE_CUSTOMER,
     status: user.status ?? "ACTIVE",
+    assignedFacilityIds: assignedFacilityIds ?? [],
     createdAt: user.createdAt.toISOString(),
     updatedAt: user.updatedAt.toISOString(),
   };

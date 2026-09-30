@@ -10,9 +10,11 @@ import { FacilitiesRepository } from "../facilities/facilities.repository";
 import { BookingsRepository } from "./bookings.repository";
 import {
   AssignPhysicalUnitBodySchema,
+  AssignStaffBodySchema,
   BookingIdParamsSchema,
   BookingListQuerySchema,
   FacilityBookingsParamsSchema,
+  StaffTasksQuerySchema,
   VerifyQrBodySchema,
 } from "./bookings.schema";
 import { BookingsService } from "./bookings.service";
@@ -23,6 +25,26 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const service = new BookingsService(bookingsRepository);
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  // GET /api/facilities/:facilityId/staff - Get active staff in facility
+  typedApp.get(
+    "/facilities/:facilityId/staff",
+    {
+      schema: {
+        params: FacilityBookingsParamsSchema,
+      },
+      preHandler: [
+        requireFacilityAccess({
+          allowedFacilityRoles: ["FACILITY_MANAGER", "FACILITY_STAFF"],
+        }),
+      ],
+    },
+    async (request, reply) => {
+      const { facilityId } = request.params;
+      const staffList = await service.getFacilityStaff(facilityId);
+      return reply.status(200).send(successResponse(staffList));
+    },
+  );
 
   // GET /api/facilities/:facilityId/bookings - List bookings in facility (FM, Admin, BOM)
   typedApp.get(
@@ -46,7 +68,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // GET /api/bookings/:id - Get booking details
+  // POST /api/bookings/verify-qr - Verify QR check-in
   typedApp.post(
     "/bookings/verify-qr",
     { schema: { body: VerifyQrBodySchema }, preHandler: [requireAuth] },
@@ -60,6 +82,24 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
         "FACILITY_STAFF",
       ]);
       return reply.status(200).send(successResponse(result));
+    },
+  );
+
+  // GET /api/staff/tasks - Get tasks assigned to current staff member
+  typedApp.get(
+    "/staff/tasks",
+    {
+      schema: {
+        querystring: StaffTasksQuerySchema,
+      },
+      preHandler: [requireAuth],
+    },
+    async (request, reply) => {
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      const { facilityId } = request.query;
+      const tasks = await service.getStaffTasks(user.id, facilityId);
+      return reply.status(200).send(successResponse(tasks));
     },
   );
 
@@ -139,6 +179,34 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
 
       const assignment = await service.assignPhysicalUnit(id, physicalUnitId, user.id, reason);
       return reply.status(200).send(successResponse(assignment));
+    },
+  );
+
+  // POST /api/bookings/:id/assign-staff - Facility Manager assigns a staff member
+  typedApp.post(
+    "/bookings/:id/assign-staff",
+    {
+      schema: {
+        params: BookingIdParamsSchema,
+        body: AssignStaffBodySchema,
+      },
+      preHandler: [requireAuth],
+    },
+    async (request, reply) => {
+      const { id } = request.params;
+      const { staffId } = request.body;
+
+      const user = request.user;
+      if (!user) throw new UnauthorizedError();
+      const scope = getFacilityAccessScope(user);
+
+      const booking = await service.getBookingById(id);
+      await requireAssignedFacility(facilitiesRepository, booking.facilityId, scope, [
+        "FACILITY_MANAGER",
+      ]);
+
+      const updatedBooking = await service.assignStaff(id, staffId);
+      return reply.status(200).send(successResponse(updatedBooking));
     },
   );
 };

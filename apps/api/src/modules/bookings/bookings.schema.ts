@@ -23,3 +23,14 @@ export const BookingListQuerySchema = z.object({
   status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]).optional(),
 });
 export type BookingListQuery = z.infer<typeof BookingListQuerySchema>;
+
+export const AssignStaffBodySchema = z.object({
+  staffId: z.string().uuid(),
+  notes: z.string().max(500).optional(),
+});
+export type AssignStaffBody = z.infer<typeof AssignStaffBodySchema>;
+
+export const StaffTasksQuerySchema = z.object({
+  facilityId: z.string().uuid().optional(),
+});
+export type StaffTasksQuery = z.infer<typeof StaffTasksQuerySchema>;

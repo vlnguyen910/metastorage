@@ -20,6 +20,7 @@ erDiagram
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
   customers ||--o{ bookings : owns
+  users o|--o{ bookings : assigned_to
   customers ||--o{ payments : makes
   bookings ||--o{ payments : records
   bookings ||--o{ booking_confirmation_emails : notifies

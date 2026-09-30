@@ -42,7 +42,6 @@ export const paymentsRelations = relations(payments, ({ one }) => ({
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
   assignments: many(facilityAssignments),
-  unitTypes: many(unitTypes),
   storageUnits: many(storageUnits),
   operatingHours: many(facilityOperatingHours),
   reservationDrafts: many(reservationDrafts),
@@ -52,11 +51,7 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   checkInVerifications: many(checkInVerifications),
 }));
 
-export const unitTypesRelations = relations(unitTypes, ({ one, many }) => ({
-  facility: one(facilities, {
-    fields: [unitTypes.facilityId],
-    references: [facilities.id],
-  }),
+export const unitTypesRelations = relations(unitTypes, ({ many }) => ({
   storageUnits: many(storageUnits),
   bookings: many(bookings),
 }));
@@ -126,6 +121,10 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   unitType: one(unitTypes, {
     fields: [bookings.unitTypeId],
     references: [unitTypes.id],
+  }),
+  assignedStaff: one(users, {
+    fields: [bookings.assignedStaffId],
+    references: [users.id],
   }),
   unitAssignments: many(unitAssignments),
   rental: one(rentals),

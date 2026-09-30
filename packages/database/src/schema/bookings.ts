@@ -44,6 +44,7 @@ export const bookings = pgTable(
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     currency: varchar({ length: 3 }).default("VND").notNull(),
     status: varchar({ length: 50 }).default("CONFIRMED").notNull(),
+    assignedStaffId: uuid("assigned_staff_id").references(() => users.id),
     qrTokenHash: varchar({ length: 255 }).unique(),
     paidAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
@@ -56,6 +57,7 @@ export const bookings = pgTable(
     }).onDelete("restrict"),
     index("bookings_facility_status_idx").on(table.facilityId, table.status),
     index("bookings_customer_idx").on(table.customerId),
+    index("bookings_assigned_staff_idx").on(table.assignedStaffId),
     index("bookings_dates_idx").on(table.checkInSlotStart, table.rentalEndAt),
   ],
 );

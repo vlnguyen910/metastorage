@@ -12,11 +12,12 @@ export class UsersService {
     if (!user) {
       throw new NotFoundError(`User with id "${id}" not found`);
     }
-    return toApiUser(user);
+    const assignedFacilityIds = await this.usersRepository.findAssignedFacilityIds(id);
+    return toApiUser(user, assignedFacilityIds);
   }
 
   async listUsers(limit: number, offset: number): Promise<ApiUser[]> {
-    return (await this.usersRepository.list(limit, offset)).map(toApiUser);
+    return (await this.usersRepository.list(limit, offset)).map((user) => toApiUser(user));
   }
 
   async updateUserRole(id: string, role: Role): Promise<ApiUser> {

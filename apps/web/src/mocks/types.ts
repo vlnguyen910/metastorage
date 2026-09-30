@@ -1,4 +1,5 @@
 import type {
+  BookingListItem,
   Facility,
   Payment,
   Reservation,
@@ -24,11 +25,12 @@ export interface MockStorageUnit {
 }
 
 export interface MockDatabase {
-  version: 2;
+  version: 3;
   users: MockUser[];
   facilities: Facility[];
   units: MockStorageUnit[];
   quotes: ReservationQuote[];
   reservations: Reservation[];
   payments: Payment[];
+  bookings: BookingListItem[];
 }

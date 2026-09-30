@@ -1,171 +1,85 @@
 import {
   ApiErrorCode,
+  type AssignBookingStaffInput,
   type AssignPhysicalUnitInput,
-  type BookingListItem,
   type CheckInLookupInput,
   type CheckInLookupResult,
   type EligibleUnit,
-  PaymentStatus,
+  type FacilityStaffMember,
   type PhysicalUnitAssignment,
+  PaymentStatus,
   StorageUnitStatus,
+  UserRole,
 } from "@storex/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { currentUser, envelope, errorBody, parseBody } from "../core/http";
-import { getMockDatabase } from "../database";
-
-// In-memory mock storage for bookings & assignments in mock mode
-const mockBookings: BookingListItem[] = [
-  {
-    id: "b0000000-0000-0000-0000-000000000001",
-    bookingCode: "BK-2026-0001",
-    facilityId: "fac-hcm-central",
-    facilityName: "storeX Sài Gòn Central",
-    unitTypeId: "00000000-0000-0000-0001-000000000001",
-    unitTypeName: "Kho tiêu chuẩn (2 m²)",
-    unitTypeSizeLabel: "2 m²",
-    customerId: "user-1",
-    contactName: "Lê Thị Mai Linh",
-    contactEmail: "linh.le@example.com",
-    contactPhone: "0912345678",
-    checkInSlotStart: new Date(Date.now() + 2 * 86400000).toISOString(),
-    checkInSlotEnd: new Date(Date.now() + 2 * 86400000 + 7200000).toISOString(),
-    rentalEndAt: new Date(Date.now() + 32 * 86400000).toISOString(),
-    requestedMonths: 1,
-    totalAmount: 900000,
-    status: "CONFIRMED",
-    paidAt: new Date(Date.now() - 3600000).toISOString(),
-    assignedUnit: null,
-    createdAt: new Date(Date.now() - 7200000).toISOString(),
-  },
-  {
-    id: "b0000000-0000-0000-0000-000000000002",
-    bookingCode: "BK-2026-0002",
-    facilityId: "fac-hcm-central",
-    facilityName: "storeX Sài Gòn Central",
-    unitTypeId: "00000000-0000-0000-0001-000000000003",
-    unitTypeName: "Kho tiêu chuẩn (4 m²)",
-    unitTypeSizeLabel: "4 m²",
-    customerId: "c0000000-0000-0000-0000-000000000002",
-    contactName: "Trần Minh Đức",
-    contactEmail: "duc.tran@example.com",
-    contactPhone: "0988776655",
-    checkInSlotStart: new Date(Date.now() + 3 * 86400000).toISOString(),
-    checkInSlotEnd: new Date(Date.now() + 3 * 86400000 + 7200000).toISOString(),
-    rentalEndAt: new Date(Date.now() + 93 * 86400000).toISOString(),
-    requestedMonths: 3,
-    totalAmount: 4500000,
-    status: "CONFIRMED",
-    paidAt: new Date(Date.now() - 14400000).toISOString(),
-    assignedUnit: null,
-    createdAt: new Date(Date.now() - 28800000).toISOString(),
-  },
-  {
-    id: "b0000000-0000-0000-0000-000000000003",
-    bookingCode: "BK-2026-0003",
-    facilityId: "fac-hcm-central",
-    facilityName: "storeX Sài Gòn Central",
-    unitTypeId: "00000000-0000-0000-0001-000000000005",
-    unitTypeName: "Kho tiêu chuẩn (6 m²)",
-    unitTypeSizeLabel: "6 m²",
-    customerId: "c0000000-0000-0000-0000-000000000003",
-    contactName: "Công ty SmartLog (Anh Tuấn)",
-    contactEmail: "contact@smartlog.vn",
-    contactPhone: "0903112233",
-    checkInSlotStart: new Date(Date.now() + 1 * 86400000).toISOString(),
-    checkInSlotEnd: new Date(Date.now() + 1 * 86400000 + 7200000).toISOString(),
-    rentalEndAt: new Date(Date.now() + 180 * 86400000).toISOString(),
-    requestedMonths: 6,
-    totalAmount: 12600000,
-    status: "CONFIRMED",
-    paidAt: new Date(Date.now() - 86400000).toISOString(),
-    assignedUnit: {
-      id: "asgn-00000000-0000-0000-0000-000000000003",
-      bookingId: "b0000000-0000-0000-0000-000000000003",
-      physicalUnitId: "hcm-01-unit-5",
-      physicalUnitCode: "HCM-01-005",
-      assignedBy: "user-3",
-      assignerName: "Lê Thu Hà (Facility Manager)",
-      status: "ACTIVE",
-      assignedAt: new Date(Date.now() - 43200000).toISOString(),
-      endedAt: null,
-      reason: "Đã gán ô kho tầng trệt gần cửa ra vào theo yêu cầu của khách",
-    },
-    createdAt: new Date(Date.now() - 90000000).toISOString(),
-  },
-  {
-    id: "b0000000-0000-0000-0000-000000000004",
-    bookingCode: "BK-2026-0004",
-    facilityId: "fac-hcm-central",
-    facilityName: "storeX Sài Gòn Central",
-    unitTypeId: "00000000-0000-0000-0001-000000000001",
-    unitTypeName: "Kho tiêu chuẩn (2 m²)",
-    unitTypeSizeLabel: "2 m²",
-    customerId: "c0000000-0000-0000-0000-000000000004",
-    contactName: "Hoàng Văn Thái",
-    contactEmail: "thai.hoang@example.com",
-    contactPhone: "0977554433",
-    checkInSlotStart: new Date(Date.now() - 1 * 86400000).toISOString(),
-    checkInSlotEnd: new Date(Date.now() - 1 * 86400000 + 7200000).toISOString(),
-    rentalEndAt: new Date(Date.now() + 59 * 86400000).toISOString(),
-    requestedMonths: 2,
-    totalAmount: 1800000,
-    status: "CHECKED_IN",
-    paidAt: new Date(Date.now() - 2 * 86400000).toISOString(),
-    assignedUnit: {
-      id: "asgn-00000000-0000-0000-0000-000000000004",
-      bookingId: "b0000000-0000-0000-0000-000000000004",
-      physicalUnitId: "hcm-01-unit-2",
-      physicalUnitCode: "HCM-01-002",
-      assignedBy: "user-3",
-      assignerName: "Lê Thu Hà (Facility Manager)",
-      status: "ACTIVE",
-      assignedAt: new Date(Date.now() - 1 * 86400000).toISOString(),
-      endedAt: null,
-      reason: null,
-    },
-    createdAt: new Date(Date.now() - 3 * 86400000).toISOString(),
-  },
-  {
-    id: "b0000000-0000-0000-0000-000000000005",
-    bookingCode: "BK-2026-0005",
-    facilityId: "fac-hcm-central",
-    facilityName: "storeX Sài Gòn Central",
-    unitTypeId: "00000000-0000-0000-0001-000000000007",
-    unitTypeName: "Kho kiểm soát ẩm (4 m²)",
-    unitTypeSizeLabel: "4 m²",
-    customerId: "c0000000-0000-0000-0000-000000000005",
-    contactName: "Nguyễn Bích Ngọc",
-    contactEmail: "ngoc.nguyen@example.com",
-    contactPhone: "0933221100",
-    checkInSlotStart: new Date(Date.now() + 5 * 86400000).toISOString(),
-    checkInSlotEnd: new Date(Date.now() + 5 * 86400000 + 7200000).toISOString(),
-    rentalEndAt: new Date(Date.now() + 35 * 86400000).toISOString(),
-    requestedMonths: 1,
-    totalAmount: 1900000,
-    status: "CONFIRMED",
-    paidAt: new Date(Date.now() - 5000000).toISOString(),
-    assignedUnit: null,
-    createdAt: new Date(Date.now() - 6000000).toISOString(),
-  },
-];
+import { getMockDatabase, saveMockDatabase } from "../database";
 
 export function registerBookingHandlers(mock: MockAdapter): void {
+  // GET /facilities/:facilityId/staff
+  mock.onGet(/\/facilities\/[^/]+\/staff/).reply((config) => {
+    const database = getMockDatabase();
+    const match = config.url?.match(/\/facilities\/([^/?]+)\/staff/);
+    const facilityId = match?.[1];
+
+    const staffList: FacilityStaffMember[] = database.users
+      .filter(
+        (u) =>
+          u.role === UserRole.FACILITY_STAFF &&
+          (!facilityId || facilityId === "all" || u.assignedFacilityIds.includes(facilityId)),
+      )
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone ?? null,
+        role: UserRole.FACILITY_STAFF,
+        isActive: true,
+      }));
+
+    return [200, envelope(staffList)];
+  });
+
   // GET /facilities/:facilityId/bookings
-  mock.onGet(/\/facilities\/[^/]+\/bookings$/).reply((config) => {
+  mock.onGet(/\/facilities\/[^/]+\/bookings/).reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
     if (!user) {
       return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Chưa đăng nhập")];
     }
 
-    const match = config.url?.match(/\/facilities\/([^/]+)\/bookings/);
+    const match = config.url?.match(/\/facilities\/([^/?]+)\/bookings/);
     const facilityId = match?.[1];
 
     // Return bookings for facility
-    const results = mockBookings.filter(
+    const results = (database.bookings ?? []).filter(
       (b) => !facilityId || b.facilityId === facilityId || facilityId === "all",
     );
     return [200, envelope(results)];
+  });
+
+  // GET /staff/tasks
+  mock.onGet(/\/staff\/tasks/).reply((config) => {
+    const database = getMockDatabase();
+    let user = currentUser(config, database);
+    if (!user) {
+      // Fallback in mock mode if token header was pending or session rehydrating
+      user = database.users.find((u) => u.role === UserRole.FACILITY_STAFF) ?? null;
+    }
+    if (!user) {
+      return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Chưa đăng nhập")];
+    }
+
+    const searchParams = new URL(config.url ?? "", "http://localhost").searchParams;
+    const facilityId = config.params?.facilityId || searchParams.get("facilityId");
+
+    const tasks = (database.bookings ?? []).filter(
+      (b) =>
+        (b.assignedStaff?.id === user?.id || b.assignedStaff?.email === user?.email) &&
+        (!facilityId || b.facilityId === facilityId || facilityId === "all"),
+    );
+
+    return [200, envelope(tasks)];
   });
 
   // POST /check-ins/lookup
@@ -178,7 +92,7 @@ export function registerBookingHandlers(mock: MockAdapter): void {
 
     const input = parseBody<CheckInLookupInput>(config.data);
     const value = input.value.trim().toLowerCase();
-    const booking = mockBookings.find((candidate) => {
+    const booking = (database.bookings ?? []).find((candidate) => {
       if (input.type === "BOOKING_CODE") {
         return candidate.bookingCode.toLowerCase() === value;
       }
@@ -239,7 +153,7 @@ export function registerBookingHandlers(mock: MockAdapter): void {
     const database = getMockDatabase();
     const user = currentUser(config, database);
     const match = config.url?.match(/\/check-ins\/([^/]+)\/confirm/);
-    const booking = mockBookings.find((candidate) => candidate.id === match?.[1]);
+    const booking = (database.bookings ?? []).find((candidate) => candidate.id === match?.[1]);
     if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Chưa đăng nhập")];
     if (!booking?.assignedUnit) {
       return [409, errorBody(ApiErrorCode.INVALID_CHECK_IN, "Booking chưa đủ điều kiện check-in")];
@@ -295,12 +209,12 @@ export function registerBookingHandlers(mock: MockAdapter): void {
   });
 
   // GET /bookings/:id/eligible-units
-  mock.onGet(/\/bookings\/[^/]+\/eligible-units$/).reply((config) => {
+  mock.onGet(/\/bookings\/[^/]+\/eligible-units/).reply((config) => {
     const database = getMockDatabase();
-    const match = config.url?.match(/\/bookings\/([^/]+)\/eligible-units/);
+    const match = config.url?.match(/\/bookings\/([^/?]+)\/eligible-units/);
     const bookingId = match?.[1];
 
-    const booking = mockBookings.find((b) => b.id === bookingId);
+    const booking = (database.bookings ?? []).find((b) => b.id === bookingId);
     if (!booking) {
       return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy booking")];
     }
@@ -322,14 +236,14 @@ export function registerBookingHandlers(mock: MockAdapter): void {
   });
 
   // POST /bookings/:id/assign-unit
-  mock.onPost(/\/bookings\/[^/]+\/assign-unit$/).reply((config) => {
+  mock.onPost(/\/bookings\/[^/]+\/assign-unit/).reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);
-    const match = config.url?.match(/\/bookings\/([^/]+)\/assign-unit/);
+    const match = config.url?.match(/\/bookings\/([^/?]+)\/assign-unit/);
     const bookingId = match?.[1];
     const body = parseBody<AssignPhysicalUnitInput>(config.data);
 
-    const booking = mockBookings.find((b) => b.id === bookingId);
+    const booking = (database.bookings ?? []).find((b) => b.id === bookingId);
     if (!booking) {
       return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy booking")];
     }
@@ -357,16 +271,51 @@ export function registerBookingHandlers(mock: MockAdapter): void {
     };
 
     booking.assignedUnit = assignment;
+    saveMockDatabase(database);
 
     return [200, envelope(assignment)];
   });
 
+  // POST /bookings/:id/assign-staff
+  mock.onPost(/\/bookings\/[^/]+\/assign-staff/).reply((config) => {
+    const database = getMockDatabase();
+    const match = config.url?.match(/\/bookings\/([^/?]+)\/assign-staff/);
+    const bookingId = match?.[1];
+    const body = parseBody<AssignBookingStaffInput>(config.data);
+
+    const booking = (database.bookings ?? []).find((b) => b.id === bookingId);
+    if (!booking) {
+      return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy booking")];
+    }
+
+    const staffUser = database.users.find(
+      (u) => u.id === body.staffId && u.role === UserRole.FACILITY_STAFF,
+    );
+    if (!staffUser) {
+      return [400, errorBody(ApiErrorCode.STAFF_NOT_IN_FACILITY, "Nhân viên không hợp lệ")];
+    }
+
+    booking.assignedStaff = {
+      id: staffUser.id,
+      name: staffUser.name,
+      email: staffUser.email,
+      phone: staffUser.phone ?? null,
+      role: UserRole.FACILITY_STAFF,
+      isActive: true,
+    };
+
+    saveMockDatabase(database);
+
+    return [200, envelope(booking)];
+  });
+
   // GET /bookings/:id
-  mock.onGet(/\/bookings\/[^/]+$/).reply((config) => {
-    const match = config.url?.match(/\/bookings\/([^/]+)/);
+  mock.onGet(/\/bookings\/([^/?]+)/).reply((config) => {
+    const database = getMockDatabase();
+    const match = config.url?.match(/\/bookings\/([^/?]+)/);
     const bookingId = match?.[1];
 
-    const booking = mockBookings.find((b) => b.id === bookingId);
+    const booking = (database.bookings ?? []).find((b) => b.id === bookingId);
     if (!booking) {
       return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy booking")];
     }

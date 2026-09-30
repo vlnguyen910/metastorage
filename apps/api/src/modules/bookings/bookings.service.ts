@@ -1,4 +1,9 @@
-import type { BookingListItem, EligibleUnit, PhysicalUnitAssignment } from "@storex/contracts";
+import type {
+  BookingListItem,
+  EligibleUnit,
+  FacilityStaffMember,
+  PhysicalUnitAssignment,
+} from "@storex/contracts";
 import {
   AppError,
   BadRequestError,
@@ -18,6 +23,10 @@ export class BookingsService {
       throw new ConflictError("Booking không thể dùng để check-in");
     }
     return booking;
+  }
+
+  async getFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
+    return this.repository.findFacilityStaff(facilityId);
   }
 
   async getFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
@@ -90,5 +99,34 @@ export class BookingsService {
     }
 
     return result.assignment;
+  }
+
+  async assignStaff(bookingId: string, staffId: string): Promise<BookingListItem> {
+    const result = await this.repository.assignStaff(bookingId, staffId);
+
+    if ("error" in result) {
+      switch (result.error) {
+        case "BOOKING_NOT_FOUND":
+          throw new NotFoundError("Không tìm thấy đơn đặt chỗ");
+        case "STAFF_NOT_IN_FACILITY":
+          throw new BadRequestError(
+            "Nhân viên được chọn không thuộc cơ sở này hoặc không có vai trò phù hợp",
+          );
+        case "STAFF_INACTIVE":
+          throw new BadRequestError("Tài khoản nhân viên đang bị vô hiệu hóa (Inactive)");
+        default:
+          throw new AppError("Không thể chỉ định nhân viên phụ trách", 500);
+      }
+    }
+
+    const updatedBooking = await this.repository.findBookingById(bookingId);
+    if (!updatedBooking) {
+      throw new NotFoundError("Không tìm thấy đơn đặt chỗ sau khi cập nhật");
+    }
+    return updatedBooking;
+  }
+
+  async getStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
+    return this.repository.findStaffTasks(staffUserId, facilityId);
   }
 }
