@@ -21,7 +21,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
   HOST: z.string().default("0.0.0.0"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
-  DATABASE_URL: z.string().default("postgres://postgres:postgres@localhost:5432/storex"),
+  DATABASE_URL: z.string().default("postgres://postgres:postgres@localhost:5432/metastorage"),
   CORS_ORIGIN: z
     .string()
     .min(1)
@@ -48,7 +48,7 @@ function parseEnv(): Env {
     process.env.DATABASE_URL =
       process.env.DOCKER_DATABASE_URL ||
       process.env.DATABASE_URL ||
-      "postgres://postgres:postgres@localhost:5432/storex";
+      "postgres://postgres:postgres@localhost:5432/metastorage";
   }
 
   const result = envSchema.safeParse(process.env);
