@@ -40,24 +40,10 @@ import type {
   UnitAvailabilityOption,
   UserRole,
 } from "@storex/contracts";
-import axios, { type AxiosError, type AxiosInstance, type InternalAxiosRequestConfig } from "axios";
+import axios, { type AxiosError, type AxiosInstance } from "axios";
+import type { HttpClientOptions, RetryConfig } from "./types";
 
-interface RetryConfig extends InternalAxiosRequestConfig {
-  _retry?: boolean;
-  skipAuthRefresh?: boolean;
-}
-
-export interface TokenProvider {
-  getAccessToken: () => string | null;
-  getRefreshToken: () => string | null;
-  updateTokens: (tokens: SessionTokens) => void;
-  clearSession: () => void;
-}
-
-export interface HttpClientOptions {
-  baseURL: string;
-  tokenProvider: TokenProvider;
-}
+export type { HttpClientOptions, TokenProvider } from "./types";
 
 export type AuthMode = "mock" | "better-auth";
 type SessionFor<Mode extends AuthMode> = Mode extends "mock"
