@@ -1,6 +1,6 @@
 "use client";
 
-import type { AssignPhysicalUnitInput } from "@storex/contracts";
+import type { AssignPhysicalUnitInput, CheckInLookupInput } from "@storex/contracts";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
@@ -12,11 +12,40 @@ export const bookingKeys = {
   eligibleUnits: (id: string) => [...bookingKeys.all, "eligible-units", id] as const,
 };
 
+export const facilityKeys = {
+  all: ["facilities"] as const,
+  myAssignments: () => [...facilityKeys.all, "my-assignments"] as const,
+};
+
+export const checkInKeys = {
+  all: ["check-ins"] as const,
+  lookup: (input: CheckInLookupInput) => [...checkInKeys.all, input.type, input.value] as const,
+};
+
+export function useCheckInLookupMutation() {
+  return useMutation({
+    mutationFn: (input: CheckInLookupInput) => api.checkIns.lookup(input),
+  });
+}
+
+export function useCheckInConfirmMutation() {
+  return useMutation({
+    mutationFn: (bookingId: string) => api.checkIns.confirm(bookingId),
+  });
+}
+
 export function useFacilityBookings(facilityId: string, status?: string) {
   return useQuery({
     queryKey: bookingKeys.facility(facilityId, status),
     queryFn: () => api.bookings.listFacilityBookings(facilityId, status),
     enabled: Boolean(facilityId),
+  });
+}
+
+export function useMyFacilityAssignments() {
+  return useQuery({
+    queryKey: facilityKeys.myAssignments(),
+    queryFn: api.facilities.myAssignments,
   });
 }
 

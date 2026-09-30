@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import { accounts } from "./accounts";
 import { bookingConfirmationEmails } from "./booking-confirmation-emails";
 import { bookings, rentals, unitAssignments } from "./bookings";
+import { checkInVerifications } from "./checkin-verifications";
 import { customers } from "./customers";
 import {
   capacityAllocations,
@@ -24,6 +25,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   bookings: many(bookings),
   assignedUnits: many(unitAssignments),
   rentals: many(rentals),
+  checkInVerifications: many(checkInVerifications),
 }));
 
 export const customersRelations = relations(customers, ({ one }) => ({
@@ -47,6 +49,7 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
   capacityAllocations: many(capacityAllocations),
   bookings: many(bookings),
   rentals: many(rentals),
+  checkInVerifications: many(checkInVerifications),
 }));
 
 export const unitTypesRelations = relations(unitTypes, ({ one, many }) => ({
@@ -127,6 +130,7 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   unitAssignments: many(unitAssignments),
   rental: one(rentals),
   confirmationEmails: many(bookingConfirmationEmails),
+  checkInVerifications: many(checkInVerifications),
 }));
 
 export const bookingConfirmationEmailsRelations = relations(
@@ -151,6 +155,25 @@ export const unitAssignmentsRelations = relations(unitAssignments, ({ one }) => 
   assigner: one(users, {
     fields: [unitAssignments.assignedBy],
     references: [users.id],
+  }),
+}));
+
+export const checkInVerificationsRelations = relations(checkInVerifications, ({ one }) => ({
+  booking: one(bookings, {
+    fields: [checkInVerifications.bookingId],
+    references: [bookings.id],
+  }),
+  facility: one(facilities, {
+    fields: [checkInVerifications.facilityId],
+    references: [facilities.id],
+  }),
+  staff: one(users, {
+    fields: [checkInVerifications.staffId],
+    references: [users.id],
+  }),
+  unitAssignment: one(unitAssignments, {
+    fields: [checkInVerifications.unitAssignmentId],
+    references: [unitAssignments.id],
   }),
 }));
 

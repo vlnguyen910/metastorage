@@ -23,6 +23,10 @@ erDiagram
   customers ||--o{ payments : makes
   bookings ||--o{ payments : records
   bookings ||--o{ booking_confirmation_emails : notifies
+  bookings ||--o{ checkin_verifications : verifies
+  users ||--o{ checkin_verifications : performs
+  facilities ||--o{ checkin_verifications : scopes
+  unit_assignments ||--o{ checkin_verifications : snapshots
 
   users {
     uuid id PK
@@ -211,6 +215,17 @@ erDiagram
     timestamptz updated_at
   }
 
+  unit_assignments {
+    uuid id PK
+    uuid booking_id FK
+    uuid physical_unit_id FK
+    uuid assigned_by FK
+    varchar status
+    timestamptz assigned_at
+    timestamptz ended_at
+    text reason
+  }
+
   booking_confirmation_emails {
     uuid id PK
     uuid booking_id FK
@@ -221,6 +236,21 @@ erDiagram
     text last_error
     varchar provider_message_id
     timestamptz sent_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  checkin_verifications {
+    uuid id PK
+    uuid booking_id FK
+    uuid facility_id FK
+    uuid staff_id FK
+    uuid unit_assignment_id FK
+    checkin_verification_status status
+    timestamptz verified_at
+    timestamptz consumed_at
+    timestamptz invalidated_at
+    text invalidated_reason
     timestamptz created_at
     timestamptz updated_at
   }

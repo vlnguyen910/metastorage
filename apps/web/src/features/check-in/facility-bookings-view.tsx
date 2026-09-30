@@ -17,13 +17,68 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, Currency, PageHeader, StatusBadge } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatDateTime } from "@/lib/format";
 import { useFacilityBookings } from "./hooks";
 import { UnitAssignmentModal } from "./unit-assignment-modal";
 
 interface FacilityBookingsViewProps {
   facilityId: string;
   facilityName?: string;
+}
+
+type CheckInReadiness =
+  | "READY"
+  | "TOO_EARLY"
+  | "NEEDS_UNIT"
+  | "PAYMENT_PENDING"
+  | "EXPIRED"
+  | "NO_SHOW"
+  | "CANCELLED"
+  | "CHECKED_IN";
+
+function getGraceEndsAt(checkInSlotEnd: string | null): string | null {
+  if (!checkInSlotEnd) return null;
+  return new Date(new Date(checkInSlotEnd).getTime() + 2 * 60 * 60 * 1000).toISOString();
+}
+
+function getCheckInReadiness(booking: BookingListItem): CheckInReadiness {
+  if (booking.status === "NO_SHOW") return "NO_SHOW";
+  if (booking.status === "CANCELLED") return "CANCELLED";
+  if (booking.status === "CHECKED_IN") return "CHECKED_IN";
+  if (!booking.paidAt) return "PAYMENT_PENDING";
+
+  const now = Date.now();
+  const graceEndsAt = getGraceEndsAt(booking.checkInSlotEnd);
+  if (graceEndsAt && now > new Date(graceEndsAt).getTime()) return "EXPIRED";
+  if (!booking.assignedUnit) return "NEEDS_UNIT";
+  if (now < new Date(booking.checkInSlotStart).getTime()) return "TOO_EARLY";
+  return "READY";
+}
+
+const readinessLabels: Record<CheckInReadiness, string> = {
+  READY: "Có thể check-in",
+  TOO_EARLY: "Chưa tới giờ check-in",
+  NEEDS_UNIT: "Cần gán physical unit",
+  PAYMENT_PENDING: "Chưa thanh toán",
+  EXPIRED: "Đã quá grace period",
+  NO_SHOW: "Không đến (NO_SHOW)",
+  CANCELLED: "Booking đã hủy",
+  CHECKED_IN: "Đã check-in",
+};
+
+const readinessClasses: Record<CheckInReadiness, string> = {
+  READY: "bg-emerald-50 text-emerald-700",
+  TOO_EARLY: "bg-blue-50 text-blue-700",
+  NEEDS_UNIT: "bg-amber-50 text-amber-700",
+  PAYMENT_PENDING: "bg-amber-50 text-amber-700",
+  EXPIRED: "bg-rose-50 text-rose-700",
+  NO_SHOW: "bg-rose-50 text-rose-700",
+  CANCELLED: "bg-rose-50 text-rose-700",
+  CHECKED_IN: "bg-slate-100 text-slate-700",
+};
+
+function canAssignUnit(readiness: CheckInReadiness): boolean {
+  return ["READY", "TOO_EARLY", "NEEDS_UNIT"].includes(readiness);
 }
 
 export function FacilityBookingsView({ facilityId, facilityName }: FacilityBookingsViewProps) {
@@ -43,10 +98,17 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
     );
 
   const filteredBookings = (bookings ?? []).filter((booking) => {
+    const readiness = getCheckInReadiness(booking);
+
     // Filter by status
-    if (filterStatus === "UNASSIGNED" && booking.assignedUnit) return false;
+    if (filterStatus === "READY" && readiness !== "READY") return false;
+    if (filterStatus === "NEEDS_UNIT" && readiness !== "NEEDS_UNIT") return false;
+    if (filterStatus === "TOO_EARLY" && readiness !== "TOO_EARLY") return false;
+    if (filterStatus === "NO_SHOW" && readiness !== "NO_SHOW") return false;
     if (filterStatus === "ASSIGNED" && !booking.assignedUnit) return false;
-    if (filterStatus !== "ALL" && filterStatus !== "UNASSIGNED" && filterStatus !== "ASSIGNED") {
+    if (
+      !["ALL", "READY", "NEEDS_UNIT", "TOO_EARLY", "NO_SHOW", "ASSIGNED"].includes(filterStatus)
+    ) {
       if (booking.status !== filterStatus) return false;
     }
 
@@ -67,8 +129,16 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
       <PageHeader
         eyebrow="Quản lý Check-in & Bàn giao"
         title="Chuẩn bị & Gán ô kho"
-        description={`Danh sách đơn đặt chỗ đã thanh toán tại ${facilityName || "cơ sở"}. Vui lòng chọn và gán ô kho vật lý (Physical Unit) phù hợp trước thời điểm khách hàng đến check-in.`}
+        description={`Danh sách booking tại ${facilityName || "cơ sở"}. Gán physical unit trước khi khách đến check-in.`}
       />
+
+      <Card className="border-blue-100 bg-blue-50/60 p-4 text-sm text-blue-900">
+        <p className="font-bold">Cách đọc trạng thái</p>
+        <p className="mt-1">
+          <strong>CONFIRMED</strong> là booking đã thanh toán; nhãn bên cạnh cho biết booking đã có
+          thể check-in, chưa tới giờ, cần gán kho hoặc đã quá grace period.
+        </p>
+      </Card>
 
       {/* Filter and Search Bar */}
       <Card className="p-4">
@@ -79,10 +149,12 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
             </span>
             {[
               { id: "ALL", label: "Tất cả" },
-              { id: "UNASSIGNED", label: "Chưa gán ô kho" },
+              { id: "READY", label: "Có thể check-in" },
+              { id: "NEEDS_UNIT", label: "Cần gán kho" },
+              { id: "TOO_EARLY", label: "Chưa tới giờ" },
               { id: "ASSIGNED", label: "Đã gán ô kho" },
-              { id: "CONFIRMED", label: "Đã thanh toán (Confirmed)" },
-              { id: "CHECKED_IN", label: "Đã nhận kho" },
+              { id: "NO_SHOW", label: "No-show" },
+              { id: "CHECKED_IN", label: "Đã check-in" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -123,107 +195,140 @@ export function FacilityBookingsView({ facilityId, facilityName }: FacilityBooki
         </Card>
       ) : (
         <div className="grid gap-4">
-          {filteredBookings.map((booking) => (
-            <Card
-              key={booking.id}
-              className="transition-all hover:border-slate-300 hover:shadow-md"
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-4">
-                <div>
-                  <div className="flex items-center gap-2.5">
-                    <span className="font-mono text-base font-extrabold text-primary">
-                      {booking.bookingCode}
+          {filteredBookings.map((booking) => {
+            const readiness = getCheckInReadiness(booking);
+            const isAssignable = canAssignUnit(readiness);
+
+            return (
+              <Card
+                key={booking.id}
+                className="transition-all hover:border-slate-300 hover:shadow-md"
+              >
+                <div className="flex flex-wrap items-start justify-between gap-4 border-b border-line pb-4">
+                  <div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="font-mono text-base font-extrabold text-primary">
+                        {booking.bookingCode}
+                      </span>
+                      <StatusBadge value={booking.status} />
+                      {booking.assignedUnit ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
+                          <CheckCircle2 className="h-3 w-3" /> Ô kho:{" "}
+                          {booking.assignedUnit.physicalUnitCode}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700">
+                          <Clock className="h-3 w-3" /> Chưa gán kho vật lý
+                        </span>
+                      )}
+                      <span
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold ${readinessClasses[readiness]}`}
+                      >
+                        {readinessLabels[readiness]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-muted mt-1">
+                      Cơ sở: <strong className="text-ink">{booking.facilityName}</strong> · Tạo
+                      ngày: {formatDate(booking.createdAt)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <Button
+                      variant={booking.assignedUnit ? "outline" : "primary"}
+                      className="min-h-9 px-3 text-xs"
+                      disabled={!isAssignable}
+                      title={
+                        isAssignable
+                          ? undefined
+                          : "Booking này không còn cho phép gán hoặc đổi physical unit."
+                      }
+                      onClick={() => setSelectedBooking(booking)}
+                    >
+                      <Warehouse className="h-4 w-4" />
+                      {!isAssignable
+                        ? "Không thể gán kho"
+                        : booking.assignedUnit
+                          ? "Đổi ô kho"
+                          : "Gán ô kho vật lý"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Booking Details Grid */}
+                <div className="mt-4 grid grid-cols-4 gap-4 text-xs max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
+                  {/* Customer Snapshot */}
+                  <div className="space-y-1">
+                    <span className="font-semibold text-muted flex items-center gap-1">
+                      <User className="h-3.5 w-3.5" /> Thông tin khách hàng
                     </span>
-                    <StatusBadge value={booking.status} />
-                    {booking.assignedUnit ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-bold text-emerald-700">
-                        <CheckCircle2 className="h-3 w-3" /> Ô kho:{" "}
-                        {booking.assignedUnit.physicalUnitCode}
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-700">
-                        <Clock className="h-3 w-3" /> Chưa gán kho vật lý
-                      </span>
-                    )}
+                    <p className="font-bold text-ink text-sm">{booking.contactName}</p>
+                    <p className="text-muted flex items-center gap-1">
+                      <Phone className="h-3 w-3" /> {booking.contactPhone}
+                    </p>
+                    <p className="text-muted flex items-center gap-1 truncate">
+                      <Mail className="h-3 w-3" /> {booking.contactEmail}
+                    </p>
                   </div>
-                  <p className="text-xs text-muted mt-1">
-                    Cơ sở: <strong className="text-ink">{booking.facilityName}</strong> · Tạo ngày:{" "}
-                    {formatDate(booking.createdAt)}
-                  </p>
-                </div>
 
-                <div>
-                  <Button
-                    variant={booking.assignedUnit ? "outline" : "primary"}
-                    className="min-h-9 px-3 text-xs"
-                    onClick={() => setSelectedBooking(booking)}
-                  >
-                    <Warehouse className="h-4 w-4" />
-                    {booking.assignedUnit ? "Đổi ô kho" : "Gán ô kho vật lý"}
-                  </Button>
-                </div>
-              </div>
+                  {/* Storage Unit Type */}
+                  <div className="space-y-1">
+                    <span className="font-semibold text-muted flex items-center gap-1">
+                      <Warehouse className="h-3.5 w-3.5" /> Loại kho đã đặt
+                    </span>
+                    <p className="font-bold text-ink text-sm">{booking.unitTypeName}</p>
+                    <p className="text-muted">Kích thước: {booking.unitTypeSizeLabel}</p>
+                    <p className="text-muted">Thời hạn: {booking.requestedMonths} tháng</p>
+                  </div>
 
-              {/* Booking Details Grid */}
-              <div className="mt-4 grid grid-cols-4 gap-4 text-xs max-[900px]:grid-cols-2 max-[560px]:grid-cols-1">
-                {/* Customer Snapshot */}
-                <div className="space-y-1">
-                  <span className="font-semibold text-muted flex items-center gap-1">
-                    <User className="h-3.5 w-3.5" /> Thông tin khách hàng
-                  </span>
-                  <p className="font-bold text-ink text-sm">{booking.contactName}</p>
-                  <p className="text-muted flex items-center gap-1">
-                    <Phone className="h-3 w-3" /> {booking.contactPhone}
-                  </p>
-                  <p className="text-muted flex items-center gap-1 truncate">
-                    <Mail className="h-3 w-3" /> {booking.contactEmail}
-                  </p>
-                </div>
+                  {/* Rental Period / Check-in */}
+                  <div className="space-y-1">
+                    <span className="font-semibold text-muted flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" /> Lịch Check-in & Kỳ thuê
+                    </span>
+                    <p className="font-semibold text-ink">
+                      Bắt đầu: {formatDateTime(booking.checkInSlotStart)}
+                    </p>
+                    <p className="text-muted">
+                      Kết thúc slot: {formatDateTime(booking.checkInSlotEnd)}
+                    </p>
+                    <p className="text-muted">
+                      Grace đến: {formatDateTime(getGraceEndsAt(booking.checkInSlotEnd))}
+                    </p>
+                    <p className="text-muted">Kết thúc thuê: {formatDate(booking.rentalEndAt)}</p>
+                  </div>
 
-                {/* Storage Unit Type */}
-                <div className="space-y-1">
-                  <span className="font-semibold text-muted flex items-center gap-1">
-                    <Warehouse className="h-3.5 w-3.5" /> Loại kho đã đặt
-                  </span>
-                  <p className="font-bold text-ink text-sm">{booking.unitTypeName}</p>
-                  <p className="text-muted">Kích thước: {booking.unitTypeSizeLabel}</p>
-                  <p className="text-muted">Thời hạn: {booking.requestedMonths} tháng</p>
-                </div>
-
-                {/* Rental Period / Check-in */}
-                <div className="space-y-1">
-                  <span className="font-semibold text-muted flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" /> Lịch Check-in & Kỳ thuê
-                  </span>
-                  <p className="font-semibold text-ink">
-                    Bắt đầu: {formatDate(booking.checkInSlotStart)}
-                  </p>
-                  <p className="text-muted">Kết thúc: {formatDate(booking.rentalEndAt)}</p>
-                </div>
-
-                {/* Total Payment & Assigned Unit Status */}
-                <div className="space-y-1">
-                  <span className="font-semibold text-muted flex items-center gap-1">
-                    <ArrowUpDown className="h-3.5 w-3.5" /> Tài chính & Gán kho
-                  </span>
-                  <p className="font-bold text-ink text-sm">
-                    <Currency value={booking.totalAmount} />
-                  </p>
-                  <div className="mt-1">
-                    {booking.assignedUnit ? (
-                      <p className="text-xs text-emerald-700">
-                        Đã gán: <strong>{booking.assignedUnit.physicalUnitCode}</strong>
+                  {/* Total Payment & Assigned Unit Status */}
+                  <div className="space-y-1">
+                    <span className="font-semibold text-muted flex items-center gap-1">
+                      <ArrowUpDown className="h-3.5 w-3.5" /> Tài chính & Gán kho
+                    </span>
+                    <p className="font-bold text-ink text-sm">
+                      <Currency value={booking.totalAmount} />
+                    </p>
+                    <div className="mt-1">
+                      {booking.assignedUnit ? (
+                        <p className="text-xs text-emerald-700">
+                          Đã gán: <strong>{booking.assignedUnit.physicalUnitCode}</strong>
+                        </p>
+                      ) : readiness === "NO_SHOW" || readiness === "EXPIRED" ? (
+                        <p className="text-xs font-medium text-rose-700">
+                          Không còn hiệu lực để gán kho
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-700 font-medium">
+                          Cần gán kho trước check-in
+                        </p>
+                      )}
+                      <p className="text-xs text-muted">
+                        Thanh toán: {booking.paidAt ? "Đã thanh toán" : "Chưa thanh toán"}
                       </p>
-                    ) : (
-                      <p className="text-xs text-amber-700 font-medium">
-                        Cần gán kho trước check-in
-                      </p>
-                    )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       )}
 

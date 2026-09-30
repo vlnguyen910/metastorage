@@ -24,19 +24,29 @@ export function StatusBadge({ value }: { value: string }) {
     ACTIVE: "Đang hoạt động",
     AVAILABLE: "Còn trống",
     CONFIRMED: "Đã xác nhận",
+    CANCELLED: "Đã hủy",
+    NO_SHOW: "Không đến (NO_SHOW)",
+    CHECKED_IN: "Đã check-in",
     SUCCEEDED: "Đã thanh toán",
+    PENDING: "Đang chờ thanh toán",
+    FAILED: "Thanh toán thất bại",
+    REFUNDED: "Đã hoàn tiền",
     RESERVED: "Đã giữ chỗ",
     OCCUPIED: "Đang thuê",
     MAINTENANCE: "Bảo trì",
   };
-  const positive = ["ACTIVE", "AVAILABLE", "CONFIRMED", "SUCCEEDED"].includes(value);
+  const positive = ["ACTIVE", "AVAILABLE", "CONFIRMED", "SUCCEEDED", "CHECKED_IN"].includes(value);
   const maintenance = value === "MAINTENANCE";
+  const danger = ["CANCELLED", "NO_SHOW", "FAILED"].includes(value);
+  const warning = ["PENDING", "REFUNDED"].includes(value);
   return (
     <span
       className={cn(
         "inline-flex min-h-[26px] w-fit items-center rounded-full bg-slate-100 px-2.5 text-xs font-extrabold text-slate-600",
         positive && "bg-accent-soft text-accent",
         maintenance && "bg-amber-50 text-amber-700",
+        danger && "bg-rose-50 text-rose-700",
+        warning && "bg-amber-50 text-amber-700",
       )}
     >
       {labels[value] ?? value}
