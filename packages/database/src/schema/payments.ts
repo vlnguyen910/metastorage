@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
 import { customers } from "./customers";
-import { reservationDrafts } from "./facilities";
+import { reservationDrafts } from "./reservation-drafts";
 
 export const PAYMENT_STATUSES = ["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"] as const;
 export const paymentStatusEnum = pgEnum("payment_status", PAYMENT_STATUSES);

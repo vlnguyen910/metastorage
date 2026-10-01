@@ -1,6 +1,7 @@
 import { index, pgEnum, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
-import { bookings, unitAssignments } from "./bookings";
+import { bookings } from "./bookings";
 import { facilities } from "./facilities";
+import { unitAssignments } from "./unit-assignments";
 import { users } from "./users";
 
 export const CHECKIN_VERIFICATION_STATUSES = ["VERIFIED", "CONSUMED", "INVALIDATED"] as const;

@@ -1,20 +1,20 @@
 import { relations } from "drizzle-orm";
 import { accounts } from "./accounts";
 import { bookingConfirmationEmails } from "./booking-confirmation-emails";
-import { bookings, rentals, unitAssignments } from "./bookings";
+import { bookings } from "./bookings";
+import { capacityAllocations } from "./capacity-allocations";
 import { checkInVerifications } from "./checkin-verifications";
 import { customers } from "./customers";
-import {
-  capacityAllocations,
-  facilities,
-  facilityAssignments,
-  facilityOperatingHours,
-  reservationDrafts,
-  storageUnits,
-  unitTypes,
-} from "./facilities";
+import { facilities } from "./facilities";
+import { facilityAssignments } from "./facility-assignments";
+import { facilityOperatingHours } from "./facility-operating-hours";
 import { payments } from "./payments";
+import { rentals } from "./rentals";
+import { reservationDrafts } from "./reservation-drafts";
 import { sessions } from "./sessions";
+import { storageUnits } from "./storage-units";
+import { unitAssignments } from "./unit-assignments";
+import { unitTypes } from "./unit-types";
 import { users } from "./users";
 
 export const usersRelations = relations(users, ({ one, many }) => ({
