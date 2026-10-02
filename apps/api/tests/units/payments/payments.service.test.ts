@@ -180,4 +180,41 @@ describe("payments service", () => {
       code: "IDEMPOTENCY_KEY_REUSED",
     });
   });
+
+  it("confirms a pending payment for sandbox demo", async () => {
+    const service = new PaymentsService(
+      repository({
+        findPayment: async () => ({
+          id: "00000000-0000-0000-0000-000000000008",
+          draftId,
+          holdTokenHash,
+          status: "PENDING" as const,
+          paymentCode: "SXDEMO123",
+          provider: "sepay",
+        }),
+        findActiveHoldForPayment: async () => ({
+          id: "00000000-0000-0000-0000-000000000009",
+          draftId,
+          expiresAt: new Date(Date.now() + 600000),
+        }),
+        completePendingPayment: async () => ({
+          payment: {
+            id: "00000000-0000-0000-0000-000000000008",
+            provider: "sepay",
+            providerPaymentId: "SANDBOX-SXDEMO123",
+            paidAt: now,
+            draftId,
+            holdTokenHash,
+            status: "SUCCEEDED" as const,
+          },
+          booking: booking(),
+        }),
+      }),
+      new MockPaymentGateway(),
+    );
+
+    const result = await service.confirmSandboxPayment("00000000-0000-0000-0000-000000000008");
+    assert.equal(result.status, "SUCCEEDED");
+    assert.equal(result.booking.id, bookingId);
+  });
 });

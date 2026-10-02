@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import type {
   BookingConfirmation,
+  PaymentPendingResponse,
   ReservationDraft,
   ReservationHold,
   UnitAvailabilityOption,
@@ -22,7 +23,13 @@ import { ErrorState, LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { useAvailability, useFacilities } from "@/features/facilities/hooks";
 import { cn } from "@/lib/cn";
-import { useReservationDraft, useReservationHold, useReservationPayment } from "./hooks";
+import {
+  useConfirmSandboxPayment,
+  usePaymentStatus,
+  useReservationDraft,
+  useReservationHold,
+  useReservationPayment,
+} from "./hooks";
 import { RESERVATION_MESSAGES } from "./reservation.messages";
 
 const wizardSchema = z.object({
@@ -75,10 +82,13 @@ export function ReservationWizard() {
   const [holdSeconds, setHoldSeconds] = useState(0);
   const [confirmation, setConfirmation] = useState<BookingConfirmation | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<PaymentPendingResponse | null>(null);
   const facilitiesQuery = useFacilities({ pageSize: 20 });
   const draftMutation = useReservationDraft();
   const holdMutation = useReservationHold();
   const paymentMutation = useReservationPayment();
+  const confirmSandboxMutation = useConfirmSandboxPayment();
+  const paymentStatusQuery = usePaymentStatus(pendingPayment?.paymentId ?? null);
   const form = useForm<WizardValues>({
     resolver: zodResolver(wizardSchema),
     defaultValues: {
@@ -119,6 +129,15 @@ export function ReservationWizard() {
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(null));
   }, [confirmation]);
+
+  useEffect(() => {
+    const result = paymentStatusQuery.data;
+    if (result?.status === "SUCCEEDED" && result.confirmation) {
+      setConfirmation(result.confirmation);
+      setPendingPayment(null);
+      setStep(4);
+    }
+  }, [paymentStatusQuery.data]);
 
   async function next() {
     if (step === 0 && (await form.trigger("facilityId"))) setStep(1);
@@ -174,12 +193,32 @@ export function ReservationWizard() {
           paymentMethodToken: "mock_success",
         },
       });
+      if (result.status === "PENDING") {
+        setPendingPayment(result);
+        showToast("Đã tạo yêu cầu thanh toán. Hãy chuyển khoản đúng nội dung.");
+        return;
+      }
       if (!result.confirmation) {
         showToast(RESERVATION_MESSAGES.paymentConfirmationMissing, "error");
         return;
       }
       setConfirmation(result.confirmation);
       setStep(4);
+    } catch (error) {
+      showToast(apiErrorMessage(error), "error");
+    }
+  }
+
+  async function handleConfirmSandbox() {
+    if (!pendingPayment) return;
+    try {
+      const result = await confirmSandboxMutation.mutateAsync(pendingPayment.paymentId);
+      if (result.confirmation) {
+        setConfirmation(result.confirmation);
+        setPendingPayment(null);
+        setStep(4);
+        showToast("Thanh toán Sandbox thành công!");
+      }
     } catch (error) {
       showToast(apiErrorMessage(error), "error");
     }
@@ -374,12 +413,80 @@ export function ReservationWizard() {
               <Button
                 type="button"
                 onClick={pay}
-                loading={paymentMutation.isPending}
+                loading={paymentMutation.isPending || paymentStatusQuery.isFetching}
                 variant="primary"
+                disabled={Boolean(pendingPayment)}
               >
-                Thanh toán
+                {pendingPayment ? "Đang chờ thanh toán" : "Thanh toán"}
               </Button>
             </div>
+            {pendingPayment ? (
+              <div className="grid gap-3 rounded-lg border border-primary/20 bg-primary-soft p-4 text-sm">
+                {pendingPayment.checkoutUrl && pendingPayment.checkoutFormFields ? (
+                  <div className="grid gap-3">
+                    <div>
+                      <strong className="block text-base font-semibold text-primary">
+                        Cổng thanh toán SePay PG (Sandbox)
+                      </strong>
+                      <span className="text-sm text-slate-600">
+                        Mã đơn thanh toán: <strong>{pendingPayment.paymentCode}</strong>
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3">
+                      <form
+                        action={pendingPayment.checkoutUrl}
+                        method="POST"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        {Object.keys(pendingPayment.checkoutFormFields).map((field) => (
+                          <input
+                            key={field}
+                            type="hidden"
+                            name={field}
+                            value={String(pendingPayment.checkoutFormFields?.[field])}
+                          />
+                        ))}
+                        <Button type="submit" variant="primary">
+                          Mở Cổng Thanh Toán SePay
+                        </Button>
+                      </form>
+
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleConfirmSandbox}
+                        loading={confirmSandboxMutation.isPending}
+                      >
+                        Xác nhận đã thanh toán (Demo Sandbox)
+                      </Button>
+                    </div>
+
+                    <span className="text-xs text-slate-500">
+                      * Nhấn &quot;Mở Cổng Thanh Toán SePay&quot; để mở trang thanh toán quét mã
+                      VietQR sandbox của SePay ở tab mới. Bạn có thể bấm &quot;Xác nhận đã thanh
+                      toán (Demo Sandbox)&quot; để hệ thống cập nhật tức thì cho buổi demo mà không
+                      cần Webhook.
+                    </span>
+                  </div>
+                ) : pendingPayment.transferInstructions ? (
+                  <div className="grid gap-1">
+                    <strong>Thông tin chuyển khoản</strong>
+                    <span>Mã thanh toán: {pendingPayment.paymentCode}</span>
+                    <span>Ngân hàng: {pendingPayment.transferInstructions.bankName}</span>
+                    <span>Số tài khoản: {pendingPayment.transferInstructions.accountNumber}</span>
+                    <span>
+                      Số tiền: {pendingPayment.transferInstructions.amount}{" "}
+                      {pendingPayment.transferInstructions.currency}
+                    </span>
+                    <span>Nội dung: {pendingPayment.transferInstructions.content}</span>
+                    <span>Trạng thái: {paymentStatusQuery.data?.status ?? "PENDING"}</span>
+                    <span>Hệ thống sẽ tự cập nhật sau khi nhận webhook SePay.</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
 

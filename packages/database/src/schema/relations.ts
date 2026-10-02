@@ -8,6 +8,7 @@ import { customers } from "./customers";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
 import { facilityOperatingHours } from "./facility-operating-hours";
+import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
 import { rentals } from "./rentals";
 import { reservationDrafts } from "./reservation-drafts";
@@ -38,6 +39,13 @@ export const customersRelations = relations(customers, ({ one }) => ({
 export const paymentsRelations = relations(payments, ({ one }) => ({
   booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
   customer: one(customers, { fields: [payments.customerId], references: [customers.id] }),
+}));
+
+export const paymentProviderEventsRelations = relations(paymentProviderEvents, ({ one }) => ({
+  payment: one(payments, {
+    fields: [paymentProviderEvents.paymentId],
+    references: [payments.id],
+  }),
 }));
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({

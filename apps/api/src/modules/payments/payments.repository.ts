@@ -10,6 +10,7 @@ import {
   eq,
   facilities,
   gt,
+  paymentProviderEvents,
   payments,
   reservationDrafts,
   sql,
@@ -125,6 +126,7 @@ export class PaymentsRepository {
     provider: string;
     idempotencyKey: string;
     pricing: PricingSnapshot;
+    paymentCode: string;
   }) {
     return this.db.transaction(async (tx) => {
       const [checkout] = await tx
@@ -164,6 +166,7 @@ export class PaymentsRepository {
         draftId: input.draftId,
         holdTokenHash: input.holdTokenHash,
         provider: input.provider,
+        paymentCode: input.paymentCode,
         providerPaymentId: `pending_${input.idempotencyKey}`,
         idempotencyKey: input.idempotencyKey,
         monthlyRateSnapshot: input.pricing.monthlyRateSnapshot,
@@ -197,6 +200,95 @@ export class PaymentsRepository {
       .where(and(eq(payments.id, paymentId), eq(payments.status, "PENDING")))
       .returning();
     return payment;
+  }
+
+  async findCompletedByPaymentId(paymentId: string) {
+    const [result] = await this.db
+      .select({ payment: payments, booking: bookings, facility: facilities, unitType: unitTypes })
+      .from(payments)
+      .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
+      .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
+      .where(eq(payments.id, paymentId));
+    return result
+      ? {
+          ...result,
+          confirmation: toConfirmation(result.booking, result.facility, result.unitType),
+        }
+      : undefined;
+  }
+
+  async findPendingByPaymentCode(paymentCode: string) {
+    const [payment] = await this.db
+      .select()
+      .from(payments)
+      .where(and(eq(payments.paymentCode, paymentCode), eq(payments.status, "PENDING")));
+    return payment;
+  }
+
+  async findPayment(paymentId: string) {
+    const [payment] = await this.db.select().from(payments).where(eq(payments.id, paymentId));
+    return payment;
+  }
+
+  async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
+    const [hold] = await this.db
+      .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })
+      .from(capacityAllocations)
+      .where(
+        and(
+          eq(capacityAllocations.referenceId, payment.draftId),
+          eq(capacityAllocations.kind, "HOLD"),
+          eq(capacityAllocations.status, "ACTIVE"),
+          gt(capacityAllocations.expiresAt, new Date()),
+        ),
+      );
+    return hold ?? null;
+  }
+
+  async recordProviderEvent(input: {
+    provider: string;
+    providerEventId: string;
+    paymentId: string | null;
+    paymentCode: string;
+    amount: number;
+    transferType: string;
+    referenceCode: string | null;
+    status: "PROCESSED" | "IGNORED" | "FAILED";
+    payloadMetadata: Record<string, unknown>;
+  }) {
+    const [event] = await this.db
+      .insert(paymentProviderEvents)
+      .values(input)
+      .onConflictDoNothing({
+        target: [paymentProviderEvents.provider, paymentProviderEvents.providerEventId],
+      })
+      .returning();
+    return event ?? null;
+  }
+
+  async findProviderEvent(provider: string, providerEventId: string) {
+    const [event] = await this.db
+      .select()
+      .from(paymentProviderEvents)
+      .where(
+        and(
+          eq(paymentProviderEvents.provider, provider),
+          eq(paymentProviderEvents.providerEventId, providerEventId),
+        ),
+      );
+    return event;
+  }
+
+  async updateProviderEvent(
+    eventId: string,
+    status: "PROCESSED" | "IGNORED" | "FAILED",
+    paymentId?: string,
+  ) {
+    await this.db
+      .update(paymentProviderEvents)
+      .set({ status, paymentId, updatedAt: new Date() })
+      .where(eq(paymentProviderEvents.id, eventId));
   }
 
   async completePendingPayment(input: {

@@ -34,6 +34,21 @@ const envSchema = z.object({
   AUTH_TRUSTED_ORIGINS: z.string().min(1),
   RESEND_API_KEY: z.string().optional(),
   RESEND_FROM_EMAIL: z.string().optional(),
+  PAYMENT_PROVIDER: z.enum(["mock", "sepay"]).default("mock"),
+  SEPAY_ENV: z.enum(["sandbox", "production"]).default("sandbox"),
+  SEPAY_MERCHANT_ID: z.string().optional(),
+  SEPAY_SECRET_KEY: z.string().optional(),
+  SEPAY_TEST_MODE: z.coerce.boolean().default(true),
+  SEPAY_WEBHOOK_API_KEY: z.string().optional(),
+  SEPAY_PAYMENT_PREFIX: z
+    .string()
+    .regex(/^[A-Z]{2,5}$/)
+    .default("SX"),
+  SEPAY_BANK_NAME: z.string().optional(),
+  SEPAY_BANK_ACCOUNT_NUMBER: z.string().optional(),
+  SEPAY_BANK_ACCOUNT_NAME: z.string().optional(),
+  PUBLIC_API_URL: z.url().optional(),
+  WEB_URL: z.string().default("http://localhost:3000"),
 });
 
 export type Env = z.infer<typeof envSchema>;

@@ -3,6 +3,7 @@
 import type {
   ConfirmReservationInput,
   PaymentCheckoutInput,
+  PaymentStatusResponse,
   ReservationDraftInput,
   ReservationQuoteInput,
 } from "@metastorage/contracts";
@@ -54,10 +55,27 @@ export function useReservationPayment() {
   });
 }
 
+export function usePaymentStatus(paymentId: string | null) {
+  return useQuery<PaymentStatusResponse>({
+    queryKey: ["payments", paymentId, "status"],
+    queryFn: () => api.payments.status(paymentId ?? ""),
+    enabled: Boolean(paymentId),
+    refetchInterval: (query) => (query.state.data?.status === "PENDING" ? 2_000 : false),
+  });
+}
+
 export function useConfirmReservation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (input: ConfirmReservationInput) => api.reservations.confirm(input),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
+  });
+}
+
+export function useConfirmSandboxPayment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (paymentId: string) => api.payments.confirmSandbox(paymentId),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: reservationKeys.all }),
   });
 }

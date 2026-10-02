@@ -25,7 +25,9 @@ import type {
   LoginInput,
   PaginatedResult,
   PaymentCheckoutInput,
+  PaymentResponse,
   PaymentResult,
+  PaymentStatusResponse,
   PhysicalUnitAssignment,
   RentalDetail,
   RentalListItem,
@@ -203,7 +205,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
       pay: (draftId: string, input: PaymentCheckoutInput) =>
         http
-          .post<ApiEnvelope<PaymentResult>>(`/reservations/drafts/${draftId}/pay`, input)
+          .post<ApiEnvelope<PaymentResponse>>(`/reservations/drafts/${draftId}/pay`, input)
           .then(unwrap),
       quote: (input: ReservationQuoteInput) =>
         http.post<ApiEnvelope<ReservationQuote>>("/reservations/quote", input).then(unwrap),
@@ -212,6 +214,14 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       mine: () => http.get<ApiEnvelope<Reservation[]>>("/reservations/mine").then(unwrap),
       get: (reservationId: string) =>
         http.get<ApiEnvelope<Reservation>>(`/reservations/${reservationId}`).then(unwrap),
+    },
+    payments: {
+      status: (paymentId: string) =>
+        http.get<ApiEnvelope<PaymentStatusResponse>>(`/payments/${paymentId}/status`).then(unwrap),
+      confirmSandbox: (paymentId: string) =>
+        http
+          .post<ApiEnvelope<PaymentResult>>(`/payments/${paymentId}/confirm-sandbox`)
+          .then(unwrap),
     },
     bookings: {
       verifyQr: (input: BookingQrVerificationInput) =>
