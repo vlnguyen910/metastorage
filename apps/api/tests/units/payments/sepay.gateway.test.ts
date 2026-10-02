@@ -10,7 +10,6 @@ const gateway = new SepayPaymentGateway({
   accountName: "STOREX TEST",
   publicApiUrl: "https://api.example.test",
 });
-
 describe("SepayPaymentGateway", () => {
   it("parses a verified incoming transaction", () => {
     const event = gateway.verifyWebhook(
@@ -72,4 +71,3 @@ describe("SepayPaymentGateway", () => {
     assert.ok(session.formFields.signature);
   });
 });
-
