@@ -39,8 +39,14 @@ export function registerReservationHandlers(mock: MockAdapter): void {
       contact: input.contact,
       draftAccessToken: `mock-draft-token-${crypto.randomUUID()}`,
       status: "DRAFT",
-      pricingStatus: "PRICING_NOT_CONFIGURED",
-      pricing: null,
+      pricingStatus: "PRICED",
+      pricing: {
+        monthlyRateSnapshot: String(unit.monthlyPrice),
+        rentalFeeAmount: String(unit.monthlyPrice * input.durationMonths),
+        depositAmount: String(unit.monthlyPrice),
+        totalAmount: String(unit.monthlyPrice * (input.durationMonths + 1)),
+        currency: "VND",
+      },
     };
     return [201, envelope(draft)];
   });

@@ -53,9 +53,10 @@ export function createSession(user: MockUser): Session {
 }
 
 export function addMonths(dateValue: string, months: number): string {
-  const date = new Date(`${dateValue}T00:00:00`);
-  date.setMonth(date.getMonth() + months);
-  return date.toISOString().slice(0, 10);
+  const hasTime = dateValue.includes("T");
+  const date = new Date(hasTime ? dateValue : `${dateValue}T00:00:00Z`);
+  date.setUTCMonth(date.getUTCMonth() + months);
+  return hasTime ? date.toISOString() : date.toISOString().slice(0, 10);
 }
 
 export function optionsForUnits(units: MockStorageUnit[]): UnitAvailabilityOption[] {

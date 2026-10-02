@@ -24,11 +24,11 @@ CREATE TABLE "unit_types" (
 );
 --> statement-breakpoint
 ALTER TABLE "storage_units" ADD CONSTRAINT "storage_units_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "storage_units" ADD CONSTRAINT "storage_units_unit_type_id_facility_id_unit_types_id_facility_id_fk" FOREIGN KEY ("unit_type_id","facility_id") REFERENCES "public"."unit_types"("id","facility_id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "unit_types" ADD CONSTRAINT "unit_types_facility_id_facilities_id_fk" FOREIGN KEY ("facility_id") REFERENCES "public"."facilities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "storage_units_facility_idx" ON "storage_units" USING btree ("facility_id");--> statement-breakpoint
 CREATE INDEX "storage_units_facility_status_idx" ON "storage_units" USING btree ("facility_id","status");--> statement-breakpoint
 CREATE INDEX "storage_units_unit_type_idx" ON "storage_units" USING btree ("unit_type_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "unit_types_facility_code_idx" ON "unit_types" USING btree ("facility_id","code");--> statement-breakpoint
 CREATE UNIQUE INDEX "unit_types_id_facility_idx" ON "unit_types" USING btree ("id","facility_id");--> statement-breakpoint
-CREATE INDEX "unit_types_facility_idx" ON "unit_types" USING btree ("facility_id");
+CREATE INDEX "unit_types_facility_idx" ON "unit_types" USING btree ("facility_id");--> statement-breakpoint
+ALTER TABLE "storage_units" ADD CONSTRAINT "storage_units_unit_type_id_facility_id_unit_types_id_facility_id_fk" FOREIGN KEY ("unit_type_id","facility_id") REFERENCES "public"."unit_types"("id","facility_id") ON DELETE restrict ON UPDATE no action;

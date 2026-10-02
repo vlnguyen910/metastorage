@@ -38,10 +38,11 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
           publicApiUrl: env.PUBLIC_API_URL,
         })
       : undefined;
+  const repository = new PaymentsRepository(fastify.db);
   const service = new PaymentsService(
-    new PaymentsRepository(fastify.db),
+    repository,
     undefined,
-    undefined,
+    (draftId) => repository.findDraftPricing(draftId),
     sepayGateway,
   );
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();

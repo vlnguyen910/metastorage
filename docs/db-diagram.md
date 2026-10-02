@@ -154,6 +154,7 @@ erDiagram
     varchar contact_phone
     reservation_draft_status status
     reservation_pricing_status pricing_status
+    jsonb pricing "nullable, immutable checkout price snapshot"
     timestamptz created_at
     timestamptz updated_at
   }
@@ -299,7 +300,7 @@ erDiagram
   `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
   `INSPECTION`, `RETURN_PENDING`, `LOCKED`, `INACTIVE`;
   `reservation_draft_status`: `DRAFT`; `reservation_pricing_status`:
-  `PRICING_NOT_CONFIGURED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
+  `PRICING_NOT_CONFIGURED`, `PRICED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
 - Composite unique indexes exist on `facility_assignments(user_id, facility_id)`,
   `unit_types(facility_id, code)`, `unit_types(id, facility_id)` and
@@ -364,12 +365,17 @@ tracking and account-linking implementation.
 
 ## Payment and Booking notes (#18)
 
+- New checkout drafts store an immutable `pricing` snapshot: rental fee equals
+  the monthly rate times the requested months; the deposit equals one month's
+  rate; total equals rental fee plus deposit, in VND. Payments use this stored
+  quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
+
 - `bookings.customer_id` references `customers.id`, never `users.id`.
 - Booking stores contact and pricing snapshots so later Customer profile
   changes do not rewrite historical transaction data.
 - Payment provider integration is selected through a gateway adapter. The
   current implementation provides a mock/test adapter; the production provider
-  and pricing policy remain TBD under issue #42.
+  pricing policy uses the confirmed one-month deposit rule for checkout.
 - A successful payment changes the matching active capacity allocation from
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.

@@ -54,3 +54,5 @@ bun.lockb*
 
 # Local notes / workspace tracking
 handover.md
+
+/.codex/config.toml

@@ -25,7 +25,7 @@ function input(overrides: Record<string, unknown> = {}) {
 function repository(overrides: Partial<ReservationsRepository> = {}) {
   const now = new Date();
   return {
-    findActiveContext: async () => ({ facility: {}, unitType: {} }),
+    findActiveContext: async () => ({ facility: {}, unitType: { monthlyPrice: 900000 } }),
     findOperatingHours: async () => ({ openTime: "00:00:00", closeTime: "23:59:59" }),
     countCapacity: async () => 1,
     createDraft: async (draft: NewReservationDraft) => ({
@@ -44,8 +44,14 @@ describe("reservations service", () => {
     const draft = await service.createDraft(input());
 
     assert.equal(draft.status, "DRAFT");
-    assert.equal(draft.pricingStatus, "PRICING_NOT_CONFIGURED");
-    assert.equal(draft.pricing, null);
+    assert.equal(draft.pricingStatus, "PRICED");
+    assert.deepEqual(draft.pricing, {
+      monthlyRateSnapshot: "900000",
+      rentalFeeAmount: "2700000",
+      depositAmount: "900000",
+      totalAmount: "3600000",
+      currency: "VND",
+    });
     assert.equal(draft.contact.phone, "+84901234567");
     assert.equal(draft.durationMonths, 3);
   });
@@ -58,13 +64,37 @@ describe("reservations service", () => {
     });
   });
 
-  it("rejects check-in beyond the 30-day advance window", async () => {
+  it("accepts check-in beyond 30 days with no advance booking limit", async () => {
     const service = new ReservationsService(repository());
-    const checkInAt = new Date(Date.now() + 31 * 24 * 60 * 60 * 1000).toISOString();
+    const checkInAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    const draft = await service.createDraft(input({ checkInAt }));
+    assert.equal(draft.checkInAt, checkInAt);
+  });
 
+  it("rejects past check-in with a specific error code", async () => {
+    const service = new ReservationsService(repository());
+    const checkInAt = new Date(Date.now() - 60_000).toISOString();
     await assert.rejects(() => service.createDraft(input({ checkInAt })), {
-      name: "BadRequestError",
+      code: "CHECK_IN_IN_PAST",
     });
+  });
+
+  it("reports the actual facility operating hours for an invalid check-in time", async () => {
+    const service = new ReservationsService(
+      repository({
+        findOperatingHours: async () =>
+          ({ openTime: "08:00:00", closeTime: "18:00:00" }) as Awaited<
+            ReturnType<ReservationsRepository["findOperatingHours"]>
+          >,
+      }),
+    );
+    const day = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    await assert.rejects(() => service.createDraft(input({ checkInAt: `${day}T07:59:00+07:00` })), {
+      code: "CHECK_IN_OUTSIDE_HOURS",
+      message: "Giờ nhận kho phải từ 08:00 đến 18:00 (giờ Việt Nam) tại chi nhánh này.",
+    });
+    const draft = await service.createDraft(input({ checkInAt: `${day}T08:00:00+07:00` }));
+    assert.equal(draft.status, "DRAFT");
   });
 
   it("creates a ten-minute hold using the draft access token", async () => {
