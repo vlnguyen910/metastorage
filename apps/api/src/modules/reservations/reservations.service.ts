@@ -4,7 +4,7 @@ import type {
   ReservationDraftContact,
   ReservationHold,
 } from "@metastorage/contracts";
-import { AppError, BadRequestError, NotFoundError } from "../../common/errors/app-error";
+import { AppError, NotFoundError } from "../../common/errors/app-error";
 import { RESERVATION_MESSAGES } from "./reservations.messages";
 import type { ReservationsRepository } from "./reservations.repository";
 import type { CreateReservationDraftBody } from "./reservations.schema";
@@ -12,7 +12,6 @@ import type { CreateReservationDraftBody } from "./reservations.schema";
 const DEFAULT_OPEN_TIME = "06:00:00";
 const DEFAULT_CLOSE_TIME = "22:00:00";
 const TIMEZONE = "Asia/Ho_Chi_Minh";
-const MAX_ADVANCE_BOOKING_DAYS = 30;
 
 function parseParts(value: Date) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -57,9 +56,8 @@ export class ReservationsService {
 
     const checkInAt = new Date(input.checkInAt);
     const now = new Date();
-    const latest = new Date(now.getTime() + MAX_ADVANCE_BOOKING_DAYS * 24 * 60 * 60 * 1000);
-    if (Number.isNaN(checkInAt.getTime()) || checkInAt < now || checkInAt > latest) {
-      throw new BadRequestError(RESERVATION_MESSAGES.checkInOutsideAdvanceWindow);
+    if (Number.isNaN(checkInAt.getTime()) || checkInAt <= now) {
+      throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
     }
 
     const local = parseParts(checkInAt);
@@ -67,7 +65,11 @@ export class ReservationsService {
     const openTime = hours?.openTime ?? DEFAULT_OPEN_TIME;
     const closeTime = hours?.closeTime ?? DEFAULT_CLOSE_TIME;
     if (!isWithinHours(local.time, openTime, closeTime)) {
-      throw new BadRequestError(RESERVATION_MESSAGES.checkInOutsideOperatingHours);
+      throw new AppError(
+        RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+        400,
+        "CHECK_IN_OUTSIDE_HOURS",
+      );
     }
 
     const rentalEndAt = addMonths(checkInAt, input.durationMonths);
@@ -81,6 +83,14 @@ export class ReservationsService {
     }
 
     const draftAccessToken = randomBytes(32).toString("hex");
+    const monthlyPrice = context.unitType.monthlyPrice;
+    const pricing = {
+      monthlyRateSnapshot: String(monthlyPrice),
+      rentalFeeAmount: String(monthlyPrice * input.durationMonths),
+      depositAmount: String(monthlyPrice),
+      totalAmount: String(monthlyPrice * (input.durationMonths + 1)),
+      currency: "VND",
+    };
     const draft = await this.repository.createDraft({
       facilityId: input.facilityId,
       unitTypeId: input.unitTypeId,
@@ -92,7 +102,8 @@ export class ReservationsService {
       contactPhone: input.contact.phone,
       accessTokenHash: hashToken(draftAccessToken),
       status: "DRAFT",
-      pricingStatus: "PRICING_NOT_CONFIGURED",
+      pricingStatus: "PRICED",
+      pricing,
     });
 
     return {
@@ -109,8 +120,8 @@ export class ReservationsService {
       }),
       draftAccessToken,
       status: "DRAFT",
-      pricingStatus: "PRICING_NOT_CONFIGURED",
-      pricing: null,
+      pricingStatus: "PRICED",
+      pricing,
     };
   }
 

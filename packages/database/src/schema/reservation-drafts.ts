@@ -2,6 +2,7 @@ import {
   foreignKey,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   timestamp,
@@ -12,7 +13,7 @@ import { facilities } from "./facilities";
 import { unitTypes } from "./unit-types";
 
 export const RESERVATION_DRAFT_STATUSES = ["DRAFT"] as const;
-export const RESERVATION_PRICING_STATUSES = ["PRICING_NOT_CONFIGURED"] as const;
+export const RESERVATION_PRICING_STATUSES = ["PRICING_NOT_CONFIGURED", "PRICED"] as const;
 
 export const reservationDraftStatusEnum = pgEnum(
   "reservation_draft_status",
@@ -40,6 +41,13 @@ export const reservationDrafts = pgTable(
     accessTokenHash: varchar({ length: 128 }),
     status: reservationDraftStatusEnum().default("DRAFT").notNull(),
     pricingStatus: reservationPricingStatusEnum().default("PRICING_NOT_CONFIGURED").notNull(),
+    pricing: jsonb().$type<{
+      monthlyRateSnapshot: string;
+      rentalFeeAmount: string;
+      depositAmount: string;
+      totalAmount: string;
+      currency: string;
+    }>(),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },

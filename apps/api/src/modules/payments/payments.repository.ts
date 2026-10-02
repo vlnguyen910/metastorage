@@ -68,6 +68,14 @@ function toConfirmation(
 export class PaymentsRepository {
   constructor(private readonly db: Database) {}
 
+  async findDraftPricing(draftId: string): Promise<PricingSnapshot | null> {
+    const [draft] = await this.db
+      .select({ pricing: reservationDrafts.pricing })
+      .from(reservationDrafts)
+      .where(eq(reservationDrafts.id, draftId));
+    return draft?.pricing ?? null;
+  }
+
   async findCheckout(draftId: string, holdTokenHash: string) {
     const [checkout] = await this.db
       .select({ draft: reservationDrafts, hold: capacityAllocations })
