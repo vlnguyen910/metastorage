@@ -203,6 +203,7 @@ erDiagram
     uuid customer_id FK
     varchar provider
     varchar provider_payment_id
+    varchar payment_code UK
     varchar hold_token_hash
     varchar idempotency_key UK
     numeric monthly_rate_snapshot
@@ -212,6 +213,21 @@ erDiagram
     varchar currency
     payment_status status
     timestamptz paid_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  payment_provider_events {
+    uuid id PK
+    varchar provider
+    varchar provider_event_id
+    uuid payment_id FK
+    varchar payment_code
+    numeric amount
+    varchar transfer_type
+    varchar reference_code
+    payment_provider_event_status status
+    jsonb payload_metadata
     timestamptz created_at
     timestamptz updated_at
   }

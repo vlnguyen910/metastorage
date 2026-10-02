@@ -1,4 +1,9 @@
 export const PAYMENT_MESSAGES = {
+  sepayWebhookUnauthorized: "SePay webhook authentication failed",
+  sepayWebhookInvalidJson: "Invalid SePay webhook JSON",
+  sepayWebhookInvalidPayload: "Invalid SePay webhook payload",
+  sepayUnavailable: "SePay chưa được cấu hình",
+  paymentNotFound: "Không tìm thấy Payment",
   idempotencyKeyUsedForAnotherCheckout: "Idempotency key đã được dùng cho checkout khác",
   paymentPendingReconciliation: "Payment đang được đối soát",
   paymentAttemptFinalized: "Payment attempt đã kết thúc, hãy tạo idempotency key mới",
@@ -17,4 +22,5 @@ export const PAYMENT_MESSAGES = {
   failedToCreatePendingPayment: "Failed to create pending payment",
   failedToCreateBookingAfterPayment: "Failed to create booking after payment",
   failedToFinalizePayment: "Failed to finalize payment",
+  paymentAlreadyFinalized: "Payment đã được hoàn tất trước đó",
 } as const;

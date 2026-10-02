@@ -1,11 +1,18 @@
-import { createHash } from "node:crypto";
-import type { BookingConfirmation, PaidBooking, PaymentResult } from "@metastorage/contracts";
+import { createHash, randomBytes } from "node:crypto";
+import type {
+  BookingConfirmation,
+  PaidBooking,
+  PaymentPendingResponse,
+  PaymentResult,
+  PaymentStatusResponse,
+} from "@metastorage/contracts";
 import type { Booking, Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type { PaymentsRepository, PricingSnapshot } from "./payments.repository";
 import type { CheckoutPaymentBody } from "./payments.schema";
+import type { SepayPaymentGateway } from "./sepay.gateway";
 
 function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
@@ -18,6 +25,7 @@ export class PaymentsService {
     private readonly pricingProvider: (
       draftId: string,
     ) => Promise<PricingSnapshot | null> = async () => null,
+    private readonly sepayGateway?: SepayPaymentGateway,
   ) {}
 
   async pay(draftId: string, input: CheckoutPaymentBody): Promise<PaymentResult> {
@@ -78,6 +86,7 @@ export class PaymentsService {
       draftId,
       holdTokenHash,
       provider: this.gateway.provider,
+      paymentCode: `MOCK${input.idempotencyKey.slice(-12).toUpperCase()}`,
       idempotencyKey: input.idempotencyKey,
       pricing,
     });
@@ -144,6 +153,254 @@ export class PaymentsService {
       },
       completedCheckout.confirmation,
     );
+  }
+
+  async startSepayPayment(
+    draftId: string,
+    input: CheckoutPaymentBody,
+  ): Promise<PaymentPendingResponse> {
+    if (!this.sepayGateway)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    const holdTokenHash = hashToken(input.holdToken);
+    const existing = await this.repository.findByIdempotencyKey(input.idempotencyKey);
+    if (existing) {
+      if (existing.draftId !== draftId || existing.holdTokenHash !== holdTokenHash) {
+        throw new AppError(
+          PAYMENT_MESSAGES.idempotencyKeyUsedForAnotherCheckout,
+          409,
+          "IDEMPOTENCY_KEY_REUSED",
+        );
+      }
+      if (existing.status !== "PENDING") {
+        throw new AppError(
+          PAYMENT_MESSAGES.paymentAttemptFinalized,
+          409,
+          "PAYMENT_ATTEMPT_FINALIZED",
+        );
+      }
+      const existingHold = await this.repository.findActiveHoldForPayment(existing);
+      if (!existingHold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
+      const instructions = this.sepayGateway.createInstructions({
+        paymentCode: existing.paymentCode,
+        amount: existing.totalAmount,
+        currency: existing.currency,
+        expiresAt: existingHold.expiresAt ?? new Date(Date.now() + 10 * 60_000),
+      });
+      const checkoutSession = this.sepayGateway.createCheckoutSession({
+        paymentCode: existing.paymentCode,
+        amount: Number(existing.totalAmount),
+        currency: existing.currency,
+        description: `Thanh toan don hang ${existing.paymentCode}`,
+        draftId,
+        paymentId: existing.id,
+      });
+      return {
+        paymentId: existing.id,
+        status: "PENDING",
+        provider: "sepay",
+        paymentCode: existing.paymentCode,
+        transferInstructions: instructions,
+        checkoutUrl: checkoutSession?.checkoutUrl,
+        checkoutFormFields: checkoutSession?.formFields,
+        expiresAt: instructions.expiresAt,
+      };
+    }
+    const checkout = await this.repository.findCheckout(draftId, holdTokenHash);
+    if (!checkout) throw new NotFoundError(PAYMENT_MESSAGES.holdUnavailable);
+    if (checkout.hold.expiresAt && checkout.hold.expiresAt <= new Date()) {
+      throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
+    }
+    const pricing = await this.pricingProvider(draftId);
+    if (!pricing)
+      throw new AppError(PAYMENT_MESSAGES.pricingNotConfigured, 409, "PRICING_NOT_CONFIGURED");
+    const paymentCode = `${this.sepayGateway.paymentPrefix}${randomBytes(7).toString("hex").toUpperCase()}`;
+    const pending = await this.repository.createPendingPayment({
+      draftId,
+      holdTokenHash,
+      provider: "sepay",
+      paymentCode,
+      idempotencyKey: input.idempotencyKey,
+      pricing,
+    });
+    if (!pending) throw new AppError(PAYMENT_MESSAGES.holdNoLongerAvailable, 409, "HOLD_EXPIRED");
+    const instructions = this.sepayGateway.createInstructions({
+      paymentCode: pending.payment.paymentCode,
+      amount: pending.payment.totalAmount,
+      currency: pending.payment.currency,
+      expiresAt: checkout.hold.expiresAt ?? new Date(Date.now() + 10 * 60_000),
+    });
+    const checkoutSession = this.sepayGateway.createCheckoutSession({
+      paymentCode: pending.payment.paymentCode,
+      amount: Number(pending.payment.totalAmount),
+      currency: pending.payment.currency,
+      description: `Thanh toan don hang ${pending.payment.paymentCode}`,
+      draftId,
+      paymentId: pending.payment.id,
+    });
+    return {
+      paymentId: pending.payment.id,
+      status: "PENDING",
+      provider: "sepay",
+      paymentCode: pending.payment.paymentCode,
+      transferInstructions: instructions,
+      checkoutUrl: checkoutSession?.checkoutUrl,
+      checkoutFormFields: checkoutSession?.formFields,
+      expiresAt: instructions.expiresAt,
+    };
+  }
+
+  async handleSepayWebhook(
+    headers: Record<string, string | string[] | undefined>,
+    rawBody: string,
+  ) {
+    if (!this.sepayGateway)
+      throw new AppError(PAYMENT_MESSAGES.sepayUnavailable, 503, "PAYMENT_PROVIDER_UNAVAILABLE");
+    const event = this.sepayGateway.verifyWebhook(headers, rawBody);
+    const existingEvent = await this.repository.findProviderEvent("sepay", event.providerEventId);
+    if (existingEvent && existingEvent.status !== "FAILED") return { duplicate: true };
+    const recorded =
+      existingEvent ??
+      (await this.repository.recordProviderEvent({
+        provider: "sepay",
+        providerEventId: event.providerEventId,
+        paymentId: null,
+        paymentCode: event.paymentCode,
+        amount: event.amount,
+        transferType: event.transferType,
+        referenceCode: event.referenceCode,
+        status: "FAILED",
+        payloadMetadata: event.metadata,
+      }));
+    if (!recorded) return { duplicate: true };
+    const payment = await this.repository.findPendingByPaymentCode(event.paymentCode);
+    if (!payment || event.transferType !== "in" || event.amount !== Number(payment.totalAmount)) {
+      await this.repository.updateProviderEvent(recorded.id, "IGNORED");
+      return { duplicate: false, processed: false };
+    }
+    const hold = await this.repository.findActiveHoldForPayment(payment);
+    if (!hold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
+    const completed = await this.repository.completePendingPayment({
+      paymentId: payment.id,
+      draftId: payment.draftId,
+      holdId: hold.id,
+      providerPaymentId: event.providerEventId,
+      paidAt: new Date(),
+    });
+    if (!completed)
+      throw new AppError(
+        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
+        503,
+        "PAYMENT_UNCERTAIN",
+      );
+    await this.repository.updateProviderEvent(recorded.id, "PROCESSED", payment.id);
+    return { duplicate: false, processed: true, paymentId: payment.id };
+  }
+
+  async confirmSandboxPayment(paymentId: string): Promise<PaymentResult> {
+    const payment = await this.repository.findPayment(paymentId);
+    if (!payment) throw new NotFoundError(PAYMENT_MESSAGES.paymentNotFound);
+
+    if (payment.status === "SUCCEEDED") {
+      const completed = await this.repository.findCompletedByPaymentId(payment.id);
+      if (
+        !completed?.payment.paidAt ||
+        !completed.booking.bookingCode ||
+        !completed.booking.paidAt
+      ) {
+        throw new AppError(PAYMENT_MESSAGES.paymentMissingBookingInformation, 500);
+      }
+      return toPaymentResult(
+        { ...completed.payment, paidAt: completed.payment.paidAt },
+        {
+          ...completed.booking,
+          bookingCode: completed.booking.bookingCode,
+          paidAt: completed.booking.paidAt,
+        },
+        completed.confirmation,
+      );
+    }
+
+    if (payment.status !== "PENDING") {
+      throw new AppError(
+        PAYMENT_MESSAGES.paymentAttemptFinalized,
+        409,
+        "PAYMENT_ATTEMPT_FINALIZED",
+      );
+    }
+
+    const hold = await this.repository.findActiveHoldForPayment(payment);
+    if (!hold) throw new AppError(PAYMENT_MESSAGES.holdExpired, 409, "HOLD_EXPIRED");
+
+    const completed = await this.repository.completePendingPayment({
+      paymentId: payment.id,
+      draftId: payment.draftId,
+      holdId: hold.id,
+      providerPaymentId: `SANDBOX-${payment.paymentCode}`,
+      paidAt: new Date(),
+    });
+
+    if (!completed?.booking) {
+      throw new AppError(
+        PAYMENT_MESSAGES.paymentReceivedPendingReconciliation,
+        503,
+        "PAYMENT_UNCERTAIN",
+      );
+    }
+    if (!completed.payment.paidAt)
+      throw new AppError(PAYMENT_MESSAGES.paymentTimestampMissing, 500);
+    if (!completed.booking.bookingCode || !completed.booking.paidAt)
+      throw new AppError(PAYMENT_MESSAGES.bookingPaymentInformationMissing, 500);
+
+    return toPaymentResult(
+      { ...completed.payment, paidAt: completed.payment.paidAt },
+      {
+        ...completed.booking,
+        bookingCode: completed.booking.bookingCode,
+        paidAt: completed.booking.paidAt,
+      },
+      completed.confirmation,
+    );
+  }
+
+  async getStatus(paymentId: string): Promise<PaymentStatusResponse> {
+    const payment = await this.repository.findPayment(paymentId);
+    if (!payment) throw new NotFoundError(PAYMENT_MESSAGES.paymentNotFound);
+    const completed =
+      payment.status === "SUCCEEDED"
+        ? await this.repository.findCompletedByPaymentId(payment.id)
+        : undefined;
+    const hold =
+      payment.status === "PENDING" ? await this.repository.findActiveHoldForPayment(payment) : null;
+    const transferInstructions =
+      payment.status === "PENDING" && this.sepayGateway && hold
+        ? this.sepayGateway.createInstructions({
+            paymentCode: payment.paymentCode,
+            amount: payment.totalAmount,
+            currency: payment.currency,
+            expiresAt: hold.expiresAt ?? new Date(Date.now() + 10 * 60_000),
+          })
+        : undefined;
+    const checkoutSession =
+      payment.status === "PENDING" && this.sepayGateway
+        ? this.sepayGateway.createCheckoutSession({
+            paymentCode: payment.paymentCode,
+            amount: Number(payment.totalAmount),
+            currency: payment.currency,
+            description: `Thanh toan don hang ${payment.paymentCode}`,
+            draftId: payment.draftId,
+            paymentId: payment.id,
+          })
+        : null;
+    return {
+      paymentId: payment.id,
+      status: payment.status,
+      provider: payment.provider,
+      paymentCode: payment.paymentCode,
+      transferInstructions,
+      checkoutUrl: checkoutSession?.checkoutUrl,
+      checkoutFormFields: checkoutSession?.formFields,
+      confirmation: completed?.confirmation,
+    };
   }
 }
 

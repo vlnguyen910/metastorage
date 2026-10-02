@@ -120,6 +120,13 @@
       "when": 1790587241499,
       "tag": "0016_marvelous_mercury",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790860201314,
+      "tag": "0017_spicy_firestar",
+      "breakpoints": true
     }
   ]
 }

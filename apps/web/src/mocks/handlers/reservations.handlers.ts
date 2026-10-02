@@ -65,6 +65,71 @@ export function registerReservationHandlers(mock: MockAdapter): void {
     ];
   });
 
+  mock.onPost(/\/reservations\/drafts\/[^/]+\/pay$/).reply((config) => {
+    const input = parseBody<{ paymentMethodToken?: string }>(config.data);
+    if (input.paymentMethodToken === "fail") {
+      return [402, errorBody(ApiErrorCode.PAYMENT_FAILED, "Giao dịch thử nghiệm bị từ chối")];
+    }
+
+    const paymentId = crypto.randomUUID();
+    const bookingId = crypto.randomUUID();
+    const now = new Date();
+    const confirmation = {
+      bookingId,
+      bookingCode: `BK-MOCK-${paymentId.slice(0, 8).toUpperCase()}`,
+      qrToken: `${paymentId.replaceAll("-", "")}${bookingId.replaceAll("-", "")}`,
+      qrUrl: `https://example.test/check-in/${paymentId}`,
+      facility: { name: "storeX Demo Facility", address: "Địa chỉ demo" },
+      checkInSlotStart: now.toISOString(),
+      checkInSlotEnd: null,
+      rentalEndAt: addMonths(now.toISOString(), 1),
+      unitTypeName: "Kho tiêu chuẩn",
+      sizeLabel: "2 m²",
+      durationMonths: 1,
+      emailStatus: "QUEUED" as const,
+    };
+    return [
+      201,
+      envelope({
+        id: paymentId,
+        status: PaymentStatus.SUCCEEDED,
+        provider: "mock",
+        providerPaymentId: `mock-provider-${paymentId}`,
+        paidAt: now.toISOString(),
+        pricing: {
+          rentalFeeAmount: "900000",
+          depositAmount: "900000",
+          totalAmount: "1800000",
+          currency: "VND",
+        },
+        booking: {
+          id: bookingId,
+          bookingCode: confirmation.bookingCode,
+          customerId: crypto.randomUUID(),
+          facilityId: crypto.randomUUID(),
+          unitTypeId: crypto.randomUUID(),
+          checkInAt: confirmation.checkInSlotStart,
+          rentalEndAt: confirmation.rentalEndAt,
+          durationMonths: 1,
+          status: "CONFIRMED",
+          paidAt: now.toISOString(),
+          contact: {
+            fullName: "Demo Customer",
+            email: "customer@example.test",
+            phone: "+84900000000",
+          },
+          pricing: {
+            rentalFeeAmount: "900000",
+            depositAmount: "900000",
+            totalAmount: "1800000",
+            currency: "VND",
+          },
+        },
+        confirmation,
+      }),
+    ];
+  });
+
   mock.onPost("/reservations/quote").reply((config) => {
     const database = getMockDatabase();
     const user = currentUser(config, database);

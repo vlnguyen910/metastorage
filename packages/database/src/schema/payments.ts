@@ -28,6 +28,7 @@ export const payments = pgTable(
       .notNull()
       .references(() => customers.id, { onDelete: "restrict" }),
     provider: varchar({ length: 32 }).notNull(),
+    paymentCode: varchar({ length: 32 }).notNull().unique(),
     providerPaymentId: varchar({ length: 128 }).notNull(),
     idempotencyKey: varchar({ length: 128 }).notNull(),
     monthlyRateSnapshot: numeric({ precision: 14, scale: 2 }).notNull(),

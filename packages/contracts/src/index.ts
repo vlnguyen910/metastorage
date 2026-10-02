@@ -373,6 +373,44 @@ export const PaymentResultSchema = z.object({
 });
 export type PaymentResult = z.infer<typeof PaymentResultSchema>;
 
+export const SepayPaymentInstructionsSchema = z.object({
+  paymentCode: z.string(),
+  bankName: z.string(),
+  accountNumber: z.string(),
+  accountName: z.string(),
+  amount: z.string(),
+  currency: z.string().length(3),
+  content: z.string(),
+  expiresAt: z.string().datetime(),
+});
+export type SepayPaymentInstructions = z.infer<typeof SepayPaymentInstructionsSchema>;
+
+export const PaymentPendingResponseSchema = z.object({
+  paymentId: z.string().uuid(),
+  status: z.literal("PENDING"),
+  provider: z.literal("sepay"),
+  paymentCode: z.string(),
+  transferInstructions: SepayPaymentInstructionsSchema.optional(),
+  checkoutUrl: z.string().url().optional(),
+  checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+  expiresAt: z.string().datetime(),
+  confirmation: z.undefined().optional(),
+});
+export type PaymentPendingResponse = z.infer<typeof PaymentPendingResponseSchema>;
+export type PaymentResponse = PaymentResult | PaymentPendingResponse;
+
+export const PaymentStatusResponseSchema = z.object({
+  paymentId: z.string().uuid(),
+  status: z.enum(["PENDING", "SUCCEEDED", "FAILED", "REFUNDED"]),
+  provider: z.string(),
+  paymentCode: z.string(),
+  transferInstructions: SepayPaymentInstructionsSchema.optional(),
+  checkoutUrl: z.string().url().optional(),
+  checkoutFormFields: z.record(z.string(), z.union([z.string(), z.number()])).optional(),
+  confirmation: z.lazy(() => BookingConfirmationSchema).optional(),
+});
+export type PaymentStatusResponse = z.infer<typeof PaymentStatusResponseSchema>;
+
 export const BookingConfirmationSchema = z.object({
   bookingId: z.string().uuid(),
   bookingCode: z.string(),
