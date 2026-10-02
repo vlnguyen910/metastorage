@@ -83,13 +83,16 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  typedApp.post(
-    "/payments/:paymentId/confirm-sandbox",
-    { schema: { params: paymentIdParamSchema } },
-    async (request, reply) => {
-      return reply.send(
-        successResponse(await service.confirmSandboxPayment(request.params.paymentId)),
-      );
-    },
-  );
+  // Demo-only shortcut: never expose a client-controlled payment finalizer in production.
+  if (env.NODE_ENV !== "production" && env.SEPAY_TEST_MODE) {
+    typedApp.post(
+      "/payments/:paymentId/confirm-sandbox",
+      { schema: { params: paymentIdParamSchema } },
+      async (request, reply) => {
+        return reply.send(
+          successResponse(await service.confirmSandboxPayment(request.params.paymentId)),
+        );
+      },
+    );
+  }
 };
