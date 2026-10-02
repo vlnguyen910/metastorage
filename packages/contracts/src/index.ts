@@ -2,6 +2,20 @@ import { z } from "zod";
 import { CONTRACT_MESSAGES } from "./messages";
 import type { CookieSession } from "./types";
 
+export type {
+  HandoverChecklistItemDefinition,
+  HandoverChecklistItemResult,
+} from "./handover-checklist";
+export {
+  createHandoverChecklistCompletionSchema,
+  HANDOVER_CHECKLIST_ITEMS,
+  HANDOVER_CHECKLIST_VERSION,
+  HandoverChecklistCompletionSchema,
+  HandoverChecklistDefinitionSchema,
+  HandoverChecklistItemDefinitionSchema,
+  HandoverChecklistItemResultSchema,
+} from "./handover-checklist";
+export { HANDOVER_CHECKLIST_MESSAGES } from "./handover-checklist.messages";
 export { CONTRACT_MESSAGES } from "./messages";
 
 export type {
@@ -307,6 +321,15 @@ export const ReservationDraftInputSchema = z.object({
 });
 export type ReservationDraftInput = z.infer<typeof ReservationDraftInputSchema>;
 
+export const ReservationPricingSchema = z.object({
+  monthlyRateSnapshot: z.string(),
+  rentalFeeAmount: z.string(),
+  depositAmount: z.string(),
+  totalAmount: z.string(),
+  currency: z.string().length(3),
+});
+export type ReservationPricing = z.infer<typeof ReservationPricingSchema>;
+
 export const ReservationDraftSchema = z.object({
   id: z.string().uuid(),
   facilityId: z.string().uuid(),
@@ -317,8 +340,8 @@ export const ReservationDraftSchema = z.object({
   contact: ReservationDraftContactSchema,
   draftAccessToken: z.string().min(32),
   status: z.literal("DRAFT"),
-  pricingStatus: z.literal("PRICING_NOT_CONFIGURED"),
-  pricing: z.null(),
+  pricingStatus: z.enum(["PRICING_NOT_CONFIGURED", "PRICED"]),
+  pricing: ReservationPricingSchema.nullable(),
 });
 export type ReservationDraft = z.infer<typeof ReservationDraftSchema>;
 

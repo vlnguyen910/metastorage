@@ -1,17 +1,5 @@
-import { Suspense } from "react";
-import { PublicLayout } from "@/components/layout/public-layout";
-import { LoadingState } from "@/components/ui/states";
-import { ReservationWizard } from "@/features/reservations/reservation-wizard";
+import { PublicCheckoutScreen } from "@/features/reservations/public-checkout-screen";
 
 export default function PublicReservationPage() {
-  return (
-    <PublicLayout>
-      <main className="min-h-[70vh] py-16">
-        <h1 className="sr-only">Đặt kho mới</h1>
-        <Suspense fallback={<LoadingState label="Đang chuẩn bị quy trình đặt kho…" />}>
-          <ReservationWizard />
-        </Suspense>
-      </main>
-    </PublicLayout>
-  );
+  return <PublicCheckoutScreen />;
 }
