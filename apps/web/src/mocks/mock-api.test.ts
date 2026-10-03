@@ -1,5 +1,5 @@
 import { createHttpClient, createMetastorageApiClient } from "@metastorage/api-client";
-import type { SessionTokens } from "@metastorage/contracts";
+import { type SessionTokens, UserRole } from "@metastorage/contracts";
 import { beforeAll, describe, expect, it } from "vitest";
 import { resetMockDatabase } from "./database";
 import { installMockApi } from "./install-mock-api";
@@ -109,5 +109,48 @@ describe("mock reservation API", () => {
     const tasks = await client.bookings.getMyStaffTasks("fac-hcm-central");
     expect(tasks.length).toBeGreaterThan(0);
     expect(tasks.some((t) => t.bookingCode === "BK-2026-0001")).toBe(true);
+  });
+
+  it("resolves FM facility assignments and handles multi-facility dashboard scoping", async () => {
+    // 1. Single facility FM login and assignment retrieval
+    const fmSession = await client.auth.login({
+      email: "manager@metastorage.test",
+      password: "Demo@123",
+    });
+    tokens = fmSession;
+
+    const myAssignments = await client.facilities.myAssignments();
+    expect(myAssignments).toHaveLength(1);
+    expect(myAssignments[0]?.facilityId).toBe("fac-hcm-central");
+
+    const singleDashboard = await client.dashboards.get(
+      UserRole.FACILITY_MANAGER,
+      "fac-hcm-central",
+    );
+    expect(singleDashboard.facilityName).toBe("metastorage Sài Gòn Central");
+    expect(singleDashboard.kpis.length).toBeGreaterThan(0);
+
+    // FM cannot access unassigned facility
+    await expect(
+      client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-dn-riverside"),
+    ).rejects.toMatchObject({ response: { status: 403 } });
+
+    // 2. Multi-facility FM login
+    const multiSession = await client.auth.login({
+      email: "multi-manager@metastorage.test",
+      password: "Demo@123",
+    });
+    tokens = multiSession;
+
+    const multiAssignments = await client.facilities.myAssignments();
+    expect(multiAssignments).toHaveLength(2);
+    expect(multiAssignments.map((a) => a.facilityId)).toEqual(["fac-hcm-central", "fac-hn-west"]);
+
+    // Can get dashboard for both assigned facilities
+    const hcmDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hcm-central");
+    expect(hcmDashboard.facilityName).toBe("metastorage Sài Gòn Central");
+
+    const hnDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hn-west");
+    expect(hnDashboard.facilityName).toBe("metastorage Hà Nội West");
   });
 });
