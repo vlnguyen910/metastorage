@@ -3,9 +3,10 @@ import {
   type CatalogFacility,
   type Facility,
   type PaginatedResult,
+  UserRole,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
-import { envelope, errorBody, optionsForUnits } from "../core/http";
+import { currentUser, envelope, errorBody, optionsForUnits } from "../core/http";
 import { getMockDatabase, hydrateFacility } from "../database";
 
 export function registerFacilityHandlers(mock: MockAdapter): void {
@@ -106,6 +107,51 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     };
     return [200, envelope(result)];
+  });
+
+  mock.onGet("/facilities/my-assignments").reply((config) => {
+    const database = getMockDatabase();
+    const user = currentUser(config, database);
+    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+
+    const assignments = user.assignedFacilityIds.map((facilityId) => {
+      const facility = database.facilities.find((f) => f.id === facilityId);
+      return {
+        id: `assign-${user.id}-${facilityId}`,
+        facilityId,
+        userId: user.id,
+        role: user.role,
+        isActive: true,
+        assignedAt: new Date(0).toISOString(),
+        facilityName: facility?.name ?? facilityId,
+        facilityCode: facility?.code ?? facilityId,
+        userName: user.name,
+        userEmail: user.email,
+      };
+    });
+    return [200, envelope(assignments)];
+  });
+
+  mock.onGet(/\/facilities\/[^/]+\/assignments$/).reply((config) => {
+    const database = getMockDatabase();
+    const user = currentUser(config, database);
+    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
+    const facilityId = config.url?.split("/")[2] ?? "";
+    if (user.role === UserRole.FACILITY_MANAGER && !user.assignedFacilityIds.includes(facilityId)) {
+      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Không có quyền truy cập cơ sở này")];
+    }
+    const matchingUsers = database.users.filter((u) => u.assignedFacilityIds.includes(facilityId));
+    const assignments = matchingUsers.map((u) => ({
+      id: `assign-${u.id}-${facilityId}`,
+      facilityId,
+      userId: u.id,
+      role: u.role,
+      isActive: true,
+      assignedAt: new Date(0).toISOString(),
+      userName: u.name,
+      userEmail: u.email,
+    }));
+    return [200, envelope(assignments)];
   });
 
   mock.onGet(/\/facilities\/[^/]+\/availability$/).reply((config) => {

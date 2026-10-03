@@ -265,8 +265,12 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.get<ApiEnvelope<RentalDetail>>(`/rentals/${rentalId}`).then(unwrap),
     },
     dashboards: {
-      get: (role: UserRole) =>
-        http.get<ApiEnvelope<DashboardSummary>>(`/dashboards/${role}`).then(unwrap),
+      get: (role: UserRole, facilityId?: string) =>
+        http
+          .get<ApiEnvelope<DashboardSummary>>(`/dashboards/${role}`, {
+            params: facilityId ? { facilityId } : undefined,
+          })
+          .then(unwrap),
     },
   };
 }

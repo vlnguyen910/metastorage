@@ -13,6 +13,14 @@ export function registerDashboardHandlers(mock: MockAdapter): void {
     if (requestedRole !== user.role || user.role === UserRole.STORAGE_CUSTOMER) {
       return [403, errorBody(ApiErrorCode.FORBIDDEN, "Dashboard không thuộc phạm vi của bạn")];
     }
-    return [200, envelope(dashboardFor(user, database))];
+    const facilityId = config.params?.facilityId as string | undefined;
+    if (
+      user.role === UserRole.FACILITY_MANAGER &&
+      facilityId &&
+      !user.assignedFacilityIds.includes(facilityId)
+    ) {
+      return [403, errorBody(ApiErrorCode.FORBIDDEN, "Cơ sở không thuộc quyền quản lý của bạn")];
+    }
+    return [200, envelope(dashboardFor(user, database, facilityId))];
   });
 }

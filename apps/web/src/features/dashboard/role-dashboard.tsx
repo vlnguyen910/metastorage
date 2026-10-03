@@ -1,12 +1,13 @@
 "use client";
 
-import type { UserRole } from "@metastorage/contracts";
 import { useQuery } from "@tanstack/react-query";
 import { Activity, ArrowUpRight } from "lucide-react";
 import { Card, PageHeader } from "@/components/ui/display";
 import { ErrorState, LoadingState } from "@/components/ui/states";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/cn";
+import { ROLE_DASHBOARD_MESSAGES } from "./role-dashboard.messages";
+import type { RoleDashboardProps } from "./role-dashboard.types";
 
 const kpiValueTone = {
   primary: "text-primary",
@@ -15,26 +16,21 @@ const kpiValueTone = {
   neutral: "text-secondary",
 } as const;
 
-export function RoleDashboard({ role }: { role: UserRole }) {
+export function RoleDashboard({ role, facilityId }: RoleDashboardProps) {
   const query = useQuery({
-    queryKey: ["dashboard", role],
-    queryFn: () => api.dashboards.get(role),
+    queryKey: ["dashboard", role, facilityId],
+    queryFn: () => api.dashboards.get(role, facilityId),
   });
-  if (query.isLoading) return <LoadingState label="Đang tổng hợp dữ liệu vận hành…" />;
+  if (query.isLoading) return <LoadingState label={ROLE_DASHBOARD_MESSAGES.loading} />;
   if (query.isError || !query.data) {
-    return (
-      <ErrorState
-        message="Không thể tải dashboard hoặc dữ liệu nằm ngoài phạm vi facility của bạn."
-        onRetry={() => query.refetch()}
-      />
-    );
+    return <ErrorState message={ROLE_DASHBOARD_MESSAGES.error} onRetry={() => query.refetch()} />;
   }
 
   const data = query.data;
   return (
     <>
       <PageHeader
-        eyebrow={data.facilityName ?? "metastorage operations"}
+        eyebrow={data.facilityName ?? ROLE_DASHBOARD_MESSAGES.defaultEyebrow}
         title={data.title}
         description={data.subtitle}
       />
@@ -57,9 +53,9 @@ export function RoleDashboard({ role }: { role: UserRole }) {
         <div className="mb-8 flex items-end justify-between gap-6">
           <div>
             <span className="mb-2.5 inline-block text-xs font-extrabold tracking-[0.13em] text-primary uppercase">
-              Cập nhật mới nhất
+              {ROLE_DASHBOARD_MESSAGES.latestUpdate}
             </span>
-            <h2 className="text-3xl font-bold">Hoạt động gần đây</h2>
+            <h2 className="text-3xl font-bold">{ROLE_DASHBOARD_MESSAGES.recentActivity}</h2>
           </div>
           <Activity />
         </div>
