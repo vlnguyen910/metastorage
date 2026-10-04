@@ -153,4 +153,253 @@ describe("facilities service", () => {
     assert.equal(result.userName, "User Active");
     assert.equal(result.facilityCode, "F1");
   });
+
+  describe("physical unit tracking & status transitions", () => {
+    const now = new Date();
+    const facilityId = "11111111-1111-1111-1111-111111111111";
+    const unitId = "22222222-2222-2222-2222-222222222222";
+    const unitTypeId = "33333333-3333-3333-3333-333333333333";
+
+    it("lists physical units for assigned facility manager", async () => {
+      const mockFacilitiesRepo = {
+        findAccessibleById: async () => ({
+          id: facilityId,
+          code: "FAC-1",
+          name: "Facility 1",
+          address: "123 Street",
+          description: null,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        listFacilityUnits: async () => [
+          {
+            unit: {
+              id: unitId,
+              facilityId,
+              unitTypeId,
+              code: "U-101",
+              floor: "1",
+              locationDescription: "Aisle A",
+              status: "AVAILABLE",
+              createdAt: now,
+              updatedAt: now,
+            },
+            unitTypeName: "Small Locker",
+            unitTypeSize: 2,
+            monthlyPrice: 500000,
+            currentBookingId: null,
+            currentBookingCode: null,
+          },
+        ],
+      } as unknown as FacilitiesRepository;
+
+      const service = new FacilitiesService(mockFacilitiesRepo, {} as UsersRepository);
+
+      const result = await service.listFacilityUnits(
+        facilityId,
+        {},
+        {
+          kind: "assigned",
+          userId: "fm-1",
+          role: "FACILITY_MANAGER",
+        },
+      );
+
+      assert.equal(result.length, 1);
+      assert.equal(result[0]?.code, "U-101");
+      assert.equal(result[0]?.status, "AVAILABLE");
+      assert.equal(result[0]?.unitTypeName, "Small Locker");
+    });
+
+    it("successfully transitions unit from AVAILABLE to MAINTENANCE", async () => {
+      const mockFacilitiesRepo = {
+        findAccessibleById: async () => ({
+          id: facilityId,
+          code: "FAC-1",
+          name: "Facility 1",
+          address: "123 Street",
+          description: null,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        findUnitWithDetailsById: async () => ({
+          unit: {
+            id: unitId,
+            facilityId,
+            unitTypeId,
+            code: "U-101",
+            floor: "1",
+            locationDescription: "Aisle A",
+            status: "AVAILABLE",
+            createdAt: now,
+            updatedAt: now,
+          },
+          unitTypeName: "Small Locker",
+          unitTypeSize: 2,
+          monthlyPrice: 500000,
+        }),
+        hasActiveAssignmentOrRental: async () => false,
+        updateUnitStatus: async (_uId: string, status: string) => ({
+          id: unitId,
+          facilityId,
+          unitTypeId,
+          code: "U-101",
+          floor: "1",
+          locationDescription: "Aisle A",
+          status,
+          createdAt: now,
+          updatedAt: now,
+        }),
+      } as unknown as FacilitiesRepository;
+
+      const service = new FacilitiesService(mockFacilitiesRepo, {} as UsersRepository);
+
+      const result = await service.updateUnitStatus(
+        facilityId,
+        unitId,
+        { status: "MAINTENANCE", notes: "Broken door hinge" },
+        { kind: "assigned", userId: "fm-1", role: "FACILITY_MANAGER" },
+      );
+
+      assert.equal(result.status, "MAINTENANCE");
+      assert.equal(result.code, "U-101");
+    });
+
+    it("rejects invalid status transition from AVAILABLE to RESERVED", async () => {
+      const mockFacilitiesRepo = {
+        findAccessibleById: async () => ({
+          id: facilityId,
+          code: "FAC-1",
+          name: "Facility 1",
+          address: "123 Street",
+          description: null,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        findUnitWithDetailsById: async () => ({
+          unit: {
+            id: unitId,
+            facilityId,
+            unitTypeId,
+            code: "U-101",
+            floor: "1",
+            locationDescription: "Aisle A",
+            status: "AVAILABLE",
+            createdAt: now,
+            updatedAt: now,
+          },
+          unitTypeName: "Small Locker",
+          unitTypeSize: 2,
+          monthlyPrice: 500000,
+        }),
+        hasActiveAssignmentOrRental: async () => false,
+      } as unknown as FacilitiesRepository;
+
+      const service = new FacilitiesService(mockFacilitiesRepo, {} as UsersRepository);
+
+      await assert.rejects(
+        () =>
+          service.updateUnitStatus(
+            facilityId,
+            unitId,
+            { status: "RESERVED" },
+            { kind: "assigned", userId: "fm-1", role: "FACILITY_MANAGER" },
+          ),
+        BadRequestError,
+      );
+    });
+
+    it("rejects transition when unit has active assignment or rental (In Use)", async () => {
+      const mockFacilitiesRepo = {
+        findAccessibleById: async () => ({
+          id: facilityId,
+          code: "FAC-1",
+          name: "Facility 1",
+          address: "123 Street",
+          description: null,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        findUnitWithDetailsById: async () => ({
+          unit: {
+            id: unitId,
+            facilityId,
+            unitTypeId,
+            code: "U-101",
+            floor: "1",
+            locationDescription: "Aisle A",
+            status: "AVAILABLE",
+            createdAt: now,
+            updatedAt: now,
+          },
+          unitTypeName: "Small Locker",
+          unitTypeSize: 2,
+          monthlyPrice: 500000,
+        }),
+        hasActiveAssignmentOrRental: async () => true,
+      } as unknown as FacilitiesRepository;
+
+      const service = new FacilitiesService(mockFacilitiesRepo, {} as UsersRepository);
+
+      await assert.rejects(
+        () =>
+          service.updateUnitStatus(
+            facilityId,
+            unitId,
+            { status: "MAINTENANCE" },
+            { kind: "assigned", userId: "fm-1", role: "FACILITY_MANAGER" },
+          ),
+        ConflictError,
+      );
+    });
+
+    it("rejects unit update if unit does not belong to facility", async () => {
+      const mockFacilitiesRepo = {
+        findAccessibleById: async () => ({
+          id: facilityId,
+          code: "FAC-1",
+          name: "Facility 1",
+          address: "123 Street",
+          description: null,
+          isActive: true,
+          createdAt: now,
+          updatedAt: now,
+        }),
+        findUnitWithDetailsById: async () => ({
+          unit: {
+            id: unitId,
+            facilityId: "99999999-9999-9999-9999-999999999999", // Different facility
+            unitTypeId,
+            code: "U-101",
+            floor: "1",
+            locationDescription: "Aisle A",
+            status: "AVAILABLE",
+            createdAt: now,
+            updatedAt: now,
+          },
+          unitTypeName: "Small Locker",
+          unitTypeSize: 2,
+          monthlyPrice: 500000,
+        }),
+        hasActiveAssignmentOrRental: async () => false,
+      } as unknown as FacilitiesRepository;
+
+      const service = new FacilitiesService(mockFacilitiesRepo, {} as UsersRepository);
+
+      await assert.rejects(
+        () =>
+          service.updateUnitStatus(
+            facilityId,
+            unitId,
+            { status: "MAINTENANCE" },
+            { kind: "assigned", userId: "fm-1", role: "FACILITY_MANAGER" },
+          ),
+        BadRequestError,
+      );
+    });
+  });
 });

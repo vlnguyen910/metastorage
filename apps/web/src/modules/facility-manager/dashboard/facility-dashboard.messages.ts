@@ -1,5 +1,6 @@
 export const FACILITY_DASHBOARD_MESSAGES = {
   tabOverview: "Tổng quan vận hành & KPIs",
+  tabUnits: "Quản lý Ô kho",
   tabCheckIn: "Chuẩn bị Check-in & Gán ô kho",
   tabStaff: "Nhân viên & Phân công nhiệm vụ",
 

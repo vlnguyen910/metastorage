@@ -1,4 +1,4 @@
-import type { ApiErrorCode, User } from "./index";
+import type { ApiErrorCode, StorageUnitStatus, User } from "./index";
 
 export interface CookieSession {
   user: User;
@@ -84,4 +84,34 @@ export interface DashboardSummary {
   facilityName?: string;
   kpis: DashboardKpi[];
   activities: DashboardActivity[];
+}
+
+export interface ApiStorageUnit {
+  id: string;
+  facilityId: string;
+  unitTypeId: string;
+  code: string;
+  floor: string | null;
+  locationDescription: string | null;
+  status: StorageUnitStatus;
+  unitTypeName?: string;
+  unitTypeSize?: number;
+  monthlyPrice?: number;
+  currentBookingId?: string | null;
+  currentBookingCode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateUnitStatusInput {
+  status: StorageUnitStatus;
+  notes?: string;
+}
+
+export interface FacilityUnitListParams {
+  status?: StorageUnitStatus;
+  unitTypeId?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
 }

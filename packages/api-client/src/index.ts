@@ -1,6 +1,7 @@
 import type {
   ApiEnvelope,
   ApiFacilityAssignment,
+  ApiStorageUnit,
   ApiUser,
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
@@ -22,6 +23,7 @@ import type {
   Facility,
   FacilityListParams,
   FacilityStaffMember,
+  FacilityUnitListParams,
   LoginInput,
   PaginatedResult,
   PaymentCheckoutInput,
@@ -40,6 +42,7 @@ import type {
   Session,
   SessionTokens,
   UnitAvailabilityOption,
+  UpdateUnitStatusInput,
   UserRole,
 } from "@metastorage/contracts";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
@@ -180,6 +183,17 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
       getStaff: (facilityId: string) =>
         http
           .get<ApiEnvelope<FacilityStaffMember[]>>(`/facilities/${facilityId}/staff`)
+          .then(unwrap),
+      listUnits: (facilityId: string, params: FacilityUnitListParams = {}) =>
+        http
+          .get<ApiEnvelope<ApiStorageUnit[]>>(`/facilities/${facilityId}/units`, { params })
+          .then(unwrap),
+      updateUnitStatus: (facilityId: string, unitId: string, input: UpdateUnitStatusInput) =>
+        http
+          .patch<ApiEnvelope<ApiStorageUnit>>(
+            `/facilities/${facilityId}/units/${unitId}/status`,
+            input,
+          )
           .then(unwrap),
     },
     catalog: {

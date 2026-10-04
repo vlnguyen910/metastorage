@@ -1,7 +1,7 @@
 "use client";
 
 import { UserRole } from "@metastorage/contracts";
-import { ArrowRight, BarChart3, Users, Warehouse } from "lucide-react";
+import { ArrowRight, BarChart3, Boxes, Users, Warehouse } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/display";
@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState } from "@/components/ui/states";
 import { FacilityBookingsView } from "@/features/check-in/facility-bookings-view";
 import { RoleDashboard } from "@/features/dashboard/role-dashboard";
 import { FacilitySwitcher } from "@/features/facilities/facility-switcher";
+import { PhysicalUnitsView } from "@/features/facilities/physical-units-view";
 import { useFacilityContext } from "@/features/facilities/use-facility-context";
 import { FACILITY_DASHBOARD_MESSAGES } from "./facility-dashboard.messages";
 import type { FacilityManagerDashboardTab } from "./facility-dashboard.types";
@@ -73,6 +74,18 @@ export function FacilityManagerDashboardScreen() {
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab("units")}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
+            activeTab === "units"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted hover:text-ink"
+          }`}
+        >
+          <Boxes className="h-4 w-4" />
+          {FACILITY_DASHBOARD_MESSAGES.tabUnits}
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab("check-in")}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-all cursor-pointer ${
             activeTab === "check-in"
@@ -101,10 +114,32 @@ export function FacilityManagerDashboardScreen() {
       {activeTab === "overview" && (
         <div className="space-y-6">
           {/* Quick Capability Action Cards */}
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Card className="flex flex-col justify-between p-5 border-l-4 border-l-primary">
               <div>
                 <div className="flex items-center gap-2 text-primary font-bold text-base mb-1">
+                  <Boxes className="h-5 w-5" />
+                  <span>{FACILITY_DASHBOARD_MESSAGES.capabilityUnitsTitle}</span>
+                </div>
+                <p className="text-xs text-muted leading-relaxed">
+                  {FACILITY_DASHBOARD_MESSAGES.capabilityUnitsDesc}
+                </p>
+              </div>
+              <div className="mt-4 pt-3 border-t border-line">
+                <Button
+                  variant="primary"
+                  onClick={() => setActiveTab("units")}
+                  className="flex items-center gap-1.5 text-xs py-2 px-3 min-h-9"
+                >
+                  <span>{FACILITY_DASHBOARD_MESSAGES.capabilityUnitsAction}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="flex flex-col justify-between p-5 border-l-4 border-l-accent">
+              <div>
+                <div className="flex items-center gap-2 text-accent font-bold text-base mb-1">
                   <Warehouse className="h-5 w-5" />
                   <span>{FACILITY_DASHBOARD_MESSAGES.capabilityCheckInTitle}</span>
                 </div>
@@ -150,6 +185,13 @@ export function FacilityManagerDashboardScreen() {
           {/* Operational Metrics and KPI Dashboard */}
           <RoleDashboard role={UserRole.FACILITY_MANAGER} facilityId={currentFacilityId} />
         </div>
+      )}
+
+      {activeTab === "units" && (
+        <PhysicalUnitsView
+          facilityId={currentFacilityId}
+          facilityName={currentFacility.facilityName}
+        />
       )}
 
       {activeTab === "check-in" && (

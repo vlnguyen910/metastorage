@@ -1,5 +1,7 @@
+import type { StorageUnitStatus } from "@metastorage/contracts";
 import {
   and,
+  bookings,
   type Database,
   desc,
   eq,
@@ -9,11 +11,17 @@ import {
   facilities,
   facilityAssignments,
   gt,
+  ilike,
   isNull,
   type NewFacility,
   type NewFacilityAssignment,
   or,
+  rentals,
+  type StorageUnit,
   sql,
+  storageUnits,
+  unitAssignments,
+  unitTypes,
   users,
 } from "@metastorage/database";
 import type { AssignedFacilityScope, FacilityListScope, FacilityScope } from "./facilities.access";
@@ -248,5 +256,138 @@ export class FacilitiesRepository {
       .orderBy(desc(facilityAssignments.assignedAt));
 
     return rows;
+  }
+
+  async listFacilityUnits(
+    facilityId: string,
+    filters: {
+      status?: StorageUnitStatus;
+      unitTypeId?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+    },
+    scope: FacilityScope,
+  ): Promise<
+    Array<{
+      unit: StorageUnit;
+      unitTypeName: string;
+      unitTypeSize: number;
+      monthlyPrice: number;
+      currentBookingId?: string | null;
+      currentBookingCode?: string | null;
+    }>
+  > {
+    const conditions = [
+      eq(storageUnits.facilityId, facilityId),
+      scope.kind === "assigned" ? this.activeAssignmentExists(facilityId, scope) : undefined,
+    ];
+
+    if (filters.status) {
+      conditions.push(eq(storageUnits.status, filters.status));
+    }
+    if (filters.unitTypeId) {
+      conditions.push(eq(storageUnits.unitTypeId, filters.unitTypeId));
+    }
+    if (filters.search) {
+      conditions.push(
+        or(
+          ilike(storageUnits.code, `%${filters.search}%`),
+          ilike(storageUnits.locationDescription, `%${filters.search}%`),
+          ilike(storageUnits.floor, `%${filters.search}%`),
+        ),
+      );
+    }
+
+    const rows = await this.db
+      .select({
+        unit: storageUnits,
+        unitTypeName: unitTypes.name,
+        unitTypeSize: unitTypes.sizeSqm,
+        monthlyPrice: unitTypes.monthlyPrice,
+        currentBookingId: bookings.id,
+        currentBookingCode: bookings.bookingCode,
+      })
+      .from(storageUnits)
+      .innerJoin(unitTypes, eq(storageUnits.unitTypeId, unitTypes.id))
+      .leftJoin(
+        unitAssignments,
+        and(
+          eq(unitAssignments.physicalUnitId, storageUnits.id),
+          eq(unitAssignments.status, "ACTIVE"),
+          or(isNull(unitAssignments.endedAt), gt(unitAssignments.endedAt, new Date())),
+        ),
+      )
+      .leftJoin(bookings, eq(unitAssignments.bookingId, bookings.id))
+      .where(and(...conditions))
+      .limit(filters.limit ?? 50)
+      .offset(filters.offset ?? 0)
+      .orderBy(storageUnits.code);
+
+    return rows;
+  }
+
+  async findUnitById(unitId: string): Promise<StorageUnit | undefined> {
+    const [unit] = await this.db.select().from(storageUnits).where(eq(storageUnits.id, unitId));
+    return unit;
+  }
+
+  async findUnitWithDetailsById(unitId: string): Promise<
+    | {
+        unit: StorageUnit;
+        unitTypeName: string;
+        unitTypeSize: number;
+        monthlyPrice: number;
+      }
+    | undefined
+  > {
+    const [row] = await this.db
+      .select({
+        unit: storageUnits,
+        unitTypeName: unitTypes.name,
+        unitTypeSize: unitTypes.sizeSqm,
+        monthlyPrice: unitTypes.monthlyPrice,
+      })
+      .from(storageUnits)
+      .innerJoin(unitTypes, eq(storageUnits.unitTypeId, unitTypes.id))
+      .where(eq(storageUnits.id, unitId));
+
+    return row;
+  }
+
+  async hasActiveAssignmentOrRental(unitId: string): Promise<boolean> {
+    const [assignment] = await this.db
+      .select({ one: sql`1` })
+      .from(unitAssignments)
+      .where(
+        and(
+          eq(unitAssignments.physicalUnitId, unitId),
+          eq(unitAssignments.status, "ACTIVE"),
+          or(isNull(unitAssignments.endedAt), gt(unitAssignments.endedAt, new Date())),
+        ),
+      )
+      .limit(1);
+
+    if (assignment) return true;
+
+    const [rental] = await this.db
+      .select({ one: sql`1` })
+      .from(rentals)
+      .where(and(eq(rentals.physicalUnitId, unitId), eq(rentals.status, "ACTIVE")))
+      .limit(1);
+
+    return Boolean(rental);
+  }
+
+  async updateUnitStatus(
+    unitId: string,
+    status: StorageUnitStatus,
+  ): Promise<StorageUnit | undefined> {
+    const [updated] = await this.db
+      .update(storageUnits)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(storageUnits.id, unitId))
+      .returning();
+    return updated;
   }
 }

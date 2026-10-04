@@ -1,4 +1,10 @@
-import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
+import {
+  ALLOWED_STORAGE_UNIT_TRANSITIONS,
+  type ApiFacility,
+  type ApiFacilityAssignment,
+  type ApiStorageUnit,
+  type StorageUnitStatus,
+} from "@metastorage/contracts";
 import type { Role } from "@metastorage/database";
 import {
   BadRequestError,
@@ -8,13 +14,15 @@ import {
 } from "../../common/errors/app-error";
 import type { UsersRepository } from "../users/users.repository";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
-import { toApiFacility, toApiFacilityAssignment } from "./facilities.mapper";
+import { toApiFacility, toApiFacilityAssignment, toApiStorageUnit } from "./facilities.mapper";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
 import type {
   CreateAssignmentBody,
   CreateFacilityBody,
+  ListFacilityUnitsQuery,
   UpdateFacilityBody,
+  UpdateUnitStatusBody,
 } from "./facilities.schema";
 
 export class FacilitiesService {
@@ -182,6 +190,93 @@ export class FacilitiesService {
         facilityCode,
       }),
     );
+  }
+
+  async listFacilityUnits(
+    facilityId: string,
+    filters: ListFacilityUnitsQuery,
+    scope: FacilityScope,
+  ): Promise<ApiStorageUnit[]> {
+    this.assertManagerScope(scope);
+    const facility = await this.facilitiesRepository.findAccessibleById(facilityId, scope);
+    if (!facility) {
+      if (scope.kind === "assigned")
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
+    }
+
+    const rows = await this.facilitiesRepository.listFacilityUnits(facilityId, filters, scope);
+    return rows.map(
+      ({ unit, unitTypeName, unitTypeSize, monthlyPrice, currentBookingId, currentBookingCode }) =>
+        toApiStorageUnit(unit, {
+          unitTypeName,
+          unitTypeSize,
+          monthlyPrice,
+          currentBookingId,
+          currentBookingCode,
+        }),
+    );
+  }
+
+  async updateUnitStatus(
+    facilityId: string,
+    unitId: string,
+    input: UpdateUnitStatusBody,
+    scope: FacilityScope,
+  ): Promise<ApiStorageUnit> {
+    this.assertManagerScope(scope);
+    const facility = await this.facilitiesRepository.findAccessibleById(facilityId, scope);
+    if (!facility) {
+      if (scope.kind === "assigned")
+        throw new ForbiddenError(FACILITY_MESSAGES.facilityAccessDenied);
+      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
+    }
+
+    const existing = await this.facilitiesRepository.findUnitWithDetailsById(unitId);
+    if (!existing) {
+      throw new NotFoundError(FACILITY_MESSAGES.unitNotFound(unitId));
+    }
+
+    if (existing.unit.facilityId !== facilityId) {
+      throw new BadRequestError(FACILITY_MESSAGES.unitNotInFacility);
+    }
+
+    const currentStatus = existing.unit.status as StorageUnitStatus;
+    const targetStatus = input.status as StorageUnitStatus;
+
+    if (currentStatus === targetStatus) {
+      return toApiStorageUnit(existing.unit, {
+        unitTypeName: existing.unitTypeName,
+        unitTypeSize: existing.unitTypeSize,
+        monthlyPrice: existing.monthlyPrice,
+      });
+    }
+
+    if (
+      currentStatus === "RESERVED" ||
+      currentStatus === "OCCUPIED" ||
+      (await this.facilitiesRepository.hasActiveAssignmentOrRental(unitId))
+    ) {
+      throw new ConflictError(FACILITY_MESSAGES.unitInUseCannotTransition);
+    }
+
+    const allowedTransitions = ALLOWED_STORAGE_UNIT_TRANSITIONS[currentStatus] ?? [];
+    if (!allowedTransitions.includes(targetStatus)) {
+      throw new BadRequestError(
+        FACILITY_MESSAGES.invalidUnitStatusTransition(currentStatus, targetStatus),
+      );
+    }
+
+    const updated = await this.facilitiesRepository.updateUnitStatus(unitId, targetStatus);
+    if (!updated) {
+      throw new NotFoundError(FACILITY_MESSAGES.unitNotFound(unitId));
+    }
+
+    return toApiStorageUnit(updated, {
+      unitTypeName: existing.unitTypeName,
+      unitTypeSize: existing.unitTypeSize,
+      monthlyPrice: existing.monthlyPrice,
+    });
   }
 
   private assertManagerScope(scope: FacilityScope): void {

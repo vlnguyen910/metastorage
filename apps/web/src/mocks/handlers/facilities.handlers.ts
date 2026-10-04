@@ -1,5 +1,7 @@
 import {
+  ALLOWED_STORAGE_UNIT_TRANSITIONS,
   ApiErrorCode,
+  type ApiStorageUnit,
   type CatalogFacility,
   type Facility,
   type PaginatedResult,
@@ -7,7 +9,7 @@ import {
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import { currentUser, envelope, errorBody, optionsForUnits } from "../core/http";
-import { getMockDatabase, hydrateFacility } from "../database";
+import { getMockDatabase, hydrateFacility, saveMockDatabase } from "../database";
 
 export function registerFacilityHandlers(mock: MockAdapter): void {
   mock.onGet("/catalog/facilities").reply((config) => {
@@ -166,6 +168,115 @@ export function registerFacilityHandlers(mock: MockAdapter): void {
           ),
         ]
       : [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy cơ sở")];
+  });
+
+  mock.onGet(/\/facilities\/[^/]+\/units$/).reply((config) => {
+    const database = getMockDatabase();
+    const facilityId = config.url?.split("/")[2] ?? "";
+    const status = config.params?.status;
+    const unitTypeId = config.params?.unitTypeId;
+    const search = String(config.params?.search ?? "")
+      .trim()
+      .toLowerCase();
+
+    const units = database.units.filter((u) => {
+      if (u.facilityId !== facilityId) return false;
+      if (status && u.status !== status) return false;
+      if (unitTypeId && u.unitTypeId !== unitTypeId) return false;
+      if (search && !u.code.toLowerCase().includes(search)) return false;
+      return true;
+    });
+
+    const apiUnits: ApiStorageUnit[] = units.map((u) => {
+      const activeBooking = database.bookings.find(
+        (b) =>
+          b.assignedUnit?.physicalUnitId === u.id &&
+          (b.status === "CONFIRMED" || b.status === "CHECKED_IN"),
+      );
+      return {
+        id: u.id,
+        facilityId: u.facilityId,
+        unitTypeId: u.unitTypeId,
+        code: u.code,
+        floor: null,
+        locationDescription: null,
+        status: u.status,
+        unitTypeName: u.unitType,
+        unitTypeSize: u.sizeSqm,
+        monthlyPrice: u.monthlyPrice,
+        currentBookingId: activeBooking?.id ?? null,
+        currentBookingCode: activeBooking?.bookingCode ?? null,
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+      };
+    });
+
+    return [200, envelope(apiUnits)];
+  });
+
+  mock.onPatch(/\/facilities\/[^/]+\/units\/[^/]+\/status$/).reply((config) => {
+    const database = getMockDatabase();
+    const parts = config.url?.split("/") ?? [];
+    const facilityId = parts[2];
+    const unitId = parts[4];
+    const body = JSON.parse(config.data || "{}");
+    const targetStatus = body.status;
+
+    const unit = database.units.find((u) => u.id === unitId);
+    if (!unit) {
+      return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy ô kho")];
+    }
+    if (unit.facilityId !== facilityId) {
+      return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, "Ô kho không thuộc cơ sở này")];
+    }
+
+    const activeBooking = database.bookings.find(
+      (b) =>
+        b.assignedUnit?.physicalUnitId === unit.id &&
+        (b.status === "CONFIRMED" || b.status === "CHECKED_IN"),
+    );
+    if (unit.status === "RESERVED" || unit.status === "OCCUPIED" || activeBooking) {
+      return [
+        409,
+        errorBody(
+          ApiErrorCode.UNIT_ASSIGNMENT_CONFLICT,
+          "Không thể thay đổi trạng thái của ô kho đang có khách thuê hoặc đang gán cho đơn đặt chỗ",
+        ),
+      ];
+    }
+
+    const allowed = ALLOWED_STORAGE_UNIT_TRANSITIONS[unit.status] ?? [];
+    if (!allowed.includes(targetStatus)) {
+      return [
+        400,
+        errorBody(
+          ApiErrorCode.VALIDATION_ERROR,
+          `Không thể chuyển trạng thái ô kho từ "${unit.status}" sang "${targetStatus}"`,
+        ),
+      ];
+    }
+
+    unit.status = targetStatus;
+    saveMockDatabase(database);
+
+    const apiUnit: ApiStorageUnit = {
+      id: unit.id,
+      facilityId: unit.facilityId,
+      unitTypeId: unit.unitTypeId,
+      code: unit.code,
+      floor: null,
+      locationDescription: null,
+      status: unit.status,
+      unitTypeName: unit.unitType,
+      unitTypeSize: unit.sizeSqm,
+      monthlyPrice: unit.monthlyPrice,
+      currentBookingId: null,
+      currentBookingCode: null,
+      createdAt: new Date(0).toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    return [200, envelope(apiUnit)];
   });
 
   mock.onGet(/\/facilities\/[^/]+$/).reply((config) => {

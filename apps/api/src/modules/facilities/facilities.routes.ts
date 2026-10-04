@@ -13,7 +13,10 @@ import {
   facilityIdNestedParamSchema,
   facilityIdParamSchema,
   facilityQuerySchema,
+  facilityUnitParamSchema,
+  listFacilityUnitsQuerySchema,
   updateFacilityBodySchema,
+  updateUnitStatusBodySchema,
 } from "./facilities.schema";
 import { FacilitiesService } from "./facilities.service";
 
@@ -161,6 +164,49 @@ export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
       const { facilityId, userId } = request.params;
       const revoked = await service.revokeAssignment(facilityId, userId);
       return reply.status(200).send(successResponse(revoked));
+    },
+  );
+
+  // GET /api/facilities/:facilityId/units - List physical units in facility (Admin, BOM, or Facility Manager)
+  typedApp.get(
+    "/:facilityId/units",
+    {
+      schema: {
+        params: facilityIdNestedParamSchema,
+        querystring: listFacilityUnitsQuerySchema,
+      },
+      preHandler: [requireFacilityAccess({ allowedFacilityRoles: ["FACILITY_MANAGER"] })],
+    },
+    async (request, reply) => {
+      const { facilityId } = request.params;
+      const units = await service.listFacilityUnits(
+        facilityId,
+        request.query,
+        getFacilityContext(request).scope,
+      );
+      return reply.status(200).send(successResponse(units));
+    },
+  );
+
+  // PATCH /api/facilities/:facilityId/units/:unitId/status - Update physical unit status (Admin, BOM, or Facility Manager)
+  typedApp.patch(
+    "/:facilityId/units/:unitId/status",
+    {
+      schema: {
+        params: facilityUnitParamSchema,
+        body: updateUnitStatusBodySchema,
+      },
+      preHandler: [requireFacilityAccess({ allowedFacilityRoles: ["FACILITY_MANAGER"] })],
+    },
+    async (request, reply) => {
+      const { facilityId, unitId } = request.params;
+      const updated = await service.updateUnitStatus(
+        facilityId,
+        unitId,
+        request.body,
+        getFacilityContext(request).scope,
+      );
+      return reply.status(200).send(successResponse(updated));
     },
   );
 };

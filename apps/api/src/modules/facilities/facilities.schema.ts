@@ -1,3 +1,4 @@
+import { StorageUnitStatusSchema } from "@metastorage/contracts";
 import { z } from "zod";
 
 export const facilityIdParamSchema = z.object({
@@ -52,3 +53,24 @@ export const createAssignmentBodySchema = z.object({
   role: z.enum(["FACILITY_STAFF", "FACILITY_MANAGER"]),
 });
 export type CreateAssignmentBody = z.infer<typeof createAssignmentBodySchema>;
+
+export const facilityUnitParamSchema = z.object({
+  facilityId: z.string().uuid(),
+  unitId: z.string().uuid(),
+});
+export type FacilityUnitParam = z.infer<typeof facilityUnitParamSchema>;
+
+export const listFacilityUnitsQuerySchema = z.object({
+  status: StorageUnitStatusSchema.optional(),
+  unitTypeId: z.string().uuid().optional(),
+  search: z.string().trim().optional(),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+export type ListFacilityUnitsQuery = z.infer<typeof listFacilityUnitsQuerySchema>;
+
+export const updateUnitStatusBodySchema = z.object({
+  status: StorageUnitStatusSchema,
+  notes: z.string().max(500).optional(),
+});
+export type UpdateUnitStatusBody = z.infer<typeof updateUnitStatusBodySchema>;

@@ -1,9 +1,11 @@
 import type {
   ApiFacility,
   ApiFacilityAssignment,
+  ApiStorageUnit,
   FacilityAssignmentRole,
+  StorageUnitStatus,
 } from "@metastorage/contracts";
-import type { Facility, FacilityAssignment } from "@metastorage/database";
+import type { Facility, FacilityAssignment, StorageUnit } from "@metastorage/database";
 
 export function toApiFacility(facility: Facility): ApiFacility {
   return {
@@ -34,5 +36,33 @@ export function toApiFacilityAssignment(
     userEmail: extra?.userEmail,
     facilityName: extra?.facilityName,
     facilityCode: extra?.facilityCode,
+  };
+}
+
+export function toApiStorageUnit(
+  unit: StorageUnit,
+  extra?: {
+    unitTypeName?: string;
+    unitTypeSize?: number;
+    monthlyPrice?: number;
+    currentBookingId?: string | null;
+    currentBookingCode?: string | null;
+  },
+): ApiStorageUnit {
+  return {
+    id: unit.id,
+    facilityId: unit.facilityId,
+    unitTypeId: unit.unitTypeId,
+    code: unit.code,
+    floor: unit.floor,
+    locationDescription: unit.locationDescription,
+    status: unit.status as StorageUnitStatus,
+    unitTypeName: extra?.unitTypeName,
+    unitTypeSize: extra?.unitTypeSize,
+    monthlyPrice: extra?.monthlyPrice,
+    currentBookingId: extra?.currentBookingId,
+    currentBookingCode: extra?.currentBookingCode,
+    createdAt: unit.createdAt.toISOString(),
+    updatedAt: unit.updatedAt.toISOString(),
   };
 }

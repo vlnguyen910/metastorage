@@ -7,6 +7,7 @@ export { CONTRACT_MESSAGES } from "./messages";
 export type {
   ApiEnvelope,
   ApiErrorBody,
+  ApiStorageUnit,
   CatalogFacilityListParams,
   ConfirmReservationInput,
   CookieSession,
@@ -14,9 +15,11 @@ export type {
   DashboardKpi,
   DashboardSummary,
   FacilityListParams,
+  FacilityUnitListParams,
   LoginInput,
   PaginatedResult,
   ReservationQuoteInput,
+  UpdateUnitStatusInput,
 } from "./types";
 
 export enum UserRole {
@@ -648,3 +651,37 @@ export const AssignPhysicalUnitInputSchema = z.object({
   reason: z.string().max(500).optional(),
 });
 export type AssignPhysicalUnitInput = z.infer<typeof AssignPhysicalUnitInputSchema>;
+
+export const StorageUnitStatusSchema = z.nativeEnum(StorageUnitStatus);
+
+export const UpdateUnitStatusInputSchema = z.object({
+  status: StorageUnitStatusSchema,
+  notes: z.string().max(500).optional(),
+});
+
+export const ALLOWED_STORAGE_UNIT_TRANSITIONS: Record<StorageUnitStatus, StorageUnitStatus[]> = {
+  [StorageUnitStatus.AVAILABLE]: [
+    StorageUnitStatus.MAINTENANCE,
+    StorageUnitStatus.INSPECTION,
+    StorageUnitStatus.INACTIVE,
+  ],
+  [StorageUnitStatus.MAINTENANCE]: [
+    StorageUnitStatus.INSPECTION,
+    StorageUnitStatus.AVAILABLE,
+    StorageUnitStatus.INACTIVE,
+  ],
+  [StorageUnitStatus.INSPECTION]: [
+    StorageUnitStatus.AVAILABLE,
+    StorageUnitStatus.MAINTENANCE,
+    StorageUnitStatus.INACTIVE,
+  ],
+  [StorageUnitStatus.INACTIVE]: [
+    StorageUnitStatus.AVAILABLE,
+    StorageUnitStatus.MAINTENANCE,
+    StorageUnitStatus.INSPECTION,
+  ],
+  [StorageUnitStatus.LOCKED]: [StorageUnitStatus.AVAILABLE, StorageUnitStatus.INSPECTION],
+  [StorageUnitStatus.RESERVED]: [],
+  [StorageUnitStatus.OCCUPIED]: [],
+  [StorageUnitStatus.RETURN_PENDING]: [StorageUnitStatus.INSPECTION],
+};

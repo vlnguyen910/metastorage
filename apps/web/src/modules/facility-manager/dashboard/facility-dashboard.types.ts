@@ -1,4 +1,4 @@
-export type FacilityManagerDashboardTab = "overview" | "check-in" | "staff";
+export type FacilityManagerDashboardTab = "overview" | "units" | "check-in" | "staff";
 
 export interface FacilityCapabilityCard {
   id: string;
