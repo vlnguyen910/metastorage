@@ -107,6 +107,8 @@ export class BookingsService {
           );
         case "STAFF_INACTIVE":
           throw new BadRequestError("Tài khoản nhân viên đang bị vô hiệu hóa (Inactive)");
+        case "INVALID_BOOKING_STATUS":
+          throw new ConflictError(BOOKING_MESSAGES.bookingCannotCheckIn);
         default:
           throw new AppError("Không thể chỉ định nhân viên phụ trách", 500);
       }

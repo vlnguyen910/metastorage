@@ -12,14 +12,16 @@ import type {
 } from "@metastorage/database";
 import {
   and,
+  bookingArrival,
   bookings,
-  capacityAllocations,
   checkInVerifications,
   desc,
   eq,
   facilities,
+  or,
   payments,
   storageUnits,
+  transitionBooking,
   unitAssignments,
   unitTypes,
 } from "@metastorage/database";
@@ -83,7 +85,10 @@ export class CheckInsRepository {
         checkInVerifications,
         and(
           eq(checkInVerifications.bookingId, bookings.id),
-          eq(checkInVerifications.status, "VERIFIED"),
+          or(
+            eq(checkInVerifications.status, "VERIFIED"),
+            eq(checkInVerifications.status, "CONSUMED"),
+          ),
         ),
       )
       .where(condition)
@@ -146,33 +151,15 @@ export class CheckInsRepository {
       if (!record) return null;
 
       const evaluation = evaluate(record, now);
+      const arrival = await bookingArrival(tx, bookingId);
+      if (arrival.activeRental) return { kind: "INELIGIBLE", record, evaluation };
       if (evaluation.shouldMarkNoShow) {
-        await tx
-          .update(bookings)
-          .set({ status: "NO_SHOW", updatedAt: now })
-          .where(and(eq(bookings.id, bookingId), eq(bookings.status, "CONFIRMED")));
-
-        await tx
-          .update(capacityAllocations)
-          .set({ status: "RELEASED", updatedAt: now })
-          .where(
-            and(
-              eq(capacityAllocations.referenceId, bookingId),
-              eq(capacityAllocations.kind, "BOOKING"),
-              eq(capacityAllocations.status, "ACTIVE"),
-            ),
-          );
-
-        await tx
-          .update(unitAssignments)
-          .set({
-            status: "CANCELLED",
-            endedAt: now,
-            reason: "Booking chuyển NO_SHOW sau khi hết grace period",
-          })
-          .where(
-            and(eq(unitAssignments.bookingId, bookingId), eq(unitAssignments.status, "ACTIVE")),
-          );
+        await transitionBooking(tx, {
+          bookingId,
+          action: "NO_SHOW",
+          idempotencyKey: "system-no-show",
+          now,
+        });
 
         record = await this.selectRecord(tx, eq(bookings.id, bookingId));
         if (!record) return null;
@@ -184,6 +171,8 @@ export class CheckInsRepository {
       }
 
       const existingVerification = record.verification;
+      if (existingVerification?.status === "CONSUMED")
+        return { kind: "INELIGIBLE", record, evaluation };
       if (
         existingVerification &&
         existingVerification.staffId === staffId &&

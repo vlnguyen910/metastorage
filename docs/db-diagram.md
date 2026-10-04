@@ -23,6 +23,9 @@ erDiagram
   users o|--o{ bookings : assigned_to
   customers ||--o{ payments : makes
   bookings ||--o{ payments : records
+  bookings ||--o{ booking_lifecycle_events : records_actions
+  bookings ||--o| booking_refunds : refunds_rental_fee
+  payments ||--o{ booking_refunds : refunds
   bookings ||--o{ booking_confirmation_emails : notifies
   bookings ||--o{ checkin_verifications : verifies
   users ||--o{ checkin_verifications : performs
@@ -179,6 +182,7 @@ erDiagram
     uuid facility_id FK
     uuid unit_type_id FK
     integer requested_months
+    integer reschedule_count "default 0"
     varchar contact_name
     varchar contact_email
     varchar contact_phone
@@ -214,6 +218,38 @@ erDiagram
     varchar currency
     payment_status status
     timestamptz paid_at
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  booking_lifecycle_events {
+    uuid id PK
+    uuid booking_id FK
+    uuid actor_user_id FK "nullable; system actions"
+    varchar action
+    varchar idempotency_key "unique with booking_id"
+    varchar request_fingerprint
+    jsonb result_snapshot
+    timestamptz previous_check_in_at
+    timestamptz new_check_in_at
+    timestamptz created_at
+  }
+
+  booking_refunds {
+    uuid id PK
+    uuid booking_id FK,UK
+    uuid payment_id FK
+    numeric amount
+    numeric forfeited_deposit_amount
+    varchar currency
+    varchar reason
+    varchar status
+    integer attempts
+    timestamptz next_retry_at
+    timestamptz lease_until
+    uuid lease_token
+    varchar provider_reference
+    boolean simulation
     timestamptz created_at
     timestamptz updated_at
   }

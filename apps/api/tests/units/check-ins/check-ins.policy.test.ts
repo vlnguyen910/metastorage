@@ -46,15 +46,15 @@ describe("check-in eligibility policy", () => {
     assert.equal(result.shouldMarkNoShow, true);
   });
 
-  it("does not guess a deadline when the slot end is missing", () => {
+  it("uses the selected check-in time when slot end is missing", () => {
     const result = evaluateCheckInEligibility(
       record({ checkInSlotEnd: null }),
       new Date("2026-09-28T12:00:00.000Z"),
     );
 
     assert.equal(getGraceEndsAt(null), null);
-    assert.equal(result.canProceed, false);
-    assert.deepEqual(result.reasons, ["CHECKIN_SLOT_NOT_CONFIGURED"]);
+    assert.equal(result.canProceed, true);
+    assert.deepEqual(result.reasons, []);
     assert.equal(result.shouldMarkNoShow, false);
   });
 

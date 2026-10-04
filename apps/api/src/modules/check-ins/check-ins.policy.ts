@@ -17,8 +17,9 @@ export type CheckInPolicyEvaluation = CheckInEligibility & {
   shouldMarkNoShow: boolean;
 };
 
-export function getGraceEndsAt(checkInSlotEnd: Date | null): Date | null {
-  return checkInSlotEnd ? new Date(checkInSlotEnd.getTime() + GRACE_PERIOD_MS) : null;
+export function getGraceEndsAt(checkInSlotEnd: Date | null, checkInSlotStart?: Date): Date | null {
+  const slot = checkInSlotEnd ?? checkInSlotStart;
+  return slot ? new Date(slot.getTime() + GRACE_PERIOD_MS) : null;
 }
 
 export function evaluateCheckInEligibility(
@@ -26,7 +27,9 @@ export function evaluateCheckInEligibility(
   now: Date,
 ): CheckInPolicyEvaluation {
   const reasons: CheckInEligibilityReasonCode[] = [];
-  const graceEndsAt = getGraceEndsAt(record.checkInSlotEnd);
+  const graceEndsAt = getGraceEndsAt(record.checkInSlotEnd, record.checkInSlotStart);
+  const arrived =
+    record.verification?.status === "VERIFIED" || record.verification?.status === "CONSUMED";
 
   if (record.bookingStatus !== "CONFIRMED") {
     reasons.push("INVALID_BOOKING_STATUS");
@@ -44,7 +47,7 @@ export function evaluateCheckInEligibility(
     reasons.push("CHECKIN_SLOT_NOT_CONFIGURED");
   } else if (now < record.checkInSlotStart) {
     reasons.push("TOO_EARLY");
-  } else if (now > graceEndsAt) {
+  } else if (now > graceEndsAt && !arrived) {
     reasons.push("DEADLINE_PASSED");
   }
 
@@ -52,6 +55,7 @@ export function evaluateCheckInEligibility(
     canProceed: reasons.length === 0,
     reasons,
     graceEndsAt,
-    shouldMarkNoShow: record.bookingStatus === "CONFIRMED" && reasons.includes("DEADLINE_PASSED"),
+    shouldMarkNoShow:
+      record.bookingStatus === "CONFIRMED" && !arrived && reasons.includes("DEADLINE_PASSED"),
   };
 }

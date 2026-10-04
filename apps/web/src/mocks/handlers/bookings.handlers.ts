@@ -12,8 +12,10 @@ import {
   UserRole,
 } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
+import { BOOKING_MESSAGES } from "@/features/bookings/bookings.messages";
 import { currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
+import { handleCustomerBookingRequest } from "./customer-bookings.handlers";
 
 export function registerBookingHandlers(mock: MockAdapter): void {
   // GET /facilities/:facilityId/staff
@@ -171,6 +173,9 @@ export function registerBookingHandlers(mock: MockAdapter): void {
       invalidatedAt: null,
       invalidatedReason: null,
     };
+    database.checkInVerifications ??= [];
+    database.checkInVerifications.push(verification);
+    saveMockDatabase(database);
     const result: CheckInLookupResult = {
       booking: {
         id: booking.id,
@@ -312,6 +317,9 @@ export function registerBookingHandlers(mock: MockAdapter): void {
   // GET /bookings/:id
   mock.onGet(/\/bookings\/([^/?]+)/).reply((config) => {
     const database = getMockDatabase();
+    const user = currentUser(config, database);
+    if (!user) return [401, errorBody(ApiErrorCode.UNAUTHORIZED, BOOKING_MESSAGES.unauthorized)];
+    if (user.role === UserRole.STORAGE_CUSTOMER) return handleCustomerBookingRequest(config, "get");
     const match = config.url?.match(/\/bookings\/([^/?]+)/);
     const bookingId = match?.[1];
 
@@ -320,6 +328,12 @@ export function registerBookingHandlers(mock: MockAdapter): void {
       return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy booking")];
     }
 
+    if (
+      (user.role !== UserRole.FACILITY_STAFF && user.role !== UserRole.FACILITY_MANAGER) ||
+      !user.assignedFacilityIds.includes(booking.facilityId)
+    ) {
+      return [403, errorBody(ApiErrorCode.OUT_OF_FACILITY_SCOPE, BOOKING_MESSAGES.staffScope)];
+    }
     return [200, envelope(booking)];
   });
 }

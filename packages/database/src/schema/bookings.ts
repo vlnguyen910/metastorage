@@ -29,6 +29,7 @@ export const bookings = pgTable(
       .references(() => facilities.id),
     unitTypeId: uuid().notNull(),
     requestedMonths: integer().notNull(),
+    rescheduleCount: integer().default(0).notNull(),
     contactName: varchar({ length: 150 }).notNull(),
     contactEmail: varchar({ length: 320 }).notNull(),
     contactPhone: varchar({ length: 30 }).notNull(),

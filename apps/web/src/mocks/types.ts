@@ -1,5 +1,7 @@
 import type {
   BookingListItem,
+  CheckInVerification,
+  CustomerBooking,
   Facility,
   Payment,
   Reservation,
@@ -33,4 +35,7 @@ export interface MockDatabase {
   reservations: Reservation[];
   payments: Payment[];
   bookings: BookingListItem[];
+  customerBookings?: CustomerBooking[];
+  checkInVerifications?: CheckInVerification[];
+  customerBookingRequests?: Record<string, { fingerprint: string; result: CustomerBooking }>;
 }

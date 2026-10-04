@@ -15,6 +15,7 @@ import {
 } from "@metastorage/database";
 import { Queue, Worker } from "bullmq";
 import Redis from "ioredis";
+import { sweepNoShow, sweepRefunds } from "./booking-lifecycle.jobs";
 import { MockMailAdapter } from "./mail-adapter";
 
 const queueName = "capacity-hold-expiry";
@@ -25,6 +26,25 @@ const redis = new Redis(process.env.REDIS_URL ?? "redis://localhost:6379", {
 });
 const queue = new Queue(queueName, { connection: redis });
 const emailQueue = new Queue(emailQueueName, { connection: redis });
+const lifecycleQueue = new Queue("booking-lifecycle", { connection: redis });
+const lifecycleWorker = new Worker(
+  "booking-lifecycle",
+  async (job) => (job.name === "refunds" ? sweepRefunds() : sweepNoShow()),
+  { connection: redis },
+);
+await lifecycleQueue.upsertJobScheduler(
+  "booking-no-show-sweep",
+  { every: 30000 },
+  { name: "no-show", data: {} },
+);
+await lifecycleQueue.upsertJobScheduler(
+  "booking-refund-sweep",
+  { every: 10000 },
+  { name: "refunds", data: {} },
+);
+lifecycleWorker.on("failed", (job, error) =>
+  console.error(`Booking lifecycle job failed (${job?.id})`, error),
+);
 
 const worker = new Worker(
   queueName,
@@ -141,6 +161,8 @@ await emailQueue.upsertJobScheduler(
 );
 
 async function shutdown() {
+  await lifecycleWorker.close();
+  await lifecycleQueue.close();
   await worker.close();
   await emailWorker.close();
   await queue.close();

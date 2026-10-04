@@ -544,6 +544,10 @@ export class BookingsRepository {
         return { error: "BOOKING_NOT_FOUND" as const };
       }
 
+      if (booking.status !== "CONFIRMED") {
+        return { error: "INVALID_BOOKING_STATUS" as const, currentStatus: booking.status };
+      }
+
       // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
       const [staff] = await tx
         .select({

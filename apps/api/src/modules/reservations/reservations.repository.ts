@@ -1,6 +1,7 @@
 import type { NewReservationDraft } from "@metastorage/database";
 import {
   and,
+  asc,
   capacityAllocations,
   count,
   type Database,
@@ -123,6 +124,7 @@ export class ReservationsRepository {
             notInArray(storageUnits.status, ["INACTIVE", "LOCKED", "MAINTENANCE"]),
           ),
         )
+        .orderBy(asc(storageUnits.id))
         .for("update");
       const allocations = await tx
         .select({ id: capacityAllocations.id })
@@ -135,8 +137,7 @@ export class ReservationsRepository {
             gt(capacityAllocations.endsAt, draft.checkInAt),
             or(isNull(capacityAllocations.expiresAt), gt(capacityAllocations.expiresAt, now)),
           ),
-        )
-        .for("update");
+        );
       if (allocations.length >= inventory.length) return undefined;
 
       const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);

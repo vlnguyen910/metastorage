@@ -7,6 +7,7 @@ import type {
   BookingListItem,
   BookingQrVerificationInput,
   BookingQrVerificationResult,
+  CancelBookingInput,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
@@ -16,6 +17,7 @@ import type {
   ClientSession,
   ConfirmReservationInput,
   CookieSession,
+  CustomerBooking,
   CustomerSignUpInput,
   DashboardSummary,
   EligibleUnit,
@@ -31,6 +33,7 @@ import type {
   PhysicalUnitAssignment,
   RentalDetail,
   RentalListItem,
+  RescheduleBookingInput,
   Reservation,
   ReservationDraft,
   ReservationDraftInput,
@@ -224,6 +227,25 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     bookings: {
+      mine: () => http.get<ApiEnvelope<CustomerBooking[]>>("/bookings/mine").then(unwrap),
+      customerGet: (bookingId: string) =>
+        http
+          .get<ApiEnvelope<CustomerBooking>>(`/bookings/${encodeURIComponent(bookingId)}`)
+          .then(unwrap),
+      cancel: (bookingId: string, input: CancelBookingInput) =>
+        http
+          .post<ApiEnvelope<CustomerBooking>>(
+            `/bookings/${encodeURIComponent(bookingId)}/cancel`,
+            input,
+          )
+          .then(unwrap),
+      reschedule: (bookingId: string, input: RescheduleBookingInput) =>
+        http
+          .post<ApiEnvelope<CustomerBooking>>(
+            `/bookings/${encodeURIComponent(bookingId)}/reschedule`,
+            input,
+          )
+          .then(unwrap),
       verifyQr: (input: BookingQrVerificationInput) =>
         http
           .post<ApiEnvelope<BookingQrVerificationResult>>("/bookings/verify-qr", input)

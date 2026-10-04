@@ -1,4 +1,5 @@
 import type { BookingQrVerificationInput } from "@metastorage/contracts";
+import { BookingLifecycleRepository } from "@metastorage/database";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
@@ -18,11 +19,13 @@ import {
   VerifyQrBodySchema,
 } from "./bookings.schema";
 import { BookingsService } from "./bookings.service";
+import { CustomerBookingsService } from "./customer-bookings.service";
 
 export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const bookingsRepository = new BookingsRepository(fastify.db);
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const service = new BookingsService(bookingsRepository);
+  const customerService = new CustomerBookingsService(new BookingLifecycleRepository(fastify.db));
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
@@ -114,6 +117,11 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     },
     async (request, reply) => {
       const { id } = request.params;
+      if (request.user?.role === "CUSTOMER") {
+        return reply
+          .status(200)
+          .send(successResponse(await customerService.get(request.user.id, id)));
+      }
       const booking = await service.getBookingById(id);
 
       // Verify facility scope access
