@@ -10,7 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { customers } from "./customers";
 import { facilities } from "./facilities";
-import { unitTypes } from "./unit-types";
+import { facilityUnitTypes } from "./facility-unit-types";
 import { users } from "./users";
 
 export const BOOKING_STATUSES = ["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"] as const;
@@ -49,8 +49,8 @@ export const bookings = pgTable(
   },
   (table) => [
     foreignKey({
-      columns: [table.unitTypeId, table.facilityId],
-      foreignColumns: [unitTypes.id, unitTypes.facilityId],
+      columns: [table.facilityId, table.unitTypeId],
+      foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.unitTypeId],
     }).onDelete("restrict"),
     index("bookings_facility_status_idx").on(table.facilityId, table.status),
     index("bookings_customer_idx").on(table.customerId),

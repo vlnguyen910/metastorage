@@ -39,6 +39,26 @@ function repository(overrides: Partial<ReservationsRepository> = {}) {
 }
 
 describe("reservations service", () => {
+  it("checks capacity within the selected facility for a shared unit type", async () => {
+    let capacityArgs: unknown[] = [];
+    const service = new ReservationsService(
+      repository({
+        countCapacity: async (...args: unknown[]) => {
+          capacityArgs = args;
+          return 1;
+        },
+      }),
+    );
+    const draft = await service.createDraft(input());
+
+    assert.deepEqual(capacityArgs, [
+      facilityId,
+      unitTypeId,
+      new Date(draft.checkInAt),
+      new Date(draft.rentalEndAt),
+    ]);
+  });
+
   it("creates a guest-capable draft without a User identity", async () => {
     const service = new ReservationsService(repository());
     const draft = await service.createDraft(input());

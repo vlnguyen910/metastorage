@@ -8,6 +8,7 @@ import { customers } from "./customers";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
 import { facilityOperatingHours } from "./facility-operating-hours";
+import { facilityUnitTypes } from "./facility-unit-types";
 import { paymentProviderEvents } from "./payment-provider-events";
 import { payments } from "./payments";
 import { rentals } from "./rentals";
@@ -49,6 +50,7 @@ export const paymentProviderEventsRelations = relations(paymentProviderEvents, (
 }));
 
 export const facilitiesRelations = relations(facilities, ({ many }) => ({
+  unitTypes: many(facilityUnitTypes),
   assignments: many(facilityAssignments),
   storageUnits: many(storageUnits),
   operatingHours: many(facilityOperatingHours),
@@ -60,8 +62,20 @@ export const facilitiesRelations = relations(facilities, ({ many }) => ({
 }));
 
 export const unitTypesRelations = relations(unitTypes, ({ many }) => ({
+  facilities: many(facilityUnitTypes),
   storageUnits: many(storageUnits),
   bookings: many(bookings),
+}));
+
+export const facilityUnitTypesRelations = relations(facilityUnitTypes, ({ one }) => ({
+  facility: one(facilities, {
+    fields: [facilityUnitTypes.facilityId],
+    references: [facilities.id],
+  }),
+  unitType: one(unitTypes, {
+    fields: [facilityUnitTypes.unitTypeId],
+    references: [unitTypes.id],
+  }),
 }));
 
 export const facilityAssignmentsRelations = relations(facilityAssignments, ({ one }) => ({
