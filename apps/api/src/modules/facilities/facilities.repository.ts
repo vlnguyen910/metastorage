@@ -78,11 +78,7 @@ export class FacilitiesRepository {
     return facility;
   }
 
-  async getAllFacilities(
-    limit: number,
-    offset: number,
-    isActive: boolean,
-  ) {
+  async getAllFacilities(limit: number, offset: number, isActive: boolean) {
     return this.db
       .select()
       .from(facilities)
