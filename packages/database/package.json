@@ -17,6 +17,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "bun src/seed.ts",
+    "db:clear": "bun src/clear.ts",
     "lint": "biome check src",
     "check-types": "tsc --noEmit"
   },
