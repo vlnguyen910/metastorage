@@ -7,6 +7,7 @@ import {
   eq,
   facilities,
   facilityOperatingHours,
+  facilityUnitTypes,
   gt,
   isNull,
   lt,
@@ -25,14 +26,14 @@ export class ReservationsRepository {
     const [context] = await this.db
       .select({ facility: facilities, unitType: unitTypes })
       .from(facilities)
-      .innerJoin(
-        unitTypes,
-        and(eq(unitTypes.id, unitTypeId), eq(unitTypes.facilityId, facilities.id)),
-      )
+      .innerJoin(facilityUnitTypes, eq(facilityUnitTypes.facilityId, facilities.id))
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
       .where(
         and(
           eq(facilities.id, facilityId),
           eq(facilities.isActive, true),
+          eq(unitTypes.id, unitTypeId),
+          eq(facilityUnitTypes.isActive, true),
           eq(unitTypes.isActive, true),
         ),
       );
@@ -52,13 +53,19 @@ export class ReservationsRepository {
     return hours;
   }
 
-  async countCapacity(unitTypeId: string, startsAt: Date, endsAt: Date): Promise<number> {
+  async countCapacity(
+    facilityId: string,
+    unitTypeId: string,
+    startsAt: Date,
+    endsAt: Date,
+  ): Promise<number> {
     const [inventory] = await this.db
       .select({ count: count(storageUnits.id) })
       .from(storageUnits)
       .where(
         and(
           eq(storageUnits.unitTypeId, unitTypeId),
+          eq(storageUnits.facilityId, facilityId),
           notInArray(storageUnits.status, ["INACTIVE", "LOCKED", "MAINTENANCE"]),
         ),
       );
@@ -68,6 +75,7 @@ export class ReservationsRepository {
       .where(
         and(
           eq(capacityAllocations.unitTypeId, unitTypeId),
+          eq(capacityAllocations.facilityId, facilityId),
           eq(capacityAllocations.status, "ACTIVE"),
           lt(capacityAllocations.startsAt, endsAt),
           gt(capacityAllocations.endsAt, startsAt),
@@ -120,6 +128,7 @@ export class ReservationsRepository {
         .where(
           and(
             eq(storageUnits.unitTypeId, draft.unitTypeId),
+            eq(storageUnits.facilityId, draft.facilityId),
             notInArray(storageUnits.status, ["INACTIVE", "LOCKED", "MAINTENANCE"]),
           ),
         )
@@ -130,6 +139,7 @@ export class ReservationsRepository {
         .where(
           and(
             eq(capacityAllocations.unitTypeId, draft.unitTypeId),
+            eq(capacityAllocations.facilityId, draft.facilityId),
             eq(capacityAllocations.status, "ACTIVE"),
             lt(capacityAllocations.startsAt, draft.rentalEndAt),
             gt(capacityAllocations.endsAt, draft.checkInAt),

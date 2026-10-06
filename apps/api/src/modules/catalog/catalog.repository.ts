@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   facilities,
+  facilityUnitTypes,
   ilike,
   or,
   sql,
@@ -60,8 +61,15 @@ export class CatalogRepository {
       })
       .from(facilities)
       .innerJoin(storageUnits, eq(storageUnits.facilityId, facilities.id))
+      .innerJoin(
+        facilityUnitTypes,
+        and(
+          eq(facilityUnitTypes.facilityId, storageUnits.facilityId),
+          eq(facilityUnitTypes.unitTypeId, storageUnits.unitTypeId),
+        ),
+      )
       .innerJoin(unitTypes, eq(storageUnits.unitTypeId, unitTypes.id))
-      .where(and(...filters, eq(unitTypes.isActive, true)))
+      .where(and(...filters, eq(unitTypes.isActive, true), eq(facilityUnitTypes.isActive, true)))
       .groupBy(facilities.id)
       .having(sql`count(*) filter (where ${storageUnits.status} = 'AVAILABLE') > 0`)
       .orderBy(
@@ -82,12 +90,20 @@ export class CatalogRepository {
       .select({ facility: facilities, unitType: unitTypes, storageUnit: storageUnits })
       .from(facilities)
       .innerJoin(storageUnits, eq(storageUnits.facilityId, facilities.id))
+      .innerJoin(
+        facilityUnitTypes,
+        and(
+          eq(facilityUnitTypes.facilityId, storageUnits.facilityId),
+          eq(facilityUnitTypes.unitTypeId, storageUnits.unitTypeId),
+        ),
+      )
       .innerJoin(unitTypes, eq(storageUnits.unitTypeId, unitTypes.id))
       .where(
         and(
           eq(facilities.id, facilityId),
           eq(facilities.isActive, true),
           eq(unitTypes.isActive, true),
+          eq(facilityUnitTypes.isActive, true),
         ),
       );
   }

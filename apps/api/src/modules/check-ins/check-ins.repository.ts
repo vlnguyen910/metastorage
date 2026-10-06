@@ -69,10 +69,7 @@ export class CheckInsRepository {
       })
       .from(bookings)
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
-      .innerJoin(
-        unitTypes,
-        and(eq(bookings.unitTypeId, unitTypes.id), eq(bookings.facilityId, unitTypes.facilityId)),
-      )
+      .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(payments, eq(payments.bookingId, bookings.id))
       .leftJoin(
         unitAssignments,
