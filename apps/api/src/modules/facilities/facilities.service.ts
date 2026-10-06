@@ -21,7 +21,7 @@ export class FacilitiesService {
   constructor(
     private readonly facilitiesRepository: FacilitiesRepository,
     private readonly usersRepository: UsersRepository,
-  ) {}
+  ) { }
 
   async createFacility(input: CreateFacilityBody): Promise<ApiFacility> {
     const existing = await this.facilitiesRepository.findByCode(input.code);
@@ -57,6 +57,15 @@ export class FacilitiesService {
     scope: FacilityListScope,
   ): Promise<ApiFacility[]> {
     const list = await this.facilitiesRepository.listAccessible(limit, offset, isActive, scope);
+    return list.map(toApiFacility);
+  }
+
+  async getAllActiveFacilities(
+    limit: number,
+    offset: number,
+  ) {
+    const isActive: boolean = true; 
+    const list = await this.facilitiesRepository.getAllFacilities(limit, offset, isActive);
     return list.map(toApiFacility);
   }
 
