@@ -1,6 +1,7 @@
 import type {
   ApiEnvelope,
   ApiFacilityAssignment,
+  ApiUnitType,
   ApiUser,
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
@@ -40,6 +41,7 @@ import type {
   Session,
   SessionTokens,
   UnitAvailabilityOption,
+  UnitTypeListParams,
   UserRole,
 } from "@metastorage/contracts";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
@@ -167,6 +169,10 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http.patch<ApiEnvelope<ApiUser>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
+      listUnitTypes: (facilityId: string, params: UnitTypeListParams = {}) =>
+        http
+          .get<ApiEnvelope<ApiUnitType[]>>(`/facilities/${facilityId}/unit-types`, { params })
+          .then(unwrap),
       list: (params: FacilityListParams = {}) =>
         http.get<ApiEnvelope<PaginatedResult<Facility>>>("/facilities", { params }).then(unwrap),
       myAssignments: () =>

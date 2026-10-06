@@ -17,7 +17,6 @@ export {
 } from "./handover-checklist";
 export { HANDOVER_CHECKLIST_MESSAGES } from "./handover-checklist.messages";
 export { CONTRACT_MESSAGES } from "./messages";
-
 export type {
   ApiEnvelope,
   ApiErrorBody,
@@ -32,6 +31,8 @@ export type {
   PaginatedResult,
   ReservationQuoteInput,
 } from "./types";
+export type { ApiUnitType, UnitTypeListParams, UnitTypeListQuery } from "./unit-types";
+export { ApiUnitTypeSchema, UnitTypeListQuerySchema } from "./unit-types";
 
 export enum UserRole {
   STORAGE_CUSTOMER = "CUSTOMER",
