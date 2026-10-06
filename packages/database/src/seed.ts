@@ -109,61 +109,78 @@ async function seed() {
   }
 
   console.log("4. Seeding unit types...");
+  // Dimensions below are fictional seed fixtures, not measured facility inventory.
   const unitTypesData = [
     {
       code: "UT-2M",
       name: "Kho tiêu chuẩn (2 m²)",
       sizeLabel: "2 m²",
-      sizeSqm: 2,
+      lengthM: 2,
+      widthM: 1,
+      heightM: 2.5,
       monthlyPrice: 900000,
     },
     {
       code: "UT-4M",
       name: "Kho tiêu chuẩn (4 m²)",
       sizeLabel: "4 m²",
-      sizeSqm: 4,
+      lengthM: 2,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 1500000,
     },
     {
       code: "UT-6M",
       name: "Kho tiêu chuẩn (6 m²)",
       sizeLabel: "6 m²",
-      sizeSqm: 6,
+      lengthM: 3,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 2100000,
     },
     {
       code: "UT-AC-4M",
       name: "Kho kiểm soát ẩm (4 m²)",
       sizeLabel: "4 m² - kiểm soát ẩm",
-      sizeSqm: 4,
+      lengthM: 2,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 1900000,
     },
     {
       code: "UT-1M",
       name: "Kho tiêu chuẩn (1 m²)",
       sizeLabel: "1 m²",
-      sizeSqm: 1,
+      lengthM: 1,
+      widthM: 1,
+      heightM: 2.5,
       monthlyPrice: 500000,
     },
     {
       code: "UT-8M",
       name: "Kho tiêu chuẩn (8 m²)",
       sizeLabel: "8 m²",
-      sizeSqm: 8,
+      lengthM: 4,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 2700000,
     },
     {
       code: "UT-10M",
       name: "Kho tiêu chuẩn (10 m²)",
       sizeLabel: "10 m²",
-      sizeSqm: 10,
+      lengthM: 5,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 3300000,
     },
     {
       code: "UT-15M",
       name: "Kho tiêu chuẩn (15 m²)",
       sizeLabel: "15 m²",
-      sizeSqm: 15,
+      lengthM: 5,
+      widthM: 3,
+      heightM: 2.5,
       monthlyPrice: 4800000,
     },
   ];
@@ -171,15 +188,17 @@ async function seed() {
   const typeMap = new Map<string, string>();
   for (const unitType of unitTypesData) {
     const [row] = await queryClient`
-      INSERT INTO unit_types (code, name, size_label, size_sqm, monthly_price, is_active)
+      INSERT INTO unit_types (code, name, size_label, length_m, width_m, height_m, monthly_price, is_active)
       VALUES (
         ${unitType.code}, ${unitType.name}, ${unitType.sizeLabel},
-        ${unitType.sizeSqm}, ${unitType.monthlyPrice}, true
+        ${unitType.lengthM}, ${unitType.widthM}, ${unitType.heightM}, ${unitType.monthlyPrice}, true
       )
       ON CONFLICT (code) DO UPDATE SET
         name = EXCLUDED.name,
         size_label = EXCLUDED.size_label,
-        size_sqm = EXCLUDED.size_sqm,
+        length_m = EXCLUDED.length_m,
+        width_m = EXCLUDED.width_m,
+        height_m = EXCLUDED.height_m,
         monthly_price = EXCLUDED.monthly_price,
         is_active = EXCLUDED.is_active
       RETURNING id, code
