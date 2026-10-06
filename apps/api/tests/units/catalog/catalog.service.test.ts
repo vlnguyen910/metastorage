@@ -29,7 +29,10 @@ function row(
       code: "STANDARD-2",
       name: "Standard",
       sizeLabel: "2 m²",
-      sizeSqm: 2,
+      lengthM: 2,
+      widthM: 1,
+      heightM: 2.5,
+      sizeCbm: 5,
       monthlyPrice: 900000,
       isActive: true,
       createdAt: now,
@@ -90,6 +93,7 @@ describe("catalog service", () => {
     assert.equal(result.total, 1);
     assert.equal(result.items[0]?.availableUnits, 2);
     assert.equal(result.items[0]?.totalUnits, 3);
+    assert.equal(unitTypes[0]?.sizeSqm, 2);
     assert.deepEqual(
       unitTypes.map(({ sizeLabel, availableCount }) => ({ sizeLabel, availableCount })),
       [{ sizeLabel: "2 m²", availableCount: 2 }],

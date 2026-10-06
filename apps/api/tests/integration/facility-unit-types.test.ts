@@ -36,7 +36,9 @@ describe("GET /api/facilities/:facilityId/unit-types", { skip: !adminUrl }, () =
       code: randomUUID(),
       name: "Shared",
       sizeLabel: "2 m²",
-      sizeSqm: 2,
+      lengthM: 2,
+      widthM: 1,
+      heightM: 2.5,
       monthlyPrice: 900000,
     });
     const links = new FacilityUnitTypesRepository(db);
@@ -51,14 +53,18 @@ describe("GET /api/facilities/:facilityId/unit-types", { skip: !adminUrl }, () =
       code: randomUUID(),
       name: "Extra",
       sizeLabel: "4 m²",
-      sizeSqm: 4,
+      lengthM: 2,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 1500000,
     });
     const inactiveType = await repository.create({
       code: randomUUID(),
       name: "Inactive",
       sizeLabel: "6 m²",
-      sizeSqm: 6,
+      lengthM: 3,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 2100000,
       isActive: false,
     });
@@ -66,7 +72,9 @@ describe("GET /api/facilities/:facilityId/unit-types", { skip: !adminUrl }, () =
       code: randomUUID(),
       name: "Hidden offering",
       sizeLabel: "8 m²",
-      sizeSqm: 8,
+      lengthM: 4,
+      widthM: 2,
+      heightM: 2.5,
       monthlyPrice: 2700000,
     });
     await links.link(facilityA.id, extra.id);
@@ -87,6 +95,13 @@ describe("GET /api/facilities/:facilityId/unit-types", { skip: !adminUrl }, () =
       assert.equal(body.success, true);
       const types = ApiUnitTypeSchema.array().parse(body.data);
       assert.deepEqual(types.map((type) => type.id).sort(), [unitType.id, extra.id].sort());
+      const shared = types.find((type) => type.id === unitType.id);
+      assert.ok(shared);
+      assert.deepEqual(
+        [shared.lengthM, shared.widthM, shared.heightM, shared.sizeCbm],
+        [2, 1, 2.5, 5],
+      );
+      assert.ok(types.every((type) => !("sizeSqm" in type)));
       assert.ok(types.every((type) => !("facilityId" in type)));
       const page = await app.inject(`/api/facilities/${facilityA.id}/unit-types?limit=1&offset=1`);
       assert.equal(page.statusCode, 200);

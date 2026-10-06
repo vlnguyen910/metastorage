@@ -120,7 +120,10 @@ erDiagram
     varchar code UK
     varchar name
     varchar size_label
-    real size_sqm
+    numeric length_m
+    numeric width_m
+    numeric height_m
+    numeric size_cbm
     integer monthly_price
     boolean is_active
     timestamptz created_at
@@ -341,7 +344,13 @@ erDiagram
   `Asia/Ho_Chi_Minh`.
 
 Unit Types are a shared catalog across facilities; their definition and monthly
-price are stored once in `unit_types`. The `facility_unit_types` join table
+price are stored once in `unit_types`. Exact length, width and height are positive
+decimal measurements in meters (`length_m`, `width_m`, `height_m`). `size_cbm`
+is a stored generated column in cubic meters equal to `length_m * width_m * height_m`.
+Catalog floor area is calculated from length and width when reading; it is not stored.
+Each physical
+`storage_unit` inherits these dimensions through `unit_type_id`; physical units
+with different dimensions must reference different unit types. The `facility_unit_types` join table
 records which facilities offer each type and can disable an offering without
 disabling the shared type. Availability and capacity are scoped to the pair
 `(facility_id, unit_type_id)`, never to the shared Unit Type ID alone.
