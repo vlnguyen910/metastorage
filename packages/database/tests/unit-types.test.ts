@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
-import { drizzle } from "drizzle-orm/postgres-js";
-import { migrate } from "drizzle-orm/postgres-js/migrator";
-import postgres from "postgres";
 import { CatalogRepository } from "../../../apps/api/src/modules/catalog/catalog.repository";
 import { CheckInsRepository } from "../../../apps/api/src/modules/check-ins/check-ins.repository";
 import { ReservationsRepository } from "../../../apps/api/src/modules/reservations/reservations.repository";
@@ -11,6 +8,7 @@ import { FacilityUnitTypesRepository } from "../../../apps/api/src/modules/unit-
 import { UnitTypesRepository } from "../../../apps/api/src/modules/unit-types/unit-types.repository";
 import type { Database } from "../src/client";
 import * as schema from "../src/schema";
+import { createTestDatabase } from "./helpers/test-database";
 
 // Opt-in: create and remove a separate database on a local PostgreSQL instance.
 const adminUrl = process.env.UNIT_TYPES_TEST_ADMIN_URL;
@@ -22,29 +20,15 @@ function postgresErrorCode(error: unknown): string | undefined {
 }
 
 describe("shared unit types and facility inventory", { skip: !adminUrl }, () => {
-  let admin: ReturnType<typeof postgres>;
-  let client: ReturnType<typeof postgres>;
+  let database: Awaited<ReturnType<typeof createTestDatabase>>;
   let db: Database;
-  let created = false;
-  const databaseName = `storex_unit_types_test_${randomUUID().replaceAll("-", "")}`;
-
   before(async () => {
     assert.ok(adminUrl);
-    const url = new URL(adminUrl);
-    assert.ok(["localhost", "127.0.0.1", "[::1]"].includes(url.hostname));
-    admin = postgres(adminUrl, { max: 1, connect_timeout: 3 });
-    await admin.unsafe(`CREATE DATABASE "${databaseName}"`);
-    created = true;
-    url.pathname = `/${databaseName}`;
-    client = postgres(url.toString(), { max: 5, connect_timeout: 3 });
-    db = drizzle(client, { schema, casing: "snake_case" });
-    await migrate(db, { migrationsFolder: new URL("../drizzle", import.meta.url).pathname });
+    database = await createTestDatabase(adminUrl);
+    db = database.db;
   });
-
   after(async () => {
-    if (client) await client.end();
-    if (created) await admin.unsafe(`DROP DATABASE "${databaseName}"`);
-    if (admin) await admin.end();
+    if (database) await database.close();
   });
 
   async function fixture() {
