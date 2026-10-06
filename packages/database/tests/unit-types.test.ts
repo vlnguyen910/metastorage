@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, it } from "node:test";
+import { eq } from "drizzle-orm";
 import { CatalogRepository } from "../../../apps/api/src/modules/catalog/catalog.repository";
 import { CheckInsRepository } from "../../../apps/api/src/modules/check-ins/check-ins.repository";
 import { ReservationsRepository } from "../../../apps/api/src/modules/reservations/reservations.repository";
@@ -48,7 +49,9 @@ describe("shared unit types and facility inventory", { skip: !adminUrl }, () => 
       code,
       name: "Shared small unit",
       sizeLabel: "2 m²",
-      sizeSqm: 2,
+      lengthM: 2,
+      widthM: 1,
+      heightM: 2.5,
       monthlyPrice: 900000,
     });
     const links = new FacilityUnitTypesRepository(db);
@@ -101,13 +104,65 @@ describe("shared unit types and facility inventory", { skip: !adminUrl }, () => 
     assert.equal(offeringB?.unitType.monthlyPrice, 1200000);
     assert.equal((await repository.findByCode(unitType.code))?.id, unitType.id);
     await assert.rejects(
-      async () => repository.create({ ...unitType, id: randomUUID() }),
+      async () =>
+        repository.create({
+          code: unitType.code,
+          name: unitType.name,
+          sizeLabel: unitType.sizeLabel,
+          lengthM: unitType.lengthM,
+          widthM: unitType.widthM,
+          heightM: unitType.heightM,
+          monthlyPrice: unitType.monthlyPrice,
+        }),
       (error) => postgresErrorCode(error) === "23505",
     );
     await assert.rejects(
       async () => links.link(facilityA.id, unitType.id),
       (error) => postgresErrorCode(error) === "23505",
     );
+  });
+
+  it("derives decimal volume and resolves physical dimensions through the shared type", async () => {
+    const { facilityA, facilityB, unitType, links } = await fixture();
+    const repository = new UnitTypesRepository(db);
+    const updated = await repository.update(unitType.id, {
+      lengthM: 1.25,
+      widthM: 1.6,
+      heightM: 2.4,
+    });
+    assert.equal(updated?.sizeCbm, 4.8);
+    await inventory(facilityA.id, unitType.id, 1);
+    await inventory(facilityB.id, unitType.id, 1);
+    const rows = await db
+      .select({ dimensions: schema.unitTypes })
+      .from(schema.storageUnits)
+      .innerJoin(schema.unitTypes, eq(schema.storageUnits.unitTypeId, schema.unitTypes.id))
+      .where(eq(schema.unitTypes.id, unitType.id));
+    assert.equal(rows.length, 2);
+    for (const { dimensions } of rows) {
+      assert.deepEqual(
+        [dimensions.lengthM, dimensions.widthM, dimensions.heightM],
+        [1.25, 1.6, 2.4],
+      );
+    }
+    await repository.update(unitType.id, { widthM: 2 });
+    for (const facility of [facilityA, facilityB]) {
+      assert.equal((await links.list(facility.id, 10, 0))[0]?.unitType.sizeCbm, 6);
+    }
+    assert.equal((await repository.update(unitType.id, { heightM: 3 }))?.sizeCbm, 7.5);
+  });
+
+  it("rejects zero and negative measurements on every dimension", async () => {
+    const { unitType } = await fixture();
+    const repository = new UnitTypesRepository(db);
+    for (const dimension of ["lengthM", "widthM", "heightM"] as const) {
+      for (const value of [0, -0.1]) {
+        await assert.rejects(
+          () => repository.update(unitType.id, { [dimension]: value }),
+          (error) => postgresErrorCode(error) === "23514",
+        );
+      }
+    }
   });
 
   it("rejects unlinked facility/type pairs in inventory, drafts, holds and bookings", async () => {

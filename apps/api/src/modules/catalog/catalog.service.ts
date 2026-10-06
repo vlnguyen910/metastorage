@@ -40,7 +40,7 @@ function groupUnitTypes(facilityId: string, rows: CatalogRow[]): CatalogUnitType
       unitTypeId: unitType.id,
       unitType: unitType.name,
       sizeLabel: unitType.sizeLabel,
-      sizeSqm: unitType.sizeSqm,
+      sizeSqm: unitType.lengthM * unitType.widthM,
       monthlyPrice: unitType.monthlyPrice,
       availableCount: isAvailable(row) ? 1 : 0,
     });
