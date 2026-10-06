@@ -11,7 +11,12 @@ erDiagram
   users ||--o{ sessions : signs_in_with
   users ||--o{ facility_assignments : receives
   facilities ||--o{ facility_assignments : has
-  facilities ||--o{ unit_types : offers
+  facilities ||--o{ facility_unit_types : offers
+  unit_types ||--o{ facility_unit_types : shared_by
+  facility_unit_types ||--o{ storage_units : materializes
+  facility_unit_types ||--o{ reservation_drafts : selects
+  facility_unit_types ||--o{ capacity_allocations : allocates
+  facility_unit_types ||--o{ bookings : books
   unit_types ||--o{ storage_units : materializes
   facilities ||--o{ storage_units : contains
   facilities ||--o{ facility_operating_hours : schedules
@@ -112,12 +117,19 @@ erDiagram
 
   unit_types {
     uuid id PK
-    uuid facility_id FK
-    varchar code
+    varchar code UK
     varchar name
     varchar size_label
     real size_sqm
     integer monthly_price
+    boolean is_active
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
+  facility_unit_types {
+    uuid facility_id PK,FK
+    uuid unit_type_id PK,FK
     boolean is_active
     timestamptz created_at
     timestamptz updated_at
@@ -302,31 +314,42 @@ erDiagram
   `reservation_draft_status`: `DRAFT`; `reservation_pricing_status`:
   `PRICING_NOT_CONFIGURED`, `PRICED`; `capacity_allocation_kind`: `HOLD`, `BOOKING`; and
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
-- Composite unique indexes exist on `facility_assignments(user_id, facility_id)`,
-  `unit_types(facility_id, code)`, `unit_types(id, facility_id)` and
+- Composite unique indexes exist on `facility_assignments(user_id, facility_id)` and
   `facility_operating_hours(facility_id, day_of_week)`.
-- `storage_units`, `reservation_drafts` and `capacity_allocations` each use a
-  composite foreign key `(unit_type_id, facility_id)` to
-  `unit_types(id, facility_id)`. `capacity_allocations.reference_id` is a UUID
+- `unit_types.code` is globally unique. `facility_unit_types` has a composite
+  primary key `(facility_id, unit_type_id)` and an index on `unit_type_id`.
+- `storage_units`, `bookings`, `reservation_drafts` and `capacity_allocations`
+  each use a composite foreign key `(facility_id, unit_type_id)` to
+  `facility_unit_types(facility_id, unit_type_id)`. `capacity_allocations.reference_id` is a UUID
   reference value without a database foreign key at this stage.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
   `facility_assignments`, and `ON DELETE SET NULL` for `customers.user_id`.
-  Facility foreign keys use `ON DELETE CASCADE` for `unit_types`,
+  Facility foreign keys use `ON DELETE CASCADE` for `facility_unit_types`,
   `storage_units`, `facility_operating_hours` and `facility_assignments`, and
   `ON DELETE RESTRICT` for reservation drafts and capacity allocations.
-  Composite Unit Type foreign keys use `ON DELETE RESTRICT`.
+  Composite Facility Unit Type foreign keys use `ON DELETE RESTRICT`.
+  `facility_unit_types.unit_type_id` references `unit_types.id` with
+  `ON DELETE RESTRICT`, so linked unit types cannot be deleted.
 - `created_at` and `updated_at` columns default to `now()` wherever shown;
   `assigned_at` also defaults to `now()`. `facilities.is_active`,
-  `unit_types.is_active` and `facility_assignments.is_active` default to true.
+  `unit_types.is_active`, `facility_unit_types.is_active` and
+  `facility_assignments.is_active` default to true.
   `storage_units.status` defaults to `AVAILABLE`,
   `reservation_drafts.status` to `DRAFT`,
   `reservation_drafts.pricing_status` to `PRICING_NOT_CONFIGURED`, and
   `capacity_allocations.status` to `ACTIVE`. The default operating timezone is
   `Asia/Ho_Chi_Minh`.
 
+Unit Types are a shared catalog across facilities; their definition and monthly
+price are stored once in `unit_types`. The `facility_unit_types` join table
+records which facilities offer each type and can disable an offering without
+disabling the shared type. Availability and capacity are scoped to the pair
+`(facility_id, unit_type_id)`, never to the shared Unit Type ID alone.
+
 For public catalog queries, a facility is eligible when it is active and has at
-least one `storage_units.status = AVAILABLE`. Unit Type availability is grouped
-by `unit_types.id` and counts only `AVAILABLE` units. Reservation, hold and
+least one `storage_units.status = AVAILABLE` for an active shared type and active
+facility offering. Unit Type availability is grouped by `unit_types.id` within
+the selected facility and counts only `AVAILABLE` units. Reservation, hold and
 booking flows reference the Unit Type ID; a physical unit is assigned later by
 operations and is never selected by the customer.
 

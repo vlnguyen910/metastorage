@@ -169,15 +169,14 @@ async function seed() {
   ];
 
   const typeMap = new Map<string, string>();
-  for (const facility of facilities) {
-    for (const unitType of unitTypesData) {
-      const [row] = await queryClient`
-      INSERT INTO unit_types (facility_id, code, name, size_label, size_sqm, monthly_price, is_active)
+  for (const unitType of unitTypesData) {
+    const [row] = await queryClient`
+      INSERT INTO unit_types (code, name, size_label, size_sqm, monthly_price, is_active)
       VALUES (
-        ${facility.id}, ${unitType.code}, ${unitType.name}, ${unitType.sizeLabel},
+        ${unitType.code}, ${unitType.name}, ${unitType.sizeLabel},
         ${unitType.sizeSqm}, ${unitType.monthlyPrice}, true
       )
-      ON CONFLICT (facility_id, code) DO UPDATE SET
+      ON CONFLICT (code) DO UPDATE SET
         name = EXCLUDED.name,
         size_label = EXCLUDED.size_label,
         size_sqm = EXCLUDED.size_sqm,
@@ -185,13 +184,26 @@ async function seed() {
         is_active = EXCLUDED.is_active
       RETURNING id, code
     `;
-      if (!row) throw new Error(`Unit type ${facility.code}/${unitType.code} was not created`);
-      if (facility.id === facHcm.id) typeMap.set(row.code, row.id);
+    if (!row) throw new Error(`Unit type ${unitType.code} was not created`);
+    typeMap.set(row.code, row.id);
+  }
+
+  for (const facility of facilities) {
+    for (const unitType of unitTypesData) {
+      const unitTypeId = typeMap.get(unitType.code);
+      if (!unitTypeId) throw new Error(`Unit type ${unitType.code} was not created`);
+      await queryClient`
+        INSERT INTO facility_unit_types (facility_id, unit_type_id, is_active)
+        VALUES (${facility.id}, ${unitTypeId}, true)
+        ON CONFLICT (facility_id, unit_type_id) DO UPDATE SET
+          is_active = true,
+          updated_at = NOW()
+      `;
 
       // Every type is visible and bookable in the public catalog.
       await queryClient`
         INSERT INTO storage_units (facility_id, unit_type_id, code, status)
-        VALUES (${facility.id}, ${row.id}, ${`${facility.code}-${unitType.code}-001`}, 'AVAILABLE')
+        VALUES (${facility.id}, ${unitTypeId}, ${`${facility.code}-${unitType.code}-001`}, 'AVAILABLE')
         ON CONFLICT (code) DO UPDATE SET
           facility_id = EXCLUDED.facility_id,
           unit_type_id = EXCLUDED.unit_type_id,

@@ -73,7 +73,12 @@ export class ReservationsService {
     }
 
     const rentalEndAt = addMonths(checkInAt, input.durationMonths);
-    const capacity = await this.repository.countCapacity(input.unitTypeId, checkInAt, rentalEndAt);
+    const capacity = await this.repository.countCapacity(
+      input.facilityId,
+      input.unitTypeId,
+      checkInAt,
+      rentalEndAt,
+    );
     if (capacity < 1) {
       throw new AppError(
         RESERVATION_MESSAGES.unitTypeCapacityUnavailable,
