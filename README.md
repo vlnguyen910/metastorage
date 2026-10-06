@@ -196,6 +196,28 @@ bun run db:migrate
 
 # Mở Drizzle Studio UI trực quan quản lý dữ liệu trên trình duyệt
 bun run db:studio
+
+# Tạo dữ liệu test: 10 facilities TP.HCM, mỗi facility có 8 unit types
+bun run db:seed
+
+# Xoá toàn bộ dữ liệu ứng dụng (kể cả tài khoản), giữ schema và migrations
+bun run db:clear
+
+# Seed lại sau khi dọn dữ liệu
+bun run db:seed
+```
+
+Tên, địa chỉ và giá trong seed là dữ liệu giả lập để test. Seed giữ các booking
+check-in mẫu tại `HCM-01` và có thể chạy lại mà không tạo bản ghi trùng. Để thay
+dataset cũ (bao gồm cơ sở Hà Nội) bằng dataset mới, chạy `db:clear` rồi `db:seed`.
+Cả hai lệnh dùng database được cấu hình qua `@metastorage/database/env`.
+
+Kiểm thử vòng đời clear → seed trên **database riêng** có tên kết thúc bằng
+`_seed_test` (đã chạy migrations):
+
+```bash
+SEED_TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5433/storex_seed_test \
+  bun test packages/database/tests/seed.integration.test.ts
 ```
 
 ---

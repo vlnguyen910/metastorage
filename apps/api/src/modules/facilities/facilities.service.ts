@@ -1,27 +1,14 @@
 import type { ApiFacility, ApiFacilityAssignment } from "@metastorage/contracts";
 import type { Role } from "@metastorage/database";
-import {
-  BadRequestError,
-  ConflictError,
-  ForbiddenError,
-  NotFoundError,
-} from "../../common/errors/app-error";
-import type { UsersRepository } from "../users/users.repository";
+import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { toApiFacility, toApiFacilityAssignment } from "./facilities.mapper";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
-import type {
-  CreateAssignmentBody,
-  CreateFacilityBody,
-  UpdateFacilityBody,
-} from "./facilities.schema";
+import type { CreateFacilityBody, UpdateFacilityBody } from "./facilities.schema";
 
 export class FacilitiesService {
-  constructor(
-    private readonly facilitiesRepository: FacilitiesRepository,
-    private readonly usersRepository: UsersRepository,
-  ) { }
+  constructor(private readonly facilitiesRepository: FacilitiesRepository) {}
 
   async createFacility(input: CreateFacilityBody): Promise<ApiFacility> {
     const existing = await this.facilitiesRepository.findByCode(input.code);
@@ -60,11 +47,8 @@ export class FacilitiesService {
     return list.map(toApiFacility);
   }
 
-  async getAllActiveFacilities(
-    limit: number,
-    offset: number,
-  ) {
-    const isActive: boolean = true; 
+  async getAllActiveFacilities(limit: number, offset: number) {
+    const isActive: boolean = true;
     const list = await this.facilitiesRepository.getAllFacilities(limit, offset, isActive);
     return list.map(toApiFacility);
   }
@@ -96,43 +80,6 @@ export class FacilitiesService {
       throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(id));
     }
     return toApiFacility(updated);
-  }
-
-  async assignUserToFacility(
-    facilityId: string,
-    input: CreateAssignmentBody,
-  ): Promise<ApiFacilityAssignment> {
-    const facility = await this.facilitiesRepository.findById(facilityId);
-    if (!facility) {
-      throw new NotFoundError(FACILITY_MESSAGES.facilityNotFound(facilityId));
-    }
-
-    const user = await this.usersRepository.findById(input.userId);
-    if (!user) {
-      throw new NotFoundError(FACILITY_MESSAGES.userNotFound(input.userId));
-    }
-
-    if (user.status !== "ACTIVE") {
-      throw new BadRequestError(FACILITY_MESSAGES.inactiveUserAssignment);
-    }
-
-    if (user.role !== input.role) {
-      throw new BadRequestError(FACILITY_MESSAGES.assignmentRoleMismatch);
-    }
-
-    const assignment = await this.facilitiesRepository.upsertAssignment({
-      facilityId,
-      userId: input.userId,
-      role: input.role,
-      isActive: true,
-    });
-
-    return toApiFacilityAssignment(assignment, {
-      userName: user.name,
-      userEmail: user.email,
-      facilityName: facility.name,
-      facilityCode: facility.code,
-    });
   }
 
   async revokeAssignment(facilityId: string, userId: string): Promise<ApiFacilityAssignment> {

@@ -21,7 +21,8 @@
     "db:migrate": "turbo run db:migrate",
     "db:push": "turbo run db:push",
     "db:studio": "turbo run db:studio",
-    "db:seed": "turbo run db:seed"
+    "db:seed": "turbo run db:seed",
+    "db:clear": "turbo run db:clear"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.14",

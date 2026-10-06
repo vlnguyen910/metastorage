@@ -35,6 +35,9 @@
     },
     "db:seed": {
       "cache": false
+    },
+    "db:clear": {
+      "cache": false
     }
   }
 }
