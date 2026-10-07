@@ -112,16 +112,7 @@ function unwrap<T>(response: { data: ApiEnvelope<T> }): T {
 }
 
 function toSession(user: User): CookieSession {
-  return {
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone,
-      role: user.role,
-      assignedFacilityIds: user.assignedFacilityIds ?? [],
-    },
-  };
+  return { user };
 }
 
 function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode) {

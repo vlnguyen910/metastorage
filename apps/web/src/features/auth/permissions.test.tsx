@@ -1,7 +1,7 @@
-import { Permission, type Session, UserRole } from "@metastorage/contracts";
+import { type Session, UserRole } from "@metastorage/contracts";
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
-import { rolePermissions } from "@/config/access-control";
+import { Permission } from "@/config/access-control";
 import { authStore } from "./auth-store";
 import { Can } from "./permissions";
 
@@ -11,8 +11,13 @@ const customerSession: Session = {
     name: "Test Customer",
     email: "customer@test.vn",
     role: UserRole.STORAGE_CUSTOMER,
-    permissions: rolePermissions[UserRole.STORAGE_CUSTOMER],
-    assignedFacilityIds: [],
+    status: "ACTIVE",
+    phone: null,
+    emailVerified: true,
+    image: null,
+    passwordHash: null,
+    createdAt: new Date("2026-01-01T00:00:00Z"),
+    updatedAt: new Date("2026-01-01T00:00:00Z"),
   },
   accessToken: "access:test",
   refreshToken: "refresh:test",
