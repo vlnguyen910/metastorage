@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!packages/database/drizzle"]
+    "includes": ["**", "!packages/database/drizzle", "!.stitch/designs/*.html"]
   },
   "formatter": {
     "enabled": true,

@@ -1,20 +1,18 @@
 "use client";
 
-import type { UserRole } from "@metastorage/contracts";
 import { useRouter } from "next/navigation";
-import { type ReactNode, useEffect } from "react";
+import { useEffect } from "react";
 import { LoadingState } from "@/components/ui/states";
 import { routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { AppShell } from "./app-shell";
+import type { ProtectedAreaProps } from "./protected-area.types";
 
 export function ProtectedArea({
   allowedRole,
   children,
-}: {
-  allowedRole: UserRole;
-  children: ReactNode;
-}) {
+  withAppShell = true,
+}: Readonly<ProtectedAreaProps>) {
   const router = useRouter();
   const session = useAuthStore((state) => state.session);
   const hydrated = useAuthStore((state) => state.hydrated);
@@ -35,5 +33,5 @@ export function ProtectedArea({
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  return withAppShell ? <AppShell>{children}</AppShell> : children;
 }
