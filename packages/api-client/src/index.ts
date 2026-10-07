@@ -2,7 +2,6 @@ import type {
   ApiEnvelope,
   ApiFacilityAssignment,
   ApiUnitType,
-  ApiUser,
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
   BookingListItem,
@@ -42,6 +41,7 @@ import type {
   SessionTokens,
   UnitAvailabilityOption,
   UnitTypeListParams,
+  User,
   UserRole,
 } from "@metastorage/contracts";
 import axios, { type AxiosError, type AxiosInstance } from "axios";
@@ -111,7 +111,7 @@ function unwrap<T>(response: { data: ApiEnvelope<T> }): T {
   return response.data.data;
 }
 
-function toSession(user: ApiUser): CookieSession {
+function toSession(user: User): CookieSession {
   return {
     user: {
       id: user.id,
@@ -119,7 +119,6 @@ function toSession(user: ApiUser): CookieSession {
       email: user.email,
       phone: user.phone,
       role: user.role,
-      permissions: [],
       assignedFacilityIds: user.assignedFacilityIds ?? [],
     },
   };
@@ -136,7 +135,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
 
         await http.post("/auth/sign-in/email", input);
         try {
-          const user = await http.get<ApiEnvelope<ApiUser>>("/users/me").then(unwrap);
+          const user = await http.get<ApiEnvelope<User>>("/users/me").then(unwrap);
           return toSession(user);
         } catch (error) {
           await http.post("/auth/sign-out").catch(() => undefined);
@@ -148,7 +147,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           return http.get<ApiEnvelope<Session["user"]>>("/auth/me").then(unwrap);
         }
 
-        const user = await http.get<ApiEnvelope<ApiUser>>("/users/me").then(unwrap);
+        const user = await http.get<ApiEnvelope<User>>("/users/me").then(unwrap);
         return toSession(user).user;
       },
       logout: () =>
@@ -163,10 +162,9 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then((response) => response.data),
     },
     users: {
-      list: () =>
-        http.get<ApiEnvelope<ApiUser[]>>("/users", { params: { limit: 100 } }).then(unwrap),
-      setRole: (userId: string, role: ApiUser["role"]) =>
-        http.patch<ApiEnvelope<ApiUser>>(`/users/${userId}/role`, { role }).then(unwrap),
+      list: () => http.get<ApiEnvelope<User[]>>("/users", { params: { limit: 100 } }).then(unwrap),
+      setRole: (userId: string, role: User["role"]) =>
+        http.patch<ApiEnvelope<User>>(`/users/${userId}/role`, { role }).then(unwrap),
     },
     facilities: {
       listUnitTypes: (facilityId: string, params: UnitTypeListParams = {}) =>

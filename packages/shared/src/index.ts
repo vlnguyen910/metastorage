@@ -1,3 +1,3 @@
-export type { ApiError, ApiErrorDetail, ApiResponse, User } from "./types";
+export type { ApiError, ApiErrorDetail, ApiResponse } from "./types";
 
 export const APP_NAME = "metastorage";

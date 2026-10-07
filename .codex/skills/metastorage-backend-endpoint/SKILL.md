@@ -27,16 +27,24 @@ commit, push, thay đổi dữ liệu thật hoặc mở rộng task.
 
 ## 2. Contract dùng chung
 
-- Đặt schema Zod cho request và DTO response trong feature tương ứng ở `packages/contracts`;
-  export qua entrypoint hiện có. Suy ra type bằng `z.infer`, không khai báo lại cùng cấu trúc.
+- Mỗi file domain trong `packages/contracts/src/<domain>.ts` gồm enum của domain,
+  schema input, params và query, cùng type suy ra từ các schema đó. Khai báo enum ngay
+  trong file contract domain; Drizzle import enum từ contract để database và code dùng
+  chung một nguồn giá trị. Không tạo file enum riêng ở `shared` hoặc khai báo lại
+  danh sách giá trị trong schema database. Type/interface output đặt ở `<domain>.types.ts`
+  và re-export qua file domain. Không thêm schema output vào file domain.
+- Chỉ tạo schema Zod cho input (body), params và query trong feature tương ứng ở
+  `packages/contracts`; export qua entrypoint hiện có. Suy ra type input bằng `z.infer`.
+  Dữ liệu trả về dùng type/interface TypeScript chung; không tạo schema Zod để kiểm tra
+  output, không `.parse()` response và không khai báo `schema.response` trên route.
 - Input chỉ chứa trường client được phép gửi; không dùng kiểu insert database làm public
   request contract. Schema body xử lý trường ngoài danh sách theo convention của repo;
   không chuyển nguyên body xuống database.
-- Tạo DTO theo mục đích khi đầu ra khác nhau: list item, detail, create result.
-  Dùng `.pick()`, `.omit()`, `.extend()` khi phù hợp; không tạo biến thể chưa có endpoint dùng.
-  Chỉ dùng `.optional()` khi trường thật sự có thể vắng mặt trong cùng loại response.
+- Tạo type DTO theo mục đích khi đầu ra khác nhau: list item, detail, create result.
+  Dùng `Pick`/`Omit` khi phù hợp; không tạo biến thể chưa có endpoint dùng.
+  Trường optional chỉ khi thật sự có thể vắng mặt trong loại response đó.
 - Phân biệt chuỗi ISO trong JSON với `Date` ở database, `null` với trường bị bỏ qua.
-- Response schema mô tả toàn bộ envelope thực tế, gồm data/message/timestamp.
+- Type response mô tả envelope thực tế, gồm data/message/timestamp.
   Tái sử dụng helper hiện có. Nếu các package có envelope khác nhau, giải quyết phần cần cho
   endpoint và báo ảnh hưởng; không âm thầm đổi mọi endpoint.
 - Thông báo hướng tới client nằm trong `*.messages.ts` của feature, kể cả validation message
@@ -77,23 +85,23 @@ commit, push, thay đổi dữ liệu thật hoặc mở rộng task.
   allowlist trường, chuyển ngày sang ISO, xử lý nullable theo policy và bổ sung dữ liệu đã lấy/tính.
 - Chỉ tách `*.mapper.ts` khi có lợi ích cụ thể, như phép chuyển đổi được dùng lại hoặc đủ phức tạp
   để tách ra giúp service dễ đọc. Không mặc định mỗi module/endpoint phải có mapper riêng.
-- Nếu dữ liệu đã khớp DTO và đầu ra được kiểm soát bằng schema runtime, không thêm bước map
-  chỉ để sao chép object. Mapper tách riêng là hàm thuần; không query DB, gọi dịch vụ ngoài,
+- Nếu dữ liệu đã khớp DTO và các trường trả về đã được chọn rõ ràng, không thêm bước map
+  chỉ để sao chép object. TypeScript không lọc trường runtime; service/repository phải chọn
+  trường thực tế, không dựa vào response schema. Mapper tách riêng là hàm thuần; không query DB, gọi dịch vụ ngoài,
   kiểm tra quyền hoặc quyết định nghiệp vụ.
-- Không trả database row ra HTTP, spread toàn row vào DTO, hoặc ép `as ApiUser` để che sai shape.
+- Không trả database row ra HTTP, spread toàn row vào DTO, hoặc ép kiểu DTO để che sai shape.
   Annotation, `Pick`/`Omit` và `satisfies` không xóa trường runtime.
-- Khi thêm trường output: cập nhật schema, truy vấn/tính toán, phần tạo DTO và test. Khi bỏ trường:
-  cập nhật schema/phần tạo DTO và kiểm tra caller bị ảnh hưởng.
+- Khi thêm trường output: cập nhật type, truy vấn/tính toán, phần tạo DTO và test. Khi bỏ trường:
+  cập nhật type/phần tạo DTO và kiểm tra caller bị ảnh hưởng.
 - Với create user, đọc policy auth nếu tạo tài khoản đăng nhập. Insert `users` chưa tạo
   credential/session Better Auth. Chốt account, mật khẩu, verification, role/status và side
   effects trước khi chọn luồng tạo; không mặc định đây là public signup.
 
 ## 6. Route: kết nối HTTP
 
-- Dùng Zod type provider và validator/serializer compiler đã cấu hình.
-- Khai báo schema cho params/query/body cần thiết và response theo status code.
-  Response schema kiểm soát đầu ra cuối cùng; không thay thế chuyển đổi dữ liệu cần thiết
-  hoặc authorization.
+- Dùng Zod type provider và validator compiler đã cấu hình cho input.
+- Khai báo schema cho params/query/body cần thiết. Không khai báo schema cho dữ liệu trả về;
+  kiểm soát output bằng type TypeScript và chọn trường thực tế trong service/repository.
 - Route chỉ nhận input đã validate, gọi service, gửi envelope/status đã chốt;
   không chứa truy vấn DB hoặc business logic. Dùng guard/error handler hiện có.
 - Đăng ký route trong app nếu chưa được gắn; xác nhận truy cập qua prefix đúng.

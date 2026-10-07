@@ -1,16 +1,6 @@
 import { z } from "zod";
-import type { CookieSession } from "./auth.types";
+import type { CookieSession, Session } from "./auth.types";
 import { CONTRACT_MESSAGES } from "./messages";
-import { UserSchema } from "./users";
-
-export const SessionSchema = z.object({
-  user: UserSchema,
-  accessToken: z.string(),
-  refreshToken: z.string(),
-  expiresAt: z.string(),
-});
-
-export type Session = z.infer<typeof SessionSchema>;
 
 export type SessionTokens = Pick<Session, "accessToken" | "refreshToken" | "expiresAt">;
 
@@ -37,4 +27,4 @@ export const CustomerSignUpInputSchema = z
 
 export type CustomerSignUpInput = z.infer<typeof CustomerSignUpInputSchema>;
 
-export type { CookieSession, LoginInput } from "./auth.types";
+export type { CookieSession, LoginInput, Session } from "./auth.types";

@@ -312,6 +312,8 @@ erDiagram
   `facility_assignments.ended_at`, `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Every other column shown is required.
+- User role/status values are defined once in `packages/contracts/src/users.ts` and
+  reused by Drizzle and API contracts. Changing those values still requires a database migration.
 - Enum values are `role`: `CUSTOMER`, `FACILITY_STAFF`, `FACILITY_MANAGER`,
   `BUSINESS_OPERATION_MANAGER`, `SYSTEM_ADMIN`; `status`: `ACTIVE`, `INACTIVE`;
   `storage_unit_status`: `AVAILABLE`, `RESERVED`, `OCCUPIED`, `MAINTENANCE`,
