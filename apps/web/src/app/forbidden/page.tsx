@@ -21,7 +21,7 @@ export default function ForbiddenPage() {
         </p>
         <Link
           className={buttonClassName("primary")}
-          href={session ? roleHome[session.user.role] : routes.login}
+          href={session?.user.role ? roleHome[session.user.role] : routes.login}
         >
           Về khu vực của tôi
         </Link>

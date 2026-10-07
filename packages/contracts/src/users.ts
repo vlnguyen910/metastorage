@@ -21,6 +21,8 @@ export const USER_STATUS = Object.values(UserStatus);
 export const UserRoleSchema = z.enum(UserRole);
 export const UserStatusSchema = z.enum(UserStatus);
 
+export type { User } from "../../database/src/schema/users";
+
 export const CreateUserInputSchema = z.strictObject({
   name: z.string().trim().min(1).max(150),
   email: z.string().trim().toLowerCase().email().max(255),

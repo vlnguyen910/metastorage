@@ -10,6 +10,7 @@ import type {
 
 export interface MockUser extends User {
   password: string;
+  assignedFacilityIds: string[];
 }
 
 export interface MockStorageUnit {

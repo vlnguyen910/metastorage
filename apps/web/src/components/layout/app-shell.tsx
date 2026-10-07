@@ -26,9 +26,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const session = useAuthStore((state) => state.session);
   const clearSession = useAuthStore((state) => state.clearSession);
-  if (!session) return null;
+  const role = session?.user.role;
+  if (!session || !role) return null;
 
-  const navigation = navigationByRole[session.user.role];
+  const navigation = navigationByRole[role];
 
   async function logout() {
     try {
@@ -57,7 +58,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       >
         <div className="flex items-center justify-between px-2">
           <Link
-            href={roleHome[session.user.role]}
+            href={roleHome[role]}
             className="inline-flex items-center gap-2.5 text-[1.35rem] font-extrabold tracking-[-0.04em] text-white"
           >
             <span className="grid size-[38px] place-items-center rounded-[11px] bg-primary text-white">
@@ -82,9 +83,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </span>
           <div>
             <strong className="block text-sm text-white">{session.user.name}</strong>
-            <small className="mt-1 block text-[0.7rem] text-[#a9c8c0]">
-              {roleLabels[session.user.role]}
-            </small>
+            <small className="mt-1 block text-[0.7rem] text-[#a9c8c0]">{roleLabels[role]}</small>
           </div>
         </div>
         <nav className="grid gap-1">
@@ -92,7 +91,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             const Icon = item.icon;
             const active =
               pathname === item.href ||
-              (item.href !== roleHome[session.user.role] && pathname.startsWith(item.href));
+              (item.href !== roleHome[role] && pathname.startsWith(item.href));
             return (
               <Link
                 className={cn(
@@ -153,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <strong>{session.user.name}</strong>
           </div>
           <span className="ml-auto rounded-full bg-primary-soft px-3 py-2 text-xs font-bold text-primary max-[560px]:hidden">
-            {roleLabels[session.user.role]}
+            {roleLabels[role]}
           </span>
         </header>
         <main className="mx-auto max-w-[1440px] p-9 max-[800px]:p-[25px_18px] max-[560px]:px-3.5">

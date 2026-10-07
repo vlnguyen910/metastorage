@@ -1,8 +1,7 @@
 "use client";
 
-import type { Permission } from "@metastorage/contracts";
 import type { ReactNode } from "react";
-import { hasPermission } from "@/config/access-control";
+import { hasPermission, type Permission } from "@/config/access-control";
 import { useAuthStore } from "./auth-store";
 
 export function usePermission(permission: Permission): boolean {

@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { LoadingState } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { roleHome } from "@/config/routes";
+import { roleHome, routes } from "@/config/routes";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { api } from "@/lib/api";
 import { ADMIN_USER_MESSAGES } from "./users.messages";
@@ -36,7 +36,7 @@ export function SystemAdministratorUsersScreen() {
         try {
           const user = await api.auth.me();
           setSession({ user });
-          router.replace(roleHome[user.role]);
+          router.replace(user.role ? roleHome[user.role] : routes.forbidden);
         } catch {
           useAuthStore.getState().clearSession();
           router.replace("/login");
@@ -65,7 +65,7 @@ export function SystemAdministratorUsersScreen() {
       </header>
       <div className="overflow-x-auto rounded-2xl border border-line bg-white shadow-card">
         <table className="w-full border-collapse text-left text-sm">
-          <thead className="bg-[#f5f8f7] text-muted">
+          <thead className="bg-[#f5f8f7] text-slate-600">
             <tr>
               <th className="px-5 py-4 font-semibold">Người dùng</th>
               <th className="px-5 py-4 font-semibold">Email</th>
@@ -89,11 +89,14 @@ export function SystemAdministratorUsersScreen() {
                     className="min-h-10 rounded-lg border border-line bg-white px-3"
                     disabled={updateRole.isPending}
                     id={`role-${user.id}`}
-                    value={user.role}
+                    value={user.role ?? ""}
                     onChange={(event) =>
                       updateRole.mutate({ userId: user.id, role: event.target.value as UserRole })
                     }
                   >
+                    <option value="" disabled>
+                      {ADMIN_USER_MESSAGES.roleUnset}
+                    </option>
                     {roleOptions.map((role) => (
                       <option key={role.value} value={role.value}>
                         {role.label}

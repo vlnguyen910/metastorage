@@ -1,6 +1,5 @@
 import { ApiErrorCode, UserRole } from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
-import { rolePermissions } from "@/config/access-control";
 import { currentUser, envelope, errorBody, parseBody, publicUser } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
 
@@ -29,7 +28,6 @@ export function registerUsersHandlers(mock: MockAdapter): void {
 
     const { role } = parseBody<{ role: UserRole }>(config.data);
     target.role = role;
-    target.permissions = rolePermissions[role];
     target.assignedFacilityIds = [];
     saveMockDatabase(database);
     return [200, envelope(publicUser(target), "Vai trò đã được cập nhật")];

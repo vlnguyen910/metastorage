@@ -45,16 +45,21 @@ export function LoginForm() {
     try {
       const session = await api.auth.login(values);
       setSession(session);
+      const role = session.user.role;
+      if (!role) {
+        router.replace(routes.forbidden);
+        return;
+      }
       showToast(AUTH_MESSAGES.loginWelcome(session.user.name));
-      const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[session.user.role]);
-      const roleRoot = `/${roleHome[session.user.role].split("/")[1]}`;
+      const requested = safeReturnTo(searchParams.get("returnTo"), roleHome[role]);
+      const roleRoot = `/${roleHome[role].split("/")[1]}`;
       const customerReservationEntry =
         session.user.role === UserRole.STORAGE_CUSTOMER &&
         (requested === routes.reservationNew || requested.startsWith(`${routes.reservationNew}?`));
       const destination =
         requested === roleRoot || requested.startsWith(`${roleRoot}/`) || customerReservationEntry
           ? requested
-          : roleHome[session.user.role];
+          : roleHome[role];
       router.replace(destination);
     } catch (error) {
       const responseData = axios.isAxiosError(error)

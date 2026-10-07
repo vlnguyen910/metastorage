@@ -1,5 +1,4 @@
 import { UserRole } from "@metastorage/contracts";
-import { rolePermissions } from "@/config/access-control";
 import type { MockUser } from "../types";
 
 export const demoAccounts = [
@@ -36,7 +35,12 @@ export const userSeeds: MockUser[] = demoAccounts.map((account, index) => ({
   email: account.email,
   phone: `090000000${index + 1}`,
   role: account.role,
-  permissions: rolePermissions[account.role],
+  status: "ACTIVE",
+  emailVerified: true,
+  image: null,
+  passwordHash: null,
+  createdAt: new Date("2026-01-01T00:00:00Z"),
+  updatedAt: new Date("2026-01-01T00:00:00Z"),
   assignedFacilityIds:
     account.email === "multi-manager@metastorage.test"
       ? ["fac-hcm-central", "fac-hn-west"]

@@ -46,7 +46,7 @@ export function PublicHeader() {
           </a>
           <Link
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-[18px] font-bold text-white shadow-[0_6px_18px_rgb(22_95_77_/_20%)] transition hover:-translate-y-px hover:bg-primary-dark max-[800px]:mt-1"
-            href={session ? roleHome[session.user.role] : routes.login}
+            href={session?.user.role ? roleHome[session.user.role] : routes.login}
           >
             {session ? "Vào dashboard" : "Đăng nhập"}
           </Link>

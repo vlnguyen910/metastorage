@@ -3,14 +3,26 @@
 import { UserRole } from "@metastorage/contracts";
 import { BarChart3, UserCheck } from "lucide-react";
 import { useState } from "react";
-import { useAuthStore } from "@/features/auth/auth-store";
+import { ErrorState, LoadingState } from "@/components/ui/states";
+import { useMyFacilityAssignments } from "@/features/check-in/hooks";
 import { StaffTasksView } from "@/features/check-in/staff-tasks-view";
 import { RoleDashboard } from "@/features/dashboard/role-dashboard";
+import { STAFF_DASHBOARD_MESSAGES } from "./staff-dashboard.messages";
 
 export function FacilityStaffDashboardScreen() {
   const [activeTab, setActiveTab] = useState<"tasks" | "overview">("tasks");
-  const user = useAuthStore((state) => state.session?.user);
-  const facilityId = user?.assignedFacilityIds?.[0];
+  const assignments = useMyFacilityAssignments();
+  const facilityId = assignments.data?.[0]?.facilityId;
+
+  if (assignments.isLoading) return <LoadingState />;
+  if (assignments.isError) {
+    return (
+      <ErrorState
+        message={STAFF_DASHBOARD_MESSAGES.assignmentsFailed}
+        onRetry={() => assignments.refetch()}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
