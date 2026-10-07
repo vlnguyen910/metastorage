@@ -1,0 +1,115 @@
+import { z } from "zod";
+import { FacilityStaffMemberSchema } from "./facilities";
+import { ReservationDraftContactSchema } from "./reservation-contact";
+
+export const PaidBookingSchema = z.object({
+  id: z.string().uuid(),
+  bookingCode: z.string(),
+  customerId: z.string().uuid(),
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  checkInAt: z.string().datetime(),
+  rentalEndAt: z.string().datetime(),
+  durationMonths: z.number().int().min(1).max(12),
+  status: z.literal("CONFIRMED"),
+  paidAt: z.string().datetime(),
+  contact: ReservationDraftContactSchema,
+  pricing: z.object({
+    rentalFeeAmount: z.string(),
+    depositAmount: z.string(),
+    totalAmount: z.string(),
+    currency: z.string().length(3),
+  }),
+});
+
+export type PaidBooking = z.infer<typeof PaidBookingSchema>;
+
+export const BookingConfirmationSchema = z.object({
+  bookingId: z.string().uuid(),
+  bookingCode: z.string(),
+  qrToken: z.string().min(32),
+  qrUrl: z.string().url(),
+  facility: z.object({ name: z.string(), address: z.string() }),
+  checkInSlotStart: z.string().datetime(),
+  checkInSlotEnd: z.string().datetime().nullable(),
+  rentalEndAt: z.string().datetime(),
+  unitTypeName: z.string(),
+  sizeLabel: z.string(),
+  durationMonths: z.number().int().min(1).max(12),
+  emailStatus: z.enum(["QUEUED", "PENDING", "SENT", "FAILED"]),
+});
+
+export type BookingConfirmation = z.infer<typeof BookingConfirmationSchema>;
+
+export const BookingQrVerificationInputSchema = z.object({
+  qrToken: z.string().min(32),
+});
+
+export type BookingQrVerificationInput = z.infer<typeof BookingQrVerificationInputSchema>;
+
+export const BookingQrVerificationResultSchema = z.object({
+  bookingId: z.string().uuid(),
+  bookingCode: z.string(),
+  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  checkInSlotStart: z.string().datetime(),
+  rentalEndAt: z.string().datetime(),
+});
+
+export type BookingQrVerificationResult = z.infer<typeof BookingQrVerificationResultSchema>;
+
+export const PhysicalUnitAssignmentSchema = z.object({
+  id: z.string().uuid(),
+  bookingId: z.string().uuid(),
+  physicalUnitId: z.string().uuid(),
+  physicalUnitCode: z.string(),
+  assignedBy: z.string().uuid(),
+  assignerName: z.string().optional(),
+  status: z.enum(["ACTIVE", "REASSIGNED", "CANCELLED"]),
+  assignedAt: z.string().datetime(),
+  endedAt: z.string().datetime().nullable(),
+  reason: z.string().nullable().optional(),
+});
+
+export type PhysicalUnitAssignment = z.infer<typeof PhysicalUnitAssignmentSchema>;
+
+export const AssignBookingStaffInputSchema = z.object({
+  staffId: z.string().uuid(),
+  notes: z.string().max(500).optional(),
+});
+
+export type AssignBookingStaffInput = z.infer<typeof AssignBookingStaffInputSchema>;
+
+export const BookingListItemSchema = z.object({
+  id: z.string().uuid(),
+  bookingCode: z.string(),
+  facilityId: z.string().uuid(),
+  facilityName: z.string(),
+  unitTypeId: z.string().uuid(),
+  unitTypeName: z.string(),
+  unitTypeSizeLabel: z.string(),
+  customerId: z.string().uuid(),
+  contactName: z.string(),
+  contactEmail: z.string(),
+  contactPhone: z.string(),
+  checkInSlotStart: z.string().datetime(),
+  checkInSlotEnd: z.string().datetime().nullable(),
+  rentalEndAt: z.string().datetime(),
+  requestedMonths: z.number().int(),
+  totalAmount: z.number().nonnegative(),
+  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
+  paidAt: z.string().datetime().nullable(),
+  assignedUnit: PhysicalUnitAssignmentSchema.nullable().optional(),
+  assignedStaff: FacilityStaffMemberSchema.nullable().optional(),
+  createdAt: z.string().datetime(),
+});
+
+export type BookingListItem = z.infer<typeof BookingListItemSchema>;
+
+export const AssignPhysicalUnitInputSchema = z.object({
+  physicalUnitId: z.string().uuid(),
+  reason: z.string().max(500).optional(),
+});
+
+export type AssignPhysicalUnitInput = z.infer<typeof AssignPhysicalUnitInputSchema>;

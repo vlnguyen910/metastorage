@@ -13,8 +13,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundError(USER_MESSAGES.userNotFound(id));
     }
-    const assignedFacilityIds = await this.usersRepository.findAssignedFacilityIds(id);
-    return toApiUser(user, assignedFacilityIds);
+    return toApiUser(user);
   }
 
   async listUsers(limit: number, offset: number): Promise<ApiUser[]> {
