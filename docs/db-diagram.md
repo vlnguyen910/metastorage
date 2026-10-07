@@ -25,7 +25,7 @@ erDiagram
   unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
-  customers ||--o{ bookings : owns
+  customers o|--o{ bookings : owns
   users o|--o{ bookings : assigned_to
   customers ||--o{ payments : makes
   bookings ||--o{ payments : records
@@ -198,13 +198,11 @@ erDiagram
   bookings {
     uuid id PK
     varchar booking_code UK
-    uuid customer_id FK
+    uuid customer_id FK "nullable for DRAFT"
+    varchar access_token_hash "nullable"
     uuid facility_id FK
     uuid unit_type_id FK
     integer requested_months
-    varchar contact_name
-    varchar contact_email
-    varchar contact_phone
     date check_in_date
     uuid check_in_slot_id FK
     timestamptz rental_end_at
@@ -212,10 +210,9 @@ erDiagram
     numeric rental_fee_amount
     numeric deposit_amount
     numeric total_amount
-    varchar currency
-    varchar status
+    varchar status "default DRAFT"
+    uuid assigned_staff_id FK "nullable"
     varchar qr_token_hash UK
-    timestamptz paid_at
     timestamptz created_at
     timestamptz updated_at
   }
@@ -380,17 +377,21 @@ trimmed, lowercase email matches; otherwise it creates a Customer. The unique
 email index keeps this rule consistent under concurrent checkouts. Matching an
 email for checkout association does not itself prove the guest owns that email
 or authorize access to previous bookings. An unverified checkout must not
-overwrite an existing Customer's profile fields or `user_id`; its submitted
-name, email and phone belong in the new Booking's contact snapshot. Deleting a
-User unlinks its Customer rather than deleting business history.
+overwrite an existing Customer's profile fields or `user_id`. The current
+booking decision removes contact snapshots: operational booking DTOs read the
+Customer's current full name, email and phone. Handling submitted contact that
+differs from an existing Customer remains TBD for checkout refactoring. Deleting
+a User unlinks its Customer rather than deleting business history.
 
 The current reservation draft stores the guest's name, email and phone without
 requiring a User or creating a Customer. Booking and Rental will reference
 `customers.id`, never `users.id`, when their tables are introduced by their
-respective issues. A Booking must also retain a snapshot of the contact details
-used for that transaction. Successful payment is the point at which checkout
-creates or associates the business Customer and Booking. No Booking, Rental or
-guest access session table is introduced by this M0 schema change.
+respective issues. The booking schema now permits a customerless DRAFT and
+reserves access_token_hash for future guest draft access. A non-DRAFT booking
+must have a Customer. Customer creation is planned at the start of payment;
+contact storage before this step remains TBD. The reservation/payment workflow
+still uses reservation_drafts and creates a Booking on success until its own
+module refactor is complete.
 
 Linking a Customer to a User requires verified ownership of the contact channel;
 an authenticated session or an equal email string alone does not authorize a
@@ -411,8 +412,21 @@ tracking and account-linking implementation.
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
 
 - `bookings.customer_id` references `customers.id`, never `users.id`.
-- Booking stores contact and pricing snapshots so later Customer profile
-  changes do not rewrite historical transaction data.
+- Booking keeps pricing snapshots, but no longer stores contact snapshots,
+  currency or paid_at. Operational DTOs read contact from customers and paidAt
+  from the earliest non-null payments.paid_at with status SUCCEEDED or REFUNDED.
+  A scalar subquery prevents multiple payment attempts from duplicating bookings.
+- Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
+  CANCELLED, NO_SHOW or CHECKED_IN. Another CHECK requires customer_id for any
+  non-DRAFT state. The existing pricing columns remain required; support for
+  unpriced drafts is not decided yet.
+- Bookings retain nullable unique booking_code/qr_token_hash, nullable
+  assigned_staff_id and nullable access_token_hash. Operational lists/details
+  exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
+- The booking-only migration does not include the in-progress payment schema
+  simplification. Payment schema, checkout, worker, check-in, rental and seed
+  compatibility must be completed in subsequent module steps before applying
+  the complete refactor to the application database.
 - Payment provider integration is selected through a gateway adapter. The
   current implementation provides a mock/test adapter; the production provider
   pricing policy uses the confirmed one-month deposit rule for checkout.
@@ -428,4 +442,6 @@ columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
 `check_in_date` and `check_in_slot_id` instead of start/end timestamps. The
 calendar date is interpreted in the facility timezone (currently Vietnam time).
 Referenced slots cannot be deleted (`ON DELETE RESTRICT`). This change is
-limited to the database; API contracts and readers require a separate update.
+represented in the database by date and slot. The booking module projects the
+start/end timestamps into its existing API DTOs in Asia/Ho_Chi_Minh time. Other
+module readers still require their own update.
