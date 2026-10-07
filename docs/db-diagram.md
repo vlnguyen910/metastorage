@@ -6,6 +6,7 @@ Booking and Payment are introduced by issue #18.
 
 ```mermaid
 erDiagram
+  check_in_slots ||--o{ bookings : schedules
   users o|--o| customers : links_after_verification
   users ||--o{ accounts : authenticates_with
   users ||--o{ sessions : signs_in_with
@@ -33,6 +34,13 @@ erDiagram
   users ||--o{ checkin_verifications : performs
   facilities ||--o{ checkin_verifications : scopes
   unit_assignments ||--o{ checkin_verifications : snapshots
+
+  check_in_slots {
+    uuid id PK
+    text name
+    time start_time
+    time end_time
+  }
 
   users {
     uuid id PK
@@ -197,8 +205,8 @@ erDiagram
     varchar contact_name
     varchar contact_email
     varchar contact_phone
-    timestamptz check_in_slot_start
-    timestamptz check_in_slot_end
+    date check_in_date
+    uuid check_in_slot_id FK
     timestamptz rental_end_at
     numeric monthly_rate_snapshot
     numeric rental_fee_amount
@@ -292,7 +300,7 @@ erDiagram
 ## Existing constraints and behavior
 
 - UUID primary keys on `users`, `customers`, `facilities`, `facility_assignments`,
-  `unit_types`, `storage_units`, `facility_operating_hours`, `reservation_drafts`
+  `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`
   and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
@@ -414,3 +422,10 @@ tracking and account-linking implementation.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
 - `payments.draft_id` and the hash of the hold token scope idempotent replay to
   the original checkout; plaintext hold tokens are never stored.
+
+Check-in slots are shared time-of-day definitions with exactly four required
+columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
+`check_in_date` and `check_in_slot_id` instead of start/end timestamps. The
+calendar date is interpreted in the facility timezone (currently Vietnam time).
+Referenced slots cannot be deleted (`ON DELETE RESTRICT`). This change is
+limited to the database; API contracts and readers require a separate update.

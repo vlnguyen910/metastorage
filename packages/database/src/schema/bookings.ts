@@ -1,4 +1,5 @@
 import {
+  date,
   foreignKey,
   index,
   integer,
@@ -8,6 +9,7 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { checkInSlots } from "./check-in-slots";
 import { customers } from "./customers";
 import { facilities } from "./facilities";
 import { facilityUnitTypes } from "./facility-unit-types";
@@ -32,8 +34,10 @@ export const bookings = pgTable(
     contactName: varchar({ length: 150 }).notNull(),
     contactEmail: varchar({ length: 320 }).notNull(),
     contactPhone: varchar({ length: 30 }).notNull(),
-    checkInSlotStart: timestamp({ withTimezone: true }).notNull(),
-    checkInSlotEnd: timestamp({ withTimezone: true }),
+    checkInDate: date("check_in_date").notNull(),
+    checkInSlotId: uuid("check_in_slot_id")
+      .notNull()
+      .references(() => checkInSlots.id, { onDelete: "restrict" }),
     rentalEndAt: timestamp({ withTimezone: true }).notNull(),
     monthlyRateSnapshot: numeric({ precision: 14, scale: 2 }).notNull(),
     rentalFeeAmount: numeric({ precision: 14, scale: 2 }).notNull(),
@@ -55,7 +59,8 @@ export const bookings = pgTable(
     index("bookings_facility_status_idx").on(table.facilityId, table.status),
     index("bookings_customer_idx").on(table.customerId),
     index("bookings_assigned_staff_idx").on(table.assignedStaffId),
-    index("bookings_dates_idx").on(table.checkInSlotStart, table.rentalEndAt),
+    index("bookings_dates_idx").on(table.checkInDate, table.rentalEndAt),
+    index("bookings_check_in_slot_idx").on(table.checkInSlotId),
   ],
 );
 

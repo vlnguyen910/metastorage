@@ -2,6 +2,7 @@ export * from "./accounts";
 export * from "./booking-confirmation-emails";
 export * from "./bookings";
 export * from "./capacity-allocations";
+export * from "./check-in-slots";
 export * from "./checkin-verifications";
 export * from "./customers";
 export * from "./facilities";
