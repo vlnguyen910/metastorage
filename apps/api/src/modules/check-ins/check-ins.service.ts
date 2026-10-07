@@ -32,8 +32,8 @@ function toPayment(record: CheckInRecord): CheckInPaymentSummary {
     status: (record.payment?.status as CheckInPaymentSummary["status"]) ?? null,
     paidAt: record.payment?.paidAt?.toISOString() ?? null,
     totalAmount: record.payment ? Number(record.payment.totalAmount) : null,
-    rentalFeeAmount: record.payment ? Number(record.payment.rentalFeeAmount) : null,
-    depositAmount: record.payment ? Number(record.payment.depositAmount) : null,
+    rentalFeeAmount: record.payment ? Number(record.booking.rentalFeeAmount) : null,
+    depositAmount: record.payment ? Number(record.booking.depositAmount) : null,
     currency: record.payment?.currency ?? null,
   };
 }

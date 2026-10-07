@@ -20,7 +20,7 @@ export class BookingsService {
   async verifyQr(qrToken: string) {
     const booking = await this.repository.findByQrToken(qrToken);
     if (!booking) throw new NotFoundError(BOOKING_MESSAGES.invalidQrOrBookingNotFound);
-    if (["CANCELLED", "NO_SHOW"].includes(booking.status)) {
+    if (["DRAFT", "CANCELLED", "NO_SHOW"].includes(booking.status)) {
       throw new ConflictError(BOOKING_MESSAGES.bookingCannotCheckIn);
     }
     return booking;
@@ -99,6 +99,8 @@ export class BookingsService {
 
     if ("error" in result) {
       switch (result.error) {
+        case "INVALID_BOOKING_STATUS":
+          throw new BadRequestError(BOOKING_MESSAGES.bookingCannotAssignStaff);
         case "BOOKING_NOT_FOUND":
           throw new NotFoundError("Không tìm thấy đơn đặt chỗ");
         case "STAFF_NOT_IN_FACILITY":

@@ -11,6 +11,8 @@ export const PAYMENT_MESSAGES = {
   holdUnavailable: "Hold không tồn tại hoặc không còn hiệu lực",
   holdExpired: "Hold đã hết hạn",
   pricingNotConfigured: "Pricing chưa được cấu hình",
+  checkoutScheduleRequiresNewDraft:
+    "Lịch nhận kho không khớp ca hiện tại, hãy tạo lại draft trước khi thanh toán.",
   holdNoLongerAvailable: "Hold không còn hiệu lực",
   idempotencyKeyAlreadyProcessed: "Idempotency key đã được xử lý",
   paymentGatewayResultUnknown: "Payment gateway trả về kết quả không xác định",

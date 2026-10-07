@@ -11,10 +11,12 @@ import {
   aliasedTable,
   and,
   bookings,
+  customers,
   type Database,
   eq,
   facilities,
   facilityAssignments,
+  getTableColumns,
   gt,
   inArray,
   lt,
@@ -27,6 +29,7 @@ import {
   users,
 } from "@metastorage/database";
 import { BOOKING_MESSAGES } from "./bookings.messages";
+import { bookingCheckInSlotStart, bookingReadFields } from "./bookings.projection";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
@@ -42,11 +45,11 @@ export class BookingsRepository {
         status: bookings.status,
         facilityId: bookings.facilityId,
         unitTypeId: bookings.unitTypeId,
-        checkInSlotStart: bookings.checkInSlotStart,
+        checkInSlotStart: bookingCheckInSlotStart,
         rentalEndAt: bookings.rentalEndAt,
       })
       .from(bookings)
-      .where(eq(bookings.qrTokenHash, qrTokenHash));
+      .where(and(eq(bookings.qrTokenHash, qrTokenHash), ne(bookings.status, "DRAFT")));
     if (!booking?.bookingCode) return null;
     return {
       bookingId: booking.id,
@@ -87,14 +90,14 @@ export class BookingsRepository {
   }
 
   async findFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
-    const conditions = [eq(bookings.facilityId, facilityId)];
+    const conditions = [eq(bookings.facilityId, facilityId), ne(bookings.status, "DRAFT")];
     if (status) {
       conditions.push(eq(bookings.status, status));
     }
 
     const rows = await this.db
       .select({
-        booking: bookings,
+        booking: bookingReadFields,
         facility: facilities,
         unitType: unitTypes,
         assignment: unitAssignments,
@@ -103,6 +106,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(
@@ -113,7 +117,7 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(bookings.checkInSlotStart);
+      .orderBy(bookingCheckInSlotStart);
 
     return rows.map(
       ({ booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff }) => {
@@ -175,7 +179,7 @@ export class BookingsRepository {
   async findBookingById(bookingId: string): Promise<BookingListItem | null> {
     const [row] = await this.db
       .select({
-        booking: bookings,
+        booking: bookingReadFields,
         facility: facilities,
         unitType: unitTypes,
         assignment: unitAssignments,
@@ -184,6 +188,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(
@@ -193,7 +198,7 @@ export class BookingsRepository {
       .leftJoin(storageUnits, eq(unitAssignments.physicalUnitId, storageUnits.id))
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
-      .where(eq(bookings.id, bookingId));
+      .where(and(eq(bookings.id, bookingId), ne(bookings.status, "DRAFT")));
 
     if (!row) return null;
 
@@ -252,14 +257,14 @@ export class BookingsRepository {
   }
 
   async findStaffTasks(staffUserId: string, facilityId?: string): Promise<BookingListItem[]> {
-    const conditions = [eq(bookings.assignedStaffId, staffUserId)];
+    const conditions = [eq(bookings.assignedStaffId, staffUserId), ne(bookings.status, "DRAFT")];
     if (facilityId) {
       conditions.push(eq(bookings.facilityId, facilityId));
     }
 
     const rows = await this.db
       .select({
-        booking: bookings,
+        booking: bookingReadFields,
         facility: facilities,
         unitType: unitTypes,
         assignment: unitAssignments,
@@ -268,6 +273,7 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
+      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(
@@ -278,7 +284,7 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(bookings.checkInSlotStart);
+      .orderBy(bookingCheckInSlotStart);
 
     return rows.map(
       ({ booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff }) => {
@@ -384,7 +390,7 @@ export class BookingsRepository {
           eq(unitAssignments.status, "ACTIVE"),
           ne(bookings.id, currentBookingId),
           notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-          lt(bookings.checkInSlotStart, rentalEnd),
+          lt(bookingCheckInSlotStart, rentalEnd.toISOString()),
           gt(bookings.rentalEndAt, checkInStart),
         ),
       );
@@ -415,7 +421,7 @@ export class BookingsRepository {
     return this.db.transaction(async (tx) => {
       // 1. Lock and fetch the booking
       const [booking] = await tx
-        .select()
+        .select({ ...getTableColumns(bookings), checkInSlotStart: bookingCheckInSlotStart })
         .from(bookings)
         .where(eq(bookings.id, bookingId))
         .for("update");
@@ -477,7 +483,7 @@ export class BookingsRepository {
             eq(unitAssignments.status, "ACTIVE"),
             ne(bookings.id, booking.id),
             notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-            lt(bookings.checkInSlotStart, booking.rentalEndAt),
+            lt(bookingCheckInSlotStart, booking.rentalEndAt.toISOString()),
             gt(bookings.rentalEndAt, booking.checkInSlotStart),
           ),
         )
@@ -535,13 +541,17 @@ export class BookingsRepository {
     return this.db.transaction(async (tx) => {
       // 1. Lock and fetch booking
       const [booking] = await tx
-        .select()
+        .select({ ...getTableColumns(bookings), checkInSlotStart: bookingCheckInSlotStart })
         .from(bookings)
         .where(eq(bookings.id, bookingId))
         .for("update");
 
       if (!booking) {
         return { error: "BOOKING_NOT_FOUND" as const };
+      }
+
+      if (booking.status === "DRAFT") {
+        return { error: "INVALID_BOOKING_STATUS" as const, currentStatus: booking.status };
       }
 
       // 2. Verify staff member exists and has active FACILITY_STAFF assignment for this facility
@@ -573,7 +583,7 @@ export class BookingsRepository {
       await tx
         .update(bookings)
         .set({ assignedStaffId: staffId, updatedAt: new Date() })
-        .where(eq(bookings.id, bookingId));
+        .where(and(eq(bookings.id, bookingId), ne(bookings.status, "DRAFT")));
 
       return { success: true as const, bookingId, staffId };
     });

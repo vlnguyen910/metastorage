@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 import type {
-  Booking,
   CheckInVerification,
   Database,
   Facility,
@@ -15,6 +14,7 @@ import {
   bookings,
   capacityAllocations,
   checkInVerifications,
+  customers,
   desc,
   eq,
   facilities,
@@ -23,12 +23,14 @@ import {
   unitAssignments,
   unitTypes,
 } from "@metastorage/database";
+import { bookingReadFields } from "../bookings/bookings.projection";
+import type { BookingReadRecord } from "../bookings/bookings.types";
 import type { CheckInPolicyEvaluation } from "./check-ins.policy";
 
 type QueryExecutor = Database | Parameters<Parameters<Database["transaction"]>[0]>[0];
 
 export type CheckInRecord = {
-  booking: Booking;
+  booking: BookingReadRecord;
   facility: Facility;
   unitType: UnitType;
   payment: Payment | null;
@@ -59,7 +61,7 @@ export class CheckInsRepository {
   ): Promise<CheckInRecord | null> {
     const [row] = await executor
       .select({
-        booking: bookings,
+        booking: bookingReadFields,
         facility: facilities,
         unitType: unitTypes,
         payment: payments,
@@ -68,6 +70,7 @@ export class CheckInsRepository {
         verification: checkInVerifications,
       })
       .from(bookings)
+      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(payments, eq(payments.bookingId, bookings.id))

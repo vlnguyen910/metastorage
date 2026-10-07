@@ -176,6 +176,13 @@
       "when": 1791360818009,
       "tag": "0024_lowly_leo",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791369266391,
+      "tag": "0025_robust_nightshade",
+      "breakpoints": true
     }
   ]
 }
