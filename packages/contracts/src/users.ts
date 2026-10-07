@@ -1,52 +1,50 @@
 import { z } from "zod";
 
-export enum UserRole {
-  STORAGE_CUSTOMER = "CUSTOMER",
-  FACILITY_STAFF = "FACILITY_STAFF",
-  FACILITY_MANAGER = "FACILITY_MANAGER",
-  BUSINESS_OPERATIONS_MANAGER = "BUSINESS_OPERATION_MANAGER",
-  SYSTEM_ADMINISTRATOR = "SYSTEM_ADMIN",
-}
+export const UserRole = {
+  STORAGE_CUSTOMER: "CUSTOMER",
+  FACILITY_STAFF: "FACILITY_STAFF",
+  FACILITY_MANAGER: "FACILITY_MANAGER",
+  BUSINESS_OPERATIONS_MANAGER: "BUSINESS_OPERATION_MANAGER",
+  SYSTEM_ADMINISTRATOR: "SYSTEM_ADMIN",
+} as const;
+export type UserRole = (typeof UserRole)[keyof typeof UserRole];
 
-export enum Permission {
-  VIEW_FACILITIES = "VIEW_FACILITIES",
-  CREATE_RESERVATION = "CREATE_RESERVATION",
-  VIEW_OWN_RESERVATIONS = "VIEW_OWN_RESERVATIONS",
-  VIEW_ASSIGNED_FACILITY = "VIEW_ASSIGNED_FACILITY",
-  MANAGE_STORAGE_UNITS = "MANAGE_STORAGE_UNITS",
-  HANDLE_CHECK_IN = "HANDLE_CHECK_IN",
-  HANDLE_RETURN = "HANDLE_RETURN",
-  VIEW_FACILITY_REPORTS = "VIEW_FACILITY_REPORTS",
-  VIEW_SYSTEM_REPORTS = "VIEW_SYSTEM_REPORTS",
-  MANAGE_USERS = "MANAGE_USERS",
-  MANAGE_ROLES = "MANAGE_ROLES",
-  VIEW_ACTIVITY_LOGS = "VIEW_ACTIVITY_LOGS",
-}
+export const UserStatus = {
+  ACTIVE: "ACTIVE",
+  INACTIVE: "INACTIVE",
+} as const;
+export type UserStatus = (typeof UserStatus)[keyof typeof UserStatus];
 
-export const UserRoleSchema = z.nativeEnum(UserRole);
+export const ROLES = Object.values(UserRole);
+export const USER_STATUS = Object.values(UserStatus);
 
-export const PermissionSchema = z.nativeEnum(Permission);
+export const UserRoleSchema = z.enum(UserRole);
+export const UserStatusSchema = z.enum(UserStatus);
 
-export const UserSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  email: z.string().email(),
-  phone: z.string().nullable().optional(),
+export const CreateUserInputSchema = z.strictObject({
+  name: z.string().trim().min(1).max(150),
+  email: z.string().trim().toLowerCase().email().max(255),
+  phone: z.string().trim().min(1).max(20).nullable().optional(),
+  password: z.string().min(8).max(128),
   role: UserRoleSchema,
+  status: UserStatusSchema,
+  emailVerified: z.boolean(),
 });
+export type CreateUserInput = z.infer<typeof CreateUserInputSchema>;
 
-export type User = z.infer<typeof UserSchema>;
-
-export const ApiUserSchema = z.object({
+export const UserIdParamsSchema = z.object({
   id: z.string().uuid(),
-  name: z.string(),
-  email: z.string().email(),
-  phone: z.string().nullable(),
-  role: UserRoleSchema,
-  status: z.enum(["ACTIVE", "INACTIVE"]),
-  assignedFacilityIds: z.array(z.string()).optional(),
-  createdAt: z.string().datetime(),
-  updatedAt: z.string().datetime(),
 });
 
-export type ApiUser = z.infer<typeof ApiUserSchema>;
+export const UserListQuerySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  offset: z.coerce.number().int().min(0).default(0),
+});
+
+export const UpdateUserRoleInputSchema = z.strictObject({ role: UserRoleSchema });
+export const UpdateUserStatusInputSchema = z.strictObject({ status: UserStatusSchema });
+export const UpdateUserInputSchema = z
+  .strictObject({ role: UserRoleSchema.optional(), status: UserStatusSchema.optional() })
+  .refine((data) => data.role !== undefined || data.status !== undefined);
+export type UpdateUserInput = z.infer<typeof UpdateUserInputSchema>;
+export type UpdateUserStatusInput = z.infer<typeof UpdateUserStatusInputSchema>;
