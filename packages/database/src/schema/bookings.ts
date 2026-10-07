@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   date,
   foreignKey,
   index,
@@ -15,7 +17,13 @@ import { facilities } from "./facilities";
 import { facilityUnitTypes } from "./facility-unit-types";
 import { users } from "./users";
 
-export const BOOKING_STATUSES = ["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"] as const;
+export const BOOKING_STATUSES = [
+  "DRAFT",
+  "CONFIRMED",
+  "CANCELLED",
+  "NO_SHOW",
+  "CHECKED_IN",
+] as const;
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 
 export const bookings = pgTable(
@@ -23,17 +31,13 @@ export const bookings = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingCode: varchar({ length: 50 }).unique(),
-    customerId: uuid()
-      .notNull()
-      .references(() => customers.id),
+    customerId: uuid().references(() => customers.id),
+    accessTokenHash: varchar({ length: 128 }),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id),
     unitTypeId: uuid().notNull(),
     requestedMonths: integer().notNull(),
-    contactName: varchar({ length: 150 }).notNull(),
-    contactEmail: varchar({ length: 320 }).notNull(),
-    contactPhone: varchar({ length: 30 }).notNull(),
     checkInDate: date("check_in_date").notNull(),
     checkInSlotId: uuid("check_in_slot_id")
       .notNull()
@@ -43,15 +47,21 @@ export const bookings = pgTable(
     rentalFeeAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     depositAmount: numeric({ precision: 14, scale: 2 }).notNull(),
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
-    currency: varchar({ length: 3 }).default("VND").notNull(),
-    status: varchar({ length: 50 }).default("CONFIRMED").notNull(),
+    status: varchar({ length: 50 }).default("DRAFT").notNull(),
     assignedStaffId: uuid("assigned_staff_id").references(() => users.id),
     qrTokenHash: varchar({ length: 255 }).unique(),
-    paidAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "bookings_valid_status",
+      sql`${table.status} IN ('DRAFT', 'CONFIRMED', 'CANCELLED', 'NO_SHOW', 'CHECKED_IN')`,
+    ),
+    check(
+      "bookings_customer_after_draft",
+      sql`${table.status} = 'DRAFT' OR ${table.customerId} IS NOT NULL`,
+    ),
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],
       foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.unitTypeId],
