@@ -3,6 +3,7 @@ import { accounts } from "./accounts";
 import { bookingConfirmationEmails } from "./booking-confirmation-emails";
 import { bookings } from "./bookings";
 import { capacityAllocations } from "./capacity-allocations";
+import { checkInSlots } from "./check-in-slots";
 import { checkInVerifications } from "./checkin-verifications";
 import { customers } from "./customers";
 import { facilities } from "./facilities";
@@ -132,6 +133,10 @@ export const capacityAllocationsRelations = relations(capacityAllocations, ({ on
 }));
 
 export const bookingsRelations = relations(bookings, ({ one, many }) => ({
+  checkInSlot: one(checkInSlots, {
+    fields: [bookings.checkInSlotId],
+    references: [checkInSlots.id],
+  }),
   customer: one(customers, {
     fields: [bookings.customerId],
     references: [customers.id],
@@ -229,4 +234,8 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
     fields: [accounts.userId],
     references: [users.id],
   }),
+}));
+
+export const checkInSlotsRelations = relations(checkInSlots, ({ many }) => ({
+  bookings: many(bookings),
 }));

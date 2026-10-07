@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: StoreX Design System
+name: MetaStorage Design System
 colors:
   primary: "#165F4D"
   primary-dark: "#0F493B"

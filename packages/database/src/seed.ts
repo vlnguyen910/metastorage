@@ -260,12 +260,48 @@ async function seed() {
     if (row) unitMap.set(row.code, row.id);
   }
 
-  console.log("6. Seeding bookings, payments and assignments...");
+  console.log("6. Seeding check-in slots...");
+  const checkInSlotsData = [
+    {
+      id: "20000000-0000-4000-8000-000000000001",
+      name: "Ca 1",
+      startTime: "09:00:00",
+      endTime: "10:30:00",
+    },
+    {
+      id: "20000000-0000-4000-8000-000000000002",
+      name: "Ca 2",
+      startTime: "10:30:00",
+      endTime: "12:00:00",
+    },
+    {
+      id: "20000000-0000-4000-8000-000000000003",
+      name: "Ca 3",
+      startTime: "14:00:00",
+      endTime: "15:30:00",
+    },
+    {
+      id: "20000000-0000-4000-8000-000000000004",
+      name: "Ca 4",
+      startTime: "15:30:00",
+      endTime: "17:00:00",
+    },
+  ];
+  for (const slot of checkInSlotsData) {
+    await queryClient`
+      INSERT INTO check_in_slots (id, name, start_time, end_time)
+      VALUES (${slot.id}, ${slot.name}, ${slot.startTime}, ${slot.endTime})
+      ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name,
+        start_time = EXCLUDED.start_time, end_time = EXCLUDED.end_time
+    `;
+  }
+
+  console.log("7. Seeding bookings, payments and assignments...");
   const now = Date.now();
   const bookingData = [
     {
       code: "BK-2026-0001",
-      scenario: "READY_FOR_CHECK_IN",
+      scenario: "CONFIRMED_TODAY",
       typeCode: "UT-2M",
       assignCode: "HCM-01-001",
       contactName: "Lê Thị Mai Linh",
@@ -274,9 +310,9 @@ async function seed() {
       months: 1,
       monthlyRate: 900000,
       status: "CONFIRMED",
-      // The customer can check in immediately after seeding.
-      startOffset: -30 * 60 * 1000,
-      endOffset: 90 * 60 * 1000,
+      // Eligibility depends on the fixed slot and grace period, not seed time.
+      dayOffset: 0,
+      slotIndex: 0,
       paidOffset: -2 * HOUR_MS,
       paymentStatus: "SUCCEEDED",
     },
@@ -292,8 +328,8 @@ async function seed() {
       monthlyRate: 1500000,
       status: "CONFIRMED",
       // The booking is prepared, but the customer must wait until tomorrow.
-      startOffset: DAY_MS,
-      endOffset: DAY_MS + 2 * HOUR_MS,
+      dayOffset: 1,
+      slotIndex: 1,
       paidOffset: -6 * HOUR_MS,
       paymentStatus: "SUCCEEDED",
     },
@@ -309,8 +345,8 @@ async function seed() {
       monthlyRate: 2100000,
       // This fixture represents the terminal state after the grace period.
       status: "NO_SHOW",
-      startOffset: -6 * HOUR_MS,
-      endOffset: -4 * HOUR_MS,
+      dayOffset: -1,
+      slotIndex: 2,
       paidOffset: -24 * HOUR_MS,
       paymentStatus: "SUCCEEDED",
     },
@@ -320,8 +356,13 @@ async function seed() {
     const typeId = typeMap.get(bookingSeed.typeCode);
     if (!typeId) continue;
 
-    const checkInSlotStart = new Date(now + bookingSeed.startOffset);
-    const checkInSlotEnd = new Date(now + bookingSeed.endOffset);
+    const slot = checkInSlotsData[bookingSeed.slotIndex];
+    if (!slot) throw new Error(`Check-in slot for ${bookingSeed.code} was not found`);
+    const checkInDate = new Date(now + bookingSeed.dayOffset * DAY_MS + 7 * HOUR_MS)
+      .toISOString()
+      .slice(0, 10);
+    const checkInSlotStart = new Date(`${checkInDate}T${slot.startTime}+07:00`);
+    const slotId = slot.id;
     const rentalEndAt = new Date(checkInSlotStart.getTime() + bookingSeed.months * 30 * DAY_MS);
     const rentalFeeAmount = bookingSeed.monthlyRate * bookingSeed.months;
     const depositAmount = bookingSeed.monthlyRate;
@@ -353,14 +394,14 @@ async function seed() {
     const [booking] = await queryClient`
       INSERT INTO bookings (
         booking_code, customer_id, facility_id, unit_type_id, requested_months,
-        contact_name, contact_email, contact_phone, check_in_slot_start, check_in_slot_end,
+        contact_name, contact_email, contact_phone, check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
         currency, status, paid_at
       )
       VALUES (
         ${bookingSeed.code}, ${customerProfile.id}, ${facHcm.id}, ${typeId}, ${bookingSeed.months},
         ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone},
-        ${checkInSlotStart.toISOString()}, ${checkInSlotEnd.toISOString()}, ${rentalEndAt.toISOString()},
+        ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
         ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount},
         'VND', ${bookingSeed.status}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
       )
@@ -372,8 +413,8 @@ async function seed() {
         contact_name = EXCLUDED.contact_name,
         contact_email = EXCLUDED.contact_email,
         contact_phone = EXCLUDED.contact_phone,
-        check_in_slot_start = EXCLUDED.check_in_slot_start,
-        check_in_slot_end = EXCLUDED.check_in_slot_end,
+        check_in_date = EXCLUDED.check_in_date,
+        check_in_slot_id = EXCLUDED.check_in_slot_id,
         rental_end_at = EXCLUDED.rental_end_at,
         monthly_rate_snapshot = EXCLUDED.monthly_rate_snapshot,
         rental_fee_amount = EXCLUDED.rental_fee_amount,
