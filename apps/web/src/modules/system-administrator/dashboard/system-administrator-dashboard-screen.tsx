@@ -1,6 +1,5 @@
-import { UserRole } from "@metastorage/contracts";
-import { RoleDashboard } from "@/features/dashboard/role-dashboard";
+import { AdminWorkspace } from "@/features/administration/admin-workspace";
 
 export function SystemAdministratorDashboardScreen() {
-  return <RoleDashboard role={UserRole.SYSTEM_ADMINISTRATOR} />;
+  return <AdminWorkspace section="dashboard" />;
 }
