@@ -11,7 +11,9 @@ function input(overrides: Record<string, unknown> = {}) {
   return {
     facilityId,
     unitTypeId,
-    checkInAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+    checkInAt: new Date(
+      `${new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}T09:00:00+07:00`,
+    ).toISOString(),
     durationMonths: 3,
     contact: {
       fullName: "Nguyen Van A",
@@ -27,6 +29,35 @@ function repository(overrides: Partial<ReservationsRepository> = {}) {
   return {
     findActiveContext: async () => ({ facility: {}, unitType: { monthlyPrice: 900000 } }),
     findOperatingHours: async () => ({ openTime: "00:00:00", closeTime: "23:59:59" }),
+    findCheckInSlot: async (checkInAt: Date) => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        hourCycle: "h23",
+      }).formatToParts(checkInAt);
+      const part = (name: string) => parts.find((entry) => entry.type === name)?.value;
+      const day = `${part("year")}-${part("month")}-${part("day")}`;
+      const time = `${part("hour")}:${part("minute")}`;
+      const windows = [
+        ["09:00", "10:30"],
+        ["10:30", "12:00"],
+        ["14:00", "15:30"],
+        ["15:30", "17:00"],
+      ];
+      const window = windows.find(([start, end]) => time >= start && time < end);
+      return window
+        ? {
+            id: "00000000-0000-0000-0000-000000000005",
+            checkInDate: day,
+            startsAt: new Date(`${day}T${window[0]}:00+07:00`),
+            endsAt: new Date(`${day}T${window[1]}:00+07:00`),
+          }
+        : null;
+    },
     countCapacity: async () => 1,
     createDraft: async (draft: NewReservationDraft) => ({
       id: "00000000-0000-0000-0000-000000000003",
@@ -86,7 +117,9 @@ describe("reservations service", () => {
 
   it("accepts check-in beyond 30 days with no advance booking limit", async () => {
     const service = new ReservationsService(repository());
-    const checkInAt = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
+    const checkInAt = new Date(
+      `${new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)}T09:00:00+07:00`,
+    ).toISOString();
     const draft = await service.createDraft(input({ checkInAt }));
     assert.equal(draft.checkInAt, checkInAt);
   });
@@ -113,7 +146,7 @@ describe("reservations service", () => {
       code: "CHECK_IN_OUTSIDE_HOURS",
       message: "Giờ nhận kho phải từ 08:00 đến 18:00 (giờ Việt Nam) tại chi nhánh này.",
     });
-    const draft = await service.createDraft(input({ checkInAt: `${day}T08:00:00+07:00` }));
+    const draft = await service.createDraft(input({ checkInAt: `${day}T09:00:00+07:00` }));
     assert.equal(draft.status, "DRAFT");
   });
 

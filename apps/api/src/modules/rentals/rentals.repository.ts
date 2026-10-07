@@ -11,6 +11,9 @@ import {
   unitTypes,
 } from "@metastorage/database";
 
+import { bookingReadFields } from "../bookings/bookings.projection";
+import type { BookingReadRecord } from "../bookings/bookings.types";
+
 const ACTIONS = {
   canCancel: false as const,
   canReschedule: false as const,
@@ -24,13 +27,14 @@ export class RentalsRepository {
     return this.db
       .select({
         rental: rentals,
-        booking: bookings,
+        booking: bookingReadFields,
         facility: facilities,
         unitType: unitTypes,
         physicalUnit: storageUnits,
       })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
+      .innerJoin(customers, eq(customers.id, bookings.customerId))
       .innerJoin(facilities, eq(facilities.id, rentals.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
@@ -61,7 +65,7 @@ type RentalRow = Awaited<ReturnType<RentalsRepository["listByCustomerId"]>>[numb
   ? never
   : {
       rental: typeof rentals.$inferSelect;
-      booking: typeof bookings.$inferSelect;
+      booking: BookingReadRecord;
       facility: typeof facilities.$inferSelect;
       unitType: typeof unitTypes.$inferSelect;
       physicalUnit: typeof storageUnits.$inferSelect | null;

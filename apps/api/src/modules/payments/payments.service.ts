@@ -6,8 +6,9 @@ import type {
   PaymentResult,
   PaymentStatusResponse,
 } from "@metastorage/contracts";
-import type { Booking, Payment } from "@metastorage/database";
+import type { Payment } from "@metastorage/database";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
+import type { BookingReadRecord } from "../bookings/bookings.types";
 import { MockPaymentGateway, type PaymentGateway } from "./payment-gateway";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 import type { PaymentsRepository, PricingSnapshot } from "./payments.repository";
@@ -405,9 +406,9 @@ export class PaymentsService {
 }
 
 function toPaymentResult(
-  payment: Pick<Payment, "id" | "provider" | "providerPaymentId"> & { paidAt: Date },
+  payment: Pick<Payment, "id" | "provider" | "providerPaymentId" | "currency"> & { paidAt: Date },
   booking: Pick<
-    Booking,
+    BookingReadRecord,
     | "id"
     | "bookingCode"
     | "customerId"
@@ -424,7 +425,6 @@ function toPaymentResult(
     | "rentalFeeAmount"
     | "depositAmount"
     | "totalAmount"
-    | "currency"
   > & { bookingCode: string; paidAt: Date },
   confirmation?: BookingConfirmation,
 ): PaymentResult {
@@ -448,7 +448,7 @@ function toPaymentResult(
       rentalFeeAmount: booking.rentalFeeAmount,
       depositAmount: booking.depositAmount,
       totalAmount: booking.totalAmount,
-      currency: booking.currency,
+      currency: payment.currency,
     },
   };
   return {

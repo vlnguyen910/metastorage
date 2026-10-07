@@ -1,6 +1,7 @@
 export const BOOKING_MESSAGES = {
   invalidQrOrBookingNotFound: "QR không hợp lệ hoặc Booking không tồn tại",
   bookingCannotCheckIn: "Booking không thể dùng để check-in",
+  bookingCannotAssignStaff: "Booking draft không thể phân công nhân viên",
   bookingDetailsNotFound: "Không tìm thấy thông tin đơn đặt chỗ (Booking)",
   bookingNotFound: "Không tìm thấy đơn đặt chỗ",
   physicalUnitNotFound: "Không tìm thấy ô kho vật lý (Physical Unit)",

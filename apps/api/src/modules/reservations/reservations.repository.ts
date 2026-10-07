@@ -17,10 +17,15 @@ import {
   storageUnits,
   unitTypes,
 } from "@metastorage/database";
+import { findLegacyCheckInSlot } from "../bookings/check-in-slot";
 import { RESERVATION_MESSAGES } from "./reservations.messages";
 
 export class ReservationsRepository {
   constructor(private readonly db: Database) {}
+
+  async findCheckInSlot(checkInAt: Date) {
+    return findLegacyCheckInSlot(this.db, checkInAt);
+  }
 
   async findActiveContext(facilityId: string, unitTypeId: string) {
     const [context] = await this.db

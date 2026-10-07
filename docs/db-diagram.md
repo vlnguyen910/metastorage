@@ -227,9 +227,6 @@ erDiagram
     varchar payment_code UK
     varchar hold_token_hash
     varchar idempotency_key UK
-    numeric monthly_rate_snapshot
-    numeric rental_fee_amount
-    numeric deposit_amount
     numeric total_amount
     varchar currency
     payment_status status
@@ -423,10 +420,13 @@ tracking and account-linking implementation.
 - Bookings retain nullable unique booking_code/qr_token_hash, nullable
   assigned_staff_id and nullable access_token_hash. Operational lists/details
   exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
-- The booking-only migration does not include the in-progress payment schema
-  simplification. Payment schema, checkout, worker, check-in, rental and seed
-  compatibility must be completed in subsequent module steps before applying
-  the complete refactor to the application database.
+- Payment stores the transaction total, currency, provider references, status
+  and paid_at; the monthly rate, rental fee and deposit breakdown belong to
+  Booking. The legacy checkout obtains this breakdown from the immutable draft
+  pricing snapshot when creating a confirmed Booking. Its readers project
+  customer contact and date/slot timestamps for the existing API contracts.
+  The payment simplification migration removes the redundant breakdown columns;
+  apply it together with the compatible backend before using the checkout.
 - Payment provider integration is selected through a gateway adapter. The
   current implementation provides a mock/test adapter; the production provider
   pricing policy uses the confirmed one-month deposit rule for checkout.
@@ -442,6 +442,9 @@ columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required
 `check_in_date` and `check_in_slot_id` instead of start/end timestamps. The
 calendar date is interpreted in the facility timezone (currently Vietnam time).
 Referenced slots cannot be deleted (`ON DELETE RESTRICT`). This change is
-represented in the database by date and slot. The booking module projects the
-start/end timestamps into its existing API DTOs in Asia/Ho_Chi_Minh time. Other
-module readers still require their own update.
+represented in the database by date and slot. Booking, payment, check-in and
+rental readers project the start/end timestamps into existing API DTOs in
+Asia/Ho_Chi_Minh time. Legacy draft requests map check_in_at to the containing
+slot (start inclusive, end exclusive) and normalize draft/hold dates to that
+slot's start before charging. A request outside the slots is rejected. Previously
+created drafts with an unnormalized schedule must be recreated before payment.

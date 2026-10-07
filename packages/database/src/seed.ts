@@ -394,25 +394,21 @@ async function seed() {
     const [booking] = await queryClient`
       INSERT INTO bookings (
         booking_code, customer_id, facility_id, unit_type_id, requested_months,
-        contact_name, contact_email, contact_phone, check_in_date, check_in_slot_id,
+        check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
-        currency, status, paid_at
+        status
       )
       VALUES (
         ${bookingSeed.code}, ${customerProfile.id}, ${facHcm.id}, ${typeId}, ${bookingSeed.months},
-        ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone},
         ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
         ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount},
-        'VND', ${bookingSeed.status}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
+        ${bookingSeed.status}
       )
       ON CONFLICT (booking_code) DO UPDATE SET
         customer_id = EXCLUDED.customer_id,
         facility_id = EXCLUDED.facility_id,
         unit_type_id = EXCLUDED.unit_type_id,
         requested_months = EXCLUDED.requested_months,
-        contact_name = EXCLUDED.contact_name,
-        contact_email = EXCLUDED.contact_email,
-        contact_phone = EXCLUDED.contact_phone,
         check_in_date = EXCLUDED.check_in_date,
         check_in_slot_id = EXCLUDED.check_in_slot_id,
         rental_end_at = EXCLUDED.rental_end_at,
@@ -420,9 +416,7 @@ async function seed() {
         rental_fee_amount = EXCLUDED.rental_fee_amount,
         deposit_amount = EXCLUDED.deposit_amount,
         total_amount = EXCLUDED.total_amount,
-        currency = EXCLUDED.currency,
         status = EXCLUDED.status,
-        paid_at = EXCLUDED.paid_at,
         updated_at = NOW()
       RETURNING id
     `;
@@ -432,13 +426,13 @@ async function seed() {
     await queryClient`
       INSERT INTO payments (
         id, booking_id, draft_id, hold_token_hash, customer_id, provider, provider_payment_id,
-        idempotency_key, payment_code, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
+        idempotency_key, payment_code, total_amount,
         currency, status, paid_at
       )
       VALUES (
         ${paymentId}, ${booking.id}, ${draftId}, ${`seed-hold-${bookingSeed.code}`}, ${customerProfile.id},
         'MOCK', ${`seed-payment-${bookingSeed.code}`}, ${`seed-idempotency-${bookingSeed.code}`}, ${`SEED${bookingSeed.code}`},
-        ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount}, 'VND',
+        ${totalAmount}, 'VND',
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
       )
       ON CONFLICT (id) DO UPDATE SET

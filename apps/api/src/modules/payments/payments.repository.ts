@@ -1,5 +1,5 @@
 import { createHash, createHmac, randomBytes } from "node:crypto";
-import type { Booking, Facility, UnitType } from "@metastorage/database";
+import type { Facility, UnitType } from "@metastorage/database";
 import {
   and,
   bookingConfirmationEmails,
@@ -16,6 +16,10 @@ import {
   sql,
   unitTypes,
 } from "@metastorage/database";
+import { AppError } from "../../common/errors/app-error";
+import { bookingReadFields } from "../bookings/bookings.projection";
+import type { BookingReadRecord } from "../bookings/bookings.types";
+import { findLegacyCheckInSlot } from "../bookings/check-in-slot";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 
 export type PricingSnapshot = {
@@ -42,7 +46,7 @@ function qrTokenForBooking(bookingId: string) {
 
 function toConfirmation(
   booking: Pick<
-    Booking,
+    BookingReadRecord,
     "id" | "bookingCode" | "checkInSlotStart" | "checkInSlotEnd" | "rentalEndAt" | "requestedMonths"
   >,
   facility: Pick<Facility, "name" | "address">,
@@ -90,6 +94,15 @@ export class PaymentsRepository {
         ),
       )
       .where(eq(reservationDrafts.id, draftId));
+    if (!checkout) return undefined;
+    const slot = await findLegacyCheckInSlot(this.db, checkout.draft.checkInAt);
+    if (!slot || slot.startsAt.getTime() !== checkout.draft.checkInAt.getTime()) {
+      throw new AppError(
+        PAYMENT_MESSAGES.checkoutScheduleRequiresNewDraft,
+        409,
+        "CHECK_IN_SLOT_CHANGED",
+      );
+    }
     return checkout;
   }
 
@@ -107,9 +120,15 @@ export class PaymentsRepository {
     holdTokenHash: string,
   ) {
     const [result] = await this.db
-      .select({ payment: payments, booking: bookings, facility: facilities, unitType: unitTypes })
+      .select({
+        payment: payments,
+        booking: bookingReadFields,
+        facility: facilities,
+        unitType: unitTypes,
+      })
       .from(payments)
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .innerJoin(customers, eq(customers.id, bookings.customerId))
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .where(
@@ -154,6 +173,15 @@ export class PaymentsRepository {
         .for("update");
       if (!checkout) return null;
 
+      const slot = await findLegacyCheckInSlot(tx, checkout.draft.checkInAt);
+      if (!slot || slot.startsAt.getTime() !== checkout.draft.checkInAt.getTime()) {
+        throw new AppError(
+          PAYMENT_MESSAGES.checkoutScheduleRequiresNewDraft,
+          409,
+          "CHECK_IN_SLOT_CHANGED",
+        );
+      }
+
       await tx
         .insert(customers)
         .values({
@@ -177,9 +205,6 @@ export class PaymentsRepository {
         paymentCode: input.paymentCode,
         providerPaymentId: `pending_${input.idempotencyKey}`,
         idempotencyKey: input.idempotencyKey,
-        monthlyRateSnapshot: input.pricing.monthlyRateSnapshot,
-        rentalFeeAmount: input.pricing.rentalFeeAmount,
-        depositAmount: input.pricing.depositAmount,
         totalAmount: input.pricing.totalAmount,
         currency: input.pricing.currency,
         status: "PENDING" as const,
@@ -212,9 +237,15 @@ export class PaymentsRepository {
 
   async findCompletedByPaymentId(paymentId: string) {
     const [result] = await this.db
-      .select({ payment: payments, booking: bookings, facility: facilities, unitType: unitTypes })
+      .select({
+        payment: payments,
+        booking: bookingReadFields,
+        facility: facilities,
+        unitType: unitTypes,
+      })
       .from(payments)
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
+      .innerJoin(customers, eq(customers.id, bookings.customerId))
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .where(eq(payments.id, paymentId));
@@ -343,6 +374,17 @@ export class PaymentsRepository {
         .for("update");
       if (!checkout) return null;
 
+      const pricing = checkout.draft.pricing;
+      if (!pricing) throw new Error(PAYMENT_MESSAGES.pricingNotConfigured);
+      const slot = await findLegacyCheckInSlot(tx, checkout.draft.checkInAt);
+      if (!slot || slot.startsAt.getTime() !== checkout.draft.checkInAt.getTime()) {
+        throw new AppError(
+          PAYMENT_MESSAGES.checkoutScheduleRequiresNewDraft,
+          409,
+          "CHECK_IN_SLOT_CHANGED",
+        );
+      }
+
       const [booking] = await tx
         .insert(bookings)
         .values({
@@ -351,18 +393,14 @@ export class PaymentsRepository {
           facilityId: checkout.draft.facilityId,
           unitTypeId: checkout.draft.unitTypeId,
           requestedMonths: checkout.draft.durationMonths,
-          contactName: checkout.draft.contactName,
-          contactEmail: checkout.draft.contactEmail,
-          contactPhone: checkout.draft.contactPhone,
-          checkInSlotStart: checkout.draft.checkInAt,
+          checkInDate: slot.checkInDate,
+          checkInSlotId: slot.id,
           rentalEndAt: checkout.draft.rentalEndAt,
-          monthlyRateSnapshot: payment.monthlyRateSnapshot,
-          rentalFeeAmount: payment.rentalFeeAmount,
-          depositAmount: payment.depositAmount,
+          monthlyRateSnapshot: pricing.monthlyRateSnapshot,
+          rentalFeeAmount: pricing.rentalFeeAmount,
+          depositAmount: pricing.depositAmount,
           totalAmount: payment.totalAmount,
-          currency: payment.currency,
           status: "CONFIRMED",
-          paidAt: input.paidAt,
         })
         .returning();
       if (!booking) throw new Error(PAYMENT_MESSAGES.failedToCreateBookingAfterPayment);
@@ -404,10 +442,17 @@ export class PaymentsRepository {
         })
         .where(eq(capacityAllocations.id, input.holdId));
 
+      const [bookingRecord] = await tx
+        .select(bookingReadFields)
+        .from(bookings)
+        .innerJoin(customers, eq(customers.id, bookings.customerId))
+        .where(eq(bookings.id, booking.id));
+      if (!bookingRecord) throw new Error(PAYMENT_MESSAGES.paymentMissingBookingInformation);
+
       return {
         payment: updatedPayment,
-        booking,
-        confirmation: toConfirmation(booking, checkout.facility, checkout.unitType),
+        booking: bookingRecord,
+        confirmation: toConfirmation(bookingRecord, checkout.facility, checkout.unitType),
       };
     });
   }

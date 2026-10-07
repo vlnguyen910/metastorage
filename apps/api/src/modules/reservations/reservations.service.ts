@@ -54,7 +54,7 @@ export class ReservationsService {
     const context = await this.repository.findActiveContext(input.facilityId, input.unitTypeId);
     if (!context) throw new NotFoundError(RESERVATION_MESSAGES.facilityOrUnitTypeUnavailable);
 
-    const checkInAt = new Date(input.checkInAt);
+    let checkInAt = new Date(input.checkInAt);
     const now = new Date();
     if (Number.isNaN(checkInAt.getTime()) || checkInAt <= now) {
       throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
@@ -65,6 +65,22 @@ export class ReservationsService {
     const openTime = hours?.openTime ?? DEFAULT_OPEN_TIME;
     const closeTime = hours?.closeTime ?? DEFAULT_CLOSE_TIME;
     if (!isWithinHours(local.time, openTime, closeTime)) {
+      throw new AppError(
+        RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+        400,
+        "CHECK_IN_OUTSIDE_HOURS",
+      );
+    }
+
+    const slot = await this.repository.findCheckInSlot(checkInAt);
+    if (!slot) {
+      throw new AppError(RESERVATION_MESSAGES.checkInOutsideSlots, 400, "CHECK_IN_OUTSIDE_SLOTS");
+    }
+    checkInAt = slot.startsAt;
+    if (checkInAt <= now) {
+      throw new AppError(RESERVATION_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+    }
+    if (!isWithinHours(parseParts(checkInAt).time, openTime, closeTime)) {
       throw new AppError(
         RESERVATION_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
         400,

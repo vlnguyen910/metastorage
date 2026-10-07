@@ -32,6 +32,7 @@ export const payments = pgTable(
     providerPaymentId: varchar({ length: 128 }).notNull(),
     idempotencyKey: varchar({ length: 128 }).notNull(),
     totalAmount: numeric({ precision: 14, scale: 2 }).notNull(),
+    currency: varchar({ length: 3 }).notNull(),
     status: paymentStatusEnum().notNull(),
     paidAt: timestamp({ withTimezone: true }),
     createdAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
