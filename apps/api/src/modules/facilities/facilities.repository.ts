@@ -1,5 +1,6 @@
 import {
   and,
+  asc,
   type Database,
   desc,
   eq,
@@ -85,7 +86,7 @@ export class FacilitiesRepository {
       .where(eq(facilities.isActive, isActive))
       .limit(limit)
       .offset(offset)
-      .orderBy(desc(facilities.createdAt));
+      .orderBy(asc(facilities.createdAt));
   }
 
   async listAccessible(
