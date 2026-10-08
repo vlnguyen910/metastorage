@@ -8,16 +8,16 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
-import { UnitTypesRepository } from "../unit-types/unit-types.repository";
-import { UnitTypesService } from "../unit-types/unit-types.service";
+import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
+import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { FacilitiesRepository } from "./facilities.repository";
 import { FacilitiesService } from "./facilities.service";
 
 export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const service = new FacilitiesService(facilitiesRepository);
-  const unitTypesService = new UnitTypesService(
-    new UnitTypesRepository(fastify.db),
+  const unitTypesService = new FacilityUnitTypesService(
+    new FacilityUnitTypesRepository(fastify.db),
     facilitiesRepository,
   );
 

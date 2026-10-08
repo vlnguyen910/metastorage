@@ -1,10 +1,8 @@
 import {
   and,
-  asc,
   type Database,
   desc,
   eq,
-  facilityUnitTypes,
   type NewUnitType,
   type UnitType,
   unitTypes,
@@ -41,24 +39,6 @@ export class UnitTypesRepository {
       .limit(limit)
       .offset(offset)
       .orderBy(desc(unitTypes.createdAt), desc(unitTypes.id));
-  }
-
-  async listByFacility(facilityId: string, limit: number, offset: number): Promise<UnitType[]> {
-    const rows = await this.db
-      .select({ unitType: unitTypes })
-      .from(facilityUnitTypes)
-      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
-      .where(
-        and(
-          eq(facilityUnitTypes.facilityId, facilityId),
-          eq(facilityUnitTypes.isActive, true),
-          eq(unitTypes.isActive, true),
-        ),
-      )
-      .orderBy(asc(unitTypes.monthlyPrice))
-      .limit(limit)
-      .offset(offset);
-    return rows.map((row) => row.unitType);
   }
 
   async update(id: string, data: UpdateUnitTypeData): Promise<UnitType | undefined> {

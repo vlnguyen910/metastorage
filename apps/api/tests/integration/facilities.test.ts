@@ -4,8 +4,8 @@ import Fastify from "fastify";
 import { serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import { setupErrorHandler } from "../../src/common/errors/error-handler";
 import { FacilitiesRepository } from "../../src/modules/facilities/facilities.repository";
+import { FacilityUnitTypesRepository } from "../../src/modules/unit-types/facility-unit-types.repository";
 import { UNIT_TYPE_MESSAGES } from "../../src/modules/unit-types/unit-types.messages";
-import { UnitTypesRepository } from "../../src/modules/unit-types/unit-types.repository";
 
 // These GET routes are public. Keep the auth provider out of this suite and fail
 // if either route unexpectedly attempts to retrieve a session.
@@ -49,7 +49,7 @@ const unitType: UnitType = {
 
 const getFacilities = spyOn(FacilitiesRepository.prototype, "getAllFacilities");
 const findFacility = spyOn(FacilitiesRepository.prototype, "findById");
-const getUnitTypes = spyOn(UnitTypesRepository.prototype, "listByFacility");
+const getUnitTypes = spyOn(FacilityUnitTypesRepository.prototype, "listByFacility");
 const app = Fastify();
 
 beforeAll(async () => {
