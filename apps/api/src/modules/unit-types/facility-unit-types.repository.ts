@@ -5,6 +5,7 @@ import {
   eq,
   type FacilityUnitType,
   facilityUnitTypes,
+  type UnitType,
   unitTypes,
 } from "@metastorage/database";
 import { UNIT_TYPE_MESSAGES } from "./unit-types.messages";
@@ -48,6 +49,24 @@ export class FacilityUnitTypesRepository {
       .orderBy(asc(unitTypes.code))
       .limit(limit)
       .offset(offset);
+  }
+
+  async listByFacility(facilityId: string, limit: number, offset: number): Promise<UnitType[]> {
+    const rows = await this.db
+      .select({ unitType: unitTypes })
+      .from(facilityUnitTypes)
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+      .where(
+        and(
+          eq(facilityUnitTypes.facilityId, facilityId),
+          eq(facilityUnitTypes.isActive, true),
+          eq(unitTypes.isActive, true),
+        ),
+      )
+      .orderBy(asc(unitTypes.monthlyPrice))
+      .limit(limit)
+      .offset(offset);
+    return rows.map((row) => row.unitType);
   }
 
   async setActive(
