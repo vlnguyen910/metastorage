@@ -6,7 +6,7 @@ import { successResponse } from "../../common/response/api-response";
 import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
-import { FacilitiesRepository } from "../facilities/facilities.repository";
+import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { BookingsRepository } from "./bookings.repository";
 import {
   AssignPhysicalUnitBodySchema,
@@ -21,7 +21,7 @@ import { BookingsService } from "./bookings.service";
 
 export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const bookingsRepository = new BookingsRepository(fastify.db);
-  const facilitiesRepository = new FacilitiesRepository(fastify.db);
+  const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
   const service = new BookingsService(bookingsRepository);
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
@@ -77,7 +77,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       if (!user) throw new UnauthorizedError();
       const result = await service.verifyQr((request.body as BookingQrVerificationInput).qrToken);
       const scope = getFacilityAccessScope(user);
-      await requireAssignedFacility(facilitiesRepository, result.facilityId, scope, [
+      await requireAssignedFacility(assignmentsRepository, result.facilityId, scope, [
         "FACILITY_MANAGER",
         "FACILITY_STAFF",
       ]);
@@ -120,7 +120,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
       if (!user) throw new UnauthorizedError();
       const scope = getFacilityAccessScope(user);
-      await requireAssignedFacility(facilitiesRepository, booking.facilityId, scope, [
+      await requireAssignedFacility(assignmentsRepository, booking.facilityId, scope, [
         "FACILITY_MANAGER",
         "FACILITY_STAFF",
       ]);
@@ -145,7 +145,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       const user = request.user;
       if (!user) throw new UnauthorizedError();
       const scope = getFacilityAccessScope(user);
-      await requireAssignedFacility(facilitiesRepository, booking.facilityId, scope, [
+      await requireAssignedFacility(assignmentsRepository, booking.facilityId, scope, [
         "FACILITY_MANAGER",
       ]);
 
@@ -173,7 +173,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       const scope = getFacilityAccessScope(user);
 
       const booking = await service.getBookingById(id);
-      await requireAssignedFacility(facilitiesRepository, booking.facilityId, scope, [
+      await requireAssignedFacility(assignmentsRepository, booking.facilityId, scope, [
         "FACILITY_MANAGER",
       ]);
 
@@ -201,7 +201,7 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
       const scope = getFacilityAccessScope(user);
 
       const booking = await service.getBookingById(id);
-      await requireAssignedFacility(facilitiesRepository, booking.facilityId, scope, [
+      await requireAssignedFacility(assignmentsRepository, booking.facilityId, scope, [
         "FACILITY_MANAGER",
       ]);
 

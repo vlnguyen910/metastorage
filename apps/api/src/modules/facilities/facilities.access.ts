@@ -2,7 +2,7 @@ import type { FacilityAssignmentRole } from "@metastorage/contracts";
 import type { Role } from "@metastorage/database";
 import { ForbiddenError } from "../../common/errors/app-error";
 import { FACILITY_MESSAGES } from "./facilities.messages";
-import type { FacilitiesRepository } from "./facilities.repository";
+import type { FacilityAssignmentsRepository } from "./facility-assignments.repository";
 
 export type AssignedFacilityScope = {
   kind: "assigned";
@@ -53,7 +53,7 @@ export function getFacilityAccessScope(user: FacilityUser): FacilityScope {
 }
 
 export async function requireAssignedFacility(
-  repository: FacilitiesRepository,
+  repository: FacilityAssignmentsRepository,
   facilityId: string,
   scope: FacilityScope,
   allowedRoles?: readonly FacilityAssignmentRole[],
