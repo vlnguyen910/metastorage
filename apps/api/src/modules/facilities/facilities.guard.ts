@@ -5,7 +5,7 @@ import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "./facilities.access";
 import type { FacilityContext, RequireFacilityAccessOptions } from "./facilities.guard.types";
 import { FACILITY_MESSAGES } from "./facilities.messages";
-import { FacilitiesRepository } from "./facilities.repository";
+import { FacilityAssignmentsRepository } from "./facility-assignments.repository";
 
 const facilityContextPluginCallback: FastifyPluginAsync = async (fastify) => {
   fastify.decorateRequest("facilityContext", null);
@@ -42,9 +42,9 @@ export function requireFacilityAccess(options: RequireFacilityAccessOptions = {}
     }
 
     const scope = getFacilityAccessScope(currentUser);
-    const facilitiesRepository = new FacilitiesRepository(request.server.db);
+    const assignmentsRepository = new FacilityAssignmentsRepository(request.server.db);
     await requireAssignedFacility(
-      facilitiesRepository,
+      assignmentsRepository,
       facilityId,
       scope,
       options.allowedFacilityRoles,
