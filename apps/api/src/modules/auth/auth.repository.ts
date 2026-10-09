@@ -7,11 +7,20 @@ import {
   gt,
   isNull,
   or,
+  sql,
   users,
 } from "@metastorage/database";
 
 export class AuthRepository {
   constructor(private readonly db: Database) {}
+
+  async findUserByEmail(email: string) {
+    const [user] = await this.db
+      .select({ id: users.id })
+      .from(users)
+      .where(sql`lower(btrim(${users.email})) = ${email.trim().toLowerCase()}`);
+    return user ?? null;
+  }
 
   async findSessionUserById(id: string) {
     const [user] = await this.db

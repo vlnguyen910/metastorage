@@ -1,4 +1,5 @@
 export const AUTH_MESSAGES = {
+  accountRecovery: "Email đã có tài khoản. Vui lòng đăng nhập hoặc khôi phục mật khẩu.",
   customerSignupEmailDeliveryUnavailable: "Customer signup email delivery is not configured.",
   noTrustedWebOriginForEmailVerification:
     "No trusted web origin is configured for email verification.",
