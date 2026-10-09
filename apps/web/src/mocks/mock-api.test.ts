@@ -30,6 +30,8 @@ describe("mock reservation API", () => {
       password: "Demo@123",
     });
     tokens = session;
+    expect(session.user.assignedFacilityId).toBeNull();
+    expect((await client.auth.me()).assignedFacilityId).toBeNull();
   });
 
   it("searches facilities and returns aggregated availability", async () => {
@@ -111,13 +113,15 @@ describe("mock reservation API", () => {
     expect(tasks.some((t) => t.bookingCode === "BK-2026-0001")).toBe(true);
   });
 
-  it("resolves FM facility assignments and handles multi-facility dashboard scoping", async () => {
+  it("returns one assigned Facility in login/me and scopes each manager dashboard", async () => {
     // 1. Single facility FM login and assignment retrieval
     const fmSession = await client.auth.login({
       email: "manager@metastorage.test",
       password: "Demo@123",
     });
     tokens = fmSession;
+    expect(fmSession.user.assignedFacilityId).toBe("fac-hcm-central");
+    expect((await client.auth.me()).assignedFacilityId).toBe("fac-hcm-central");
 
     const myAssignments = await client.facilities.myAssignments();
     expect(myAssignments).toHaveLength(1);
@@ -135,7 +139,7 @@ describe("mock reservation API", () => {
       client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-dn-riverside"),
     ).rejects.toMatchObject({ response: { status: 403 } });
 
-    // 2. Multi-facility FM login
+    // 2. Another manager works at Hanoi only
     const multiSession = await client.auth.login({
       email: "multi-manager@metastorage.test",
       password: "Demo@123",
@@ -143,12 +147,13 @@ describe("mock reservation API", () => {
     tokens = multiSession;
 
     const multiAssignments = await client.facilities.myAssignments();
-    expect(multiAssignments).toHaveLength(2);
-    expect(multiAssignments.map((a) => a.facilityId)).toEqual(["fac-hcm-central", "fac-hn-west"]);
-
-    // Can get dashboard for both assigned facilities
-    const hcmDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hcm-central");
-    expect(hcmDashboard.facilityName).toBe("metastorage Sài Gòn Central");
+    expect(multiAssignments).toHaveLength(1);
+    expect(multiAssignments[0]?.facilityId).toBe("fac-hn-west");
+    expect(multiSession.user.assignedFacilityId).toBe("fac-hn-west");
+    expect((await client.auth.me()).assignedFacilityId).toBe("fac-hn-west");
+    await expect(
+      client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hcm-central"),
+    ).rejects.toMatchObject({ response: { status: 403 } });
 
     const hnDashboard = await client.dashboards.get(UserRole.FACILITY_MANAGER, "fac-hn-west");
     expect(hnDashboard.facilityName).toBe("metastorage Hà Nội West");

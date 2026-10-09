@@ -323,6 +323,20 @@ erDiagram
   `capacity_allocation_status`: `ACTIVE`, `RELEASED`, `EXPIRED`.
 - Composite unique indexes exist on `facility_assignments(user_id, facility_id)` and
   `facility_operating_hours(facility_id, day_of_week)`.
+- Each User may work at at most one Facility at a time. A partial unique index
+  `facility_assignments_active_user_idx` on `user_id WHERE is_active = true`
+  enforces this rule, including concurrent assignments. Inactive assignments are
+  retained. End or revoke the current assignment before assigning another Facility;
+  elapsed `ended_at` rows must be deactivated before reassigning. The API does not
+  automatically revoke a still-effective assignment to another Facility.
+- Login through the shared API client and `GET /api/auth/me` include
+  `user.assignedFacilityId`: the current assignment's Facility ID or `null`.
+  Only assignments matching the User's Facility Staff/Manager role, with
+  `is_active = true` and no elapsed `ended_at`, qualify. This field is derived,
+  not a new column on User or Session, and does not replace backend scope checks.
+- Before applying the single-Facility index migration, check for Users with
+  multiple `is_active = true` assignments. Resolve them explicitly before
+  migrating; the migration must not choose a Facility or discard history.
 - `unit_types.code` is globally unique. `facility_unit_types` has a composite
   primary key `(facility_id, unit_type_id)` and an index on `unit_type_id`.
 - `storage_units`, `bookings`, `reservation_drafts` and `capacity_allocations`

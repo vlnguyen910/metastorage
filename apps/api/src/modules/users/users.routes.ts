@@ -9,6 +9,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { successResponse } from "../../common/response/api-response";
 import { requireAuth, requireRole } from "../auth/auth.guard";
+import { AuthRepository } from "../auth/auth.repository";
 import { AuthService } from "../auth/auth.service";
 import { USER_MESSAGES } from "./users.messages";
 import { UsersRepository } from "./users.repository";
@@ -16,7 +17,7 @@ import { UsersService } from "./users.service";
 
 export const usersRoutes: FastifyPluginAsync = async (fastify) => {
   const repository = new UsersRepository(fastify.db);
-  const service = new UsersService(repository, new AuthService());
+  const service = new UsersService(repository, new AuthService(new AuthRepository(fastify.db)));
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 

@@ -7,6 +7,7 @@ import { Can } from "./permissions";
 
 const customerSession: Session = {
   user: {
+    assignedFacilityId: null,
     id: "customer-1",
     name: "Test Customer",
     email: "customer@test.vn",

@@ -3,6 +3,7 @@ import {
   type ApiErrorBody,
   type ApiErrorCode,
   type Session,
+  type SessionUser,
   StorageUnitStatus,
   type UnitAvailabilityOption,
   type User,
@@ -45,10 +46,20 @@ export function currentUser(config: AxiosRequestConfig, database: MockDatabase):
 export function createSession(user: MockUser): Session {
   const timestamp = Date.now();
   return {
-    user: publicUser(user),
+    user: sessionUser(user),
     accessToken: `access:${user.id}:${timestamp}`,
     refreshToken: `refresh:${user.id}:${timestamp}`,
     expiresAt: new Date(timestamp + 30 * 60 * 1000).toISOString(),
+  };
+}
+
+export function sessionUser(user: MockUser): SessionUser {
+  return {
+    ...publicUser(user),
+    assignedFacilityId:
+      user.role === "FACILITY_STAFF" || user.role === "FACILITY_MANAGER"
+        ? (user.assignedFacilityIds[0] ?? null)
+        : null,
   };
 }
 

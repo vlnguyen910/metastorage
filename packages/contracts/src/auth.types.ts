@@ -1,7 +1,9 @@
 import type { User } from "./users";
 
+export type SessionUser = User & { assignedFacilityId: string | null };
+
 export interface CookieSession {
-  user: User;
+  user: SessionUser;
 }
 
 export interface Session extends CookieSession {

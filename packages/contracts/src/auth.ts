@@ -27,4 +27,4 @@ export const CustomerSignUpInputSchema = z
 
 export type CustomerSignUpInput = z.infer<typeof CustomerSignUpInputSchema>;
 
-export type { CookieSession, LoginInput, Session } from "./auth.types";
+export type { CookieSession, LoginInput, Session, SessionUser } from "./auth.types";

@@ -39,6 +39,7 @@ import type {
   ReservationQuoteInput,
   Session,
   SessionTokens,
+  SessionUser,
   UnitAvailabilityOption,
   UnitTypeListParams,
   User,
@@ -111,7 +112,7 @@ function unwrap<T>(response: { data: ApiEnvelope<T> }): T {
   return response.data.data;
 }
 
-function toSession(user: User): CookieSession {
+function toSession(user: SessionUser): CookieSession {
   return { user };
 }
 
@@ -126,7 +127,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
 
         await http.post("/auth/sign-in/email", input);
         try {
-          const user = await http.get<ApiEnvelope<User>>("/users/me").then(unwrap);
+          const user = await http.get<ApiEnvelope<SessionUser>>("/auth/me").then(unwrap);
           return toSession(user);
         } catch (error) {
           await http.post("/auth/sign-out").catch(() => undefined);
@@ -138,7 +139,7 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           return http.get<ApiEnvelope<Session["user"]>>("/auth/me").then(unwrap);
         }
 
-        const user = await http.get<ApiEnvelope<User>>("/users/me").then(unwrap);
+        const user = await http.get<ApiEnvelope<SessionUser>>("/auth/me").then(unwrap);
         return toSession(user).user;
       },
       logout: () =>

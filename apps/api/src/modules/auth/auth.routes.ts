@@ -1,19 +1,30 @@
 import { CustomerSignUpInputSchema } from "@metastorage/contracts";
 import { fromNodeHeaders } from "better-auth/node";
 import type { FastifyPluginAsync } from "fastify";
-import { AppError, ConflictError } from "../../common/errors/app-error";
+import { AppError, ConflictError, UnauthorizedError } from "../../common/errors/app-error";
+import { successResponse } from "../../common/response/api-response";
 import { env } from "../../config/env";
 import { CUSTOMER_REGISTRATION_MESSAGES } from "../customers/customer-registration.messages";
 import { CustomerRegistrationRepository } from "../customers/customer-registration.repository";
 import { CustomerRegistrationService } from "../customers/customer-registration.service";
 import { auth } from "./auth";
+import { requireAuth } from "./auth.guard";
 import { AUTH_MESSAGES } from "./auth.messages";
+import { AuthRepository } from "./auth.repository";
+import { AuthService } from "./auth.service";
 import { getCustomerSignupCallbackUrl } from "./customer-signup.callback";
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
+  const service = new AuthService(new AuthRepository(fastify.db));
   const customerRegistration = new CustomerRegistrationService(
     new CustomerRegistrationRepository(fastify.db),
   );
+
+  fastify.get("/me", { preHandler: [requireAuth] }, async (request, reply) => {
+    // requireAuth guarantees that the request has an authenticated User.
+    if (!request.user) throw new UnauthorizedError(AUTH_MESSAGES.loginRequired);
+    return reply.send(successResponse(await service.getSessionUser(request.user.id)));
+  });
 
   fastify.post("/customer-sign-up", async (request, reply) => {
     const input = CustomerSignUpInputSchema.parse(request.body);
