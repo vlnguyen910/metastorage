@@ -113,3 +113,31 @@ export const AssignPhysicalUnitInputSchema = z.object({
 });
 
 export type AssignPhysicalUnitInput = z.infer<typeof AssignPhysicalUnitInputSchema>;
+
+export const VerifyQrBodySchema = BookingQrVerificationInputSchema;
+
+export const FacilityBookingsParamsSchema = z.object({
+  facilityId: z.string().uuid(),
+});
+export type FacilityBookingsParams = z.infer<typeof FacilityBookingsParamsSchema>;
+
+export const BookingIdParamsSchema = z.object({
+  id: z.string().uuid(),
+});
+export type BookingIdParams = z.infer<typeof BookingIdParamsSchema>;
+
+export const AssignPhysicalUnitBodySchema = AssignPhysicalUnitInputSchema;
+export type AssignPhysicalUnitBody = z.infer<typeof AssignPhysicalUnitBodySchema>;
+
+export const BookingListQuerySchema = z.object({
+  status: BookingQrVerificationResultSchema.shape.status.optional(),
+});
+export type BookingListQuery = z.infer<typeof BookingListQuerySchema>;
+
+export const AssignStaffBodySchema = AssignBookingStaffInputSchema;
+export type AssignStaffBody = z.infer<typeof AssignStaffBodySchema>;
+
+export const StaffTasksQuerySchema = z.object({
+  facilityId: z.string().uuid().optional(),
+});
+export type StaffTasksQuery = z.infer<typeof StaffTasksQuerySchema>;

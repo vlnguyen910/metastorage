@@ -11,6 +11,7 @@ import {
   aliasedTable,
   and,
   bookings,
+  checkInSlots,
   customers,
   type Database,
   eq,
@@ -22,14 +23,15 @@ import {
   lt,
   ne,
   notInArray,
+  payments,
   rentals,
+  sql,
   storageUnits,
   unitAssignments,
   unitTypes,
   users,
 } from "@metastorage/database";
 import { BOOKING_MESSAGES } from "./bookings.messages";
-import { bookingCheckInSlotStart, bookingReadFields } from "./bookings.projection";
 
 const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
@@ -37,6 +39,8 @@ export class BookingsRepository {
   constructor(private readonly db: Database) {}
 
   async findByQrToken(qrToken: string): Promise<BookingQrVerificationResult | null> {
+    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
     const qrTokenHash = createHash("sha256").update(qrToken).digest("hex");
     const [booking] = await this.db
       .select({
@@ -45,10 +49,11 @@ export class BookingsRepository {
         status: bookings.status,
         facilityId: bookings.facilityId,
         unitTypeId: bookings.unitTypeId,
-        checkInSlotStart: bookingCheckInSlotStart,
+        checkInSlotStart: slotStart,
         rentalEndAt: bookings.rentalEndAt,
       })
       .from(bookings)
+      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .where(and(eq(bookings.qrTokenHash, qrTokenHash), ne(bookings.status, "DRAFT")));
     if (!booking?.bookingCode) return null;
     return {
@@ -95,9 +100,34 @@ export class BookingsRepository {
       conditions.push(eq(bookings.status, status));
     }
 
+    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+    const slotEnd = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+    const paidPayments = this.db
+      .select({
+        bookingId: payments.bookingId,
+        paidAt: sql<Date | null>`min(${payments.paidAt})`
+          .mapWith((value) => (value === null ? null : new Date(value)))
+          .as("paid_at"),
+      })
+      .from(payments)
+      .where(inArray(payments.status, ["SUCCEEDED", "REFUNDED"]))
+      .groupBy(payments.bookingId)
+      .as("booking_payments");
+
     const rows = await this.db
       .select({
-        booking: bookingReadFields,
+        booking: bookings,
+        customer: {
+          id: customers.id,
+          fullName: customers.fullName,
+          email: customers.email,
+          phone: customers.phone,
+        },
+        checkInSlotStart: slotStart,
+        checkInSlotEnd: slotEnd,
+        paidAt: paidPayments.paidAt,
         facility: facilities,
         unitType: unitTypes,
         assignment: unitAssignments,
@@ -107,6 +137,8 @@ export class BookingsRepository {
       })
       .from(bookings)
       .innerJoin(customers, eq(bookings.customerId, customers.id))
+      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
+      .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(
@@ -117,10 +149,22 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(bookingCheckInSlotStart);
+      .orderBy(slotStart);
 
     return rows.map(
-      ({ booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff }) => {
+      ({
+        booking,
+        customer,
+        checkInSlotStart,
+        checkInSlotEnd,
+        paidAt,
+        facility,
+        unitType,
+        assignment,
+        assignedUnit,
+        assigner,
+        assignedStaff,
+      }) => {
         let activeAssignment: PhysicalUnitAssignment | null = null;
         if (assignment && assignedUnit) {
           activeAssignment = {
@@ -157,17 +201,17 @@ export class BookingsRepository {
           unitTypeId: booking.unitTypeId,
           unitTypeName: unitType.name,
           unitTypeSizeLabel: unitType.sizeLabel,
-          customerId: booking.customerId,
-          contactName: booking.contactName,
-          contactEmail: booking.contactEmail,
-          contactPhone: booking.contactPhone,
-          checkInSlotStart: booking.checkInSlotStart.toISOString(),
-          checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
+          customerId: customer.id,
+          contactName: customer.fullName,
+          contactEmail: customer.email,
+          contactPhone: customer.phone,
+          checkInSlotStart: checkInSlotStart.toISOString(),
+          checkInSlotEnd: checkInSlotEnd?.toISOString() ?? null,
           rentalEndAt: booking.rentalEndAt.toISOString(),
           requestedMonths: booking.requestedMonths,
           totalAmount: Number(booking.totalAmount),
           status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
-          paidAt: booking.paidAt?.toISOString() ?? null,
+          paidAt: paidAt?.toISOString() ?? null,
           assignedUnit: activeAssignment,
           assignedStaff: staffMember,
           createdAt: booking.createdAt.toISOString(),
@@ -177,9 +221,34 @@ export class BookingsRepository {
   }
 
   async findBookingById(bookingId: string): Promise<BookingListItem | null> {
+    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+    const slotEnd = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+    const paidPayments = this.db
+      .select({
+        bookingId: payments.bookingId,
+        paidAt: sql<Date | null>`min(${payments.paidAt})`
+          .mapWith((value) => (value === null ? null : new Date(value)))
+          .as("paid_at"),
+      })
+      .from(payments)
+      .where(inArray(payments.status, ["SUCCEEDED", "REFUNDED"]))
+      .groupBy(payments.bookingId)
+      .as("booking_payments");
+
     const [row] = await this.db
       .select({
-        booking: bookingReadFields,
+        booking: bookings,
+        customer: {
+          id: customers.id,
+          fullName: customers.fullName,
+          email: customers.email,
+          phone: customers.phone,
+        },
+        checkInSlotStart: slotStart,
+        checkInSlotEnd: slotEnd,
+        paidAt: paidPayments.paidAt,
         facility: facilities,
         unitType: unitTypes,
         assignment: unitAssignments,
@@ -189,6 +258,8 @@ export class BookingsRepository {
       })
       .from(bookings)
       .innerJoin(customers, eq(bookings.customerId, customers.id))
+      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
+      .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(
@@ -202,7 +273,19 @@ export class BookingsRepository {
 
     if (!row) return null;
 
-    const { booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff } = row;
+    const {
+      booking,
+      customer,
+      checkInSlotStart,
+      checkInSlotEnd,
+      paidAt,
+      facility,
+      unitType,
+      assignment,
+      assignedUnit,
+      assigner,
+      assignedStaff,
+    } = row;
     let activeAssignment: PhysicalUnitAssignment | null = null;
     if (assignment && assignedUnit) {
       activeAssignment = {
@@ -239,17 +322,17 @@ export class BookingsRepository {
       unitTypeId: booking.unitTypeId,
       unitTypeName: unitType.name,
       unitTypeSizeLabel: unitType.sizeLabel,
-      customerId: booking.customerId,
-      contactName: booking.contactName,
-      contactEmail: booking.contactEmail,
-      contactPhone: booking.contactPhone,
-      checkInSlotStart: booking.checkInSlotStart.toISOString(),
-      checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
+      customerId: customer.id,
+      contactName: customer.fullName,
+      contactEmail: customer.email,
+      contactPhone: customer.phone,
+      checkInSlotStart: checkInSlotStart.toISOString(),
+      checkInSlotEnd: checkInSlotEnd?.toISOString() ?? null,
       rentalEndAt: booking.rentalEndAt.toISOString(),
       requestedMonths: booking.requestedMonths,
       totalAmount: Number(booking.totalAmount),
       status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
-      paidAt: booking.paidAt?.toISOString() ?? null,
+      paidAt: paidAt?.toISOString() ?? null,
       assignedUnit: activeAssignment,
       assignedStaff: staffMember,
       createdAt: booking.createdAt.toISOString(),
@@ -262,9 +345,34 @@ export class BookingsRepository {
       conditions.push(eq(bookings.facilityId, facilityId));
     }
 
+    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+    const slotEnd = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.endTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+    const paidPayments = this.db
+      .select({
+        bookingId: payments.bookingId,
+        paidAt: sql<Date | null>`min(${payments.paidAt})`
+          .mapWith((value) => (value === null ? null : new Date(value)))
+          .as("paid_at"),
+      })
+      .from(payments)
+      .where(inArray(payments.status, ["SUCCEEDED", "REFUNDED"]))
+      .groupBy(payments.bookingId)
+      .as("booking_payments");
+
     const rows = await this.db
       .select({
-        booking: bookingReadFields,
+        booking: bookings,
+        customer: {
+          id: customers.id,
+          fullName: customers.fullName,
+          email: customers.email,
+          phone: customers.phone,
+        },
+        checkInSlotStart: slotStart,
+        checkInSlotEnd: slotEnd,
+        paidAt: paidPayments.paidAt,
         facility: facilities,
         unitType: unitTypes,
         assignment: unitAssignments,
@@ -274,6 +382,8 @@ export class BookingsRepository {
       })
       .from(bookings)
       .innerJoin(customers, eq(bookings.customerId, customers.id))
+      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
+      .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(
@@ -284,10 +394,22 @@ export class BookingsRepository {
       .leftJoin(users, eq(unitAssignments.assignedBy, users.id))
       .leftJoin(assignedStaffUsers, eq(bookings.assignedStaffId, assignedStaffUsers.id))
       .where(and(...conditions))
-      .orderBy(bookingCheckInSlotStart);
+      .orderBy(slotStart);
 
     return rows.map(
-      ({ booking, facility, unitType, assignment, assignedUnit, assigner, assignedStaff }) => {
+      ({
+        booking,
+        customer,
+        checkInSlotStart,
+        checkInSlotEnd,
+        paidAt,
+        facility,
+        unitType,
+        assignment,
+        assignedUnit,
+        assigner,
+        assignedStaff,
+      }) => {
         let activeAssignment: PhysicalUnitAssignment | null = null;
         if (assignment && assignedUnit) {
           activeAssignment = {
@@ -324,17 +446,17 @@ export class BookingsRepository {
           unitTypeId: booking.unitTypeId,
           unitTypeName: unitType.name,
           unitTypeSizeLabel: unitType.sizeLabel,
-          customerId: booking.customerId,
-          contactName: booking.contactName,
-          contactEmail: booking.contactEmail,
-          contactPhone: booking.contactPhone,
-          checkInSlotStart: booking.checkInSlotStart.toISOString(),
-          checkInSlotEnd: booking.checkInSlotEnd?.toISOString() ?? null,
+          customerId: customer.id,
+          contactName: customer.fullName,
+          contactEmail: customer.email,
+          contactPhone: customer.phone,
+          checkInSlotStart: checkInSlotStart.toISOString(),
+          checkInSlotEnd: checkInSlotEnd?.toISOString() ?? null,
           rentalEndAt: booking.rentalEndAt.toISOString(),
           requestedMonths: booking.requestedMonths,
           totalAmount: Number(booking.totalAmount),
           status: booking.status as "CONFIRMED" | "CANCELLED" | "NO_SHOW" | "CHECKED_IN",
-          paidAt: booking.paidAt?.toISOString() ?? null,
+          paidAt: paidAt?.toISOString() ?? null,
           assignedUnit: activeAssignment,
           assignedStaff: staffMember,
           createdAt: booking.createdAt.toISOString(),
@@ -350,6 +472,9 @@ export class BookingsRepository {
     checkInStart: Date,
     rentalEnd: Date,
   ): Promise<EligibleUnit[]> {
+    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+
     // 1. Get all units matching facility and unit type
     const allUnits = await this.db
       .select()
@@ -384,13 +509,14 @@ export class BookingsRepository {
       .select({ physicalUnitId: unitAssignments.physicalUnitId })
       .from(unitAssignments)
       .innerJoin(bookings, eq(unitAssignments.bookingId, bookings.id))
+      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .where(
         and(
           inArray(unitAssignments.physicalUnitId, unitIds),
           eq(unitAssignments.status, "ACTIVE"),
           ne(bookings.id, currentBookingId),
           notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-          lt(bookingCheckInSlotStart, rentalEnd.toISOString()),
+          lt(slotStart, rentalEnd.toISOString()),
           gt(bookings.rentalEndAt, checkInStart),
         ),
       );
@@ -418,13 +544,17 @@ export class BookingsRepository {
     assignedByUserId: string,
     reason?: string,
   ) {
+    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
+      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
+
     return this.db.transaction(async (tx) => {
       // 1. Lock and fetch the booking
       const [booking] = await tx
-        .select({ ...getTableColumns(bookings), checkInSlotStart: bookingCheckInSlotStart })
+        .select({ ...getTableColumns(bookings), checkInSlotStart: slotStart })
         .from(bookings)
+        .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
         .where(eq(bookings.id, bookingId))
-        .for("update");
+        .for("update", { of: bookings });
 
       if (!booking) {
         return { error: "BOOKING_NOT_FOUND" as const };
@@ -477,17 +607,18 @@ export class BookingsRepository {
         .select({ id: bookings.id })
         .from(unitAssignments)
         .innerJoin(bookings, eq(unitAssignments.bookingId, bookings.id))
+        .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
         .where(
           and(
             eq(unitAssignments.physicalUnitId, unit.id),
             eq(unitAssignments.status, "ACTIVE"),
             ne(bookings.id, booking.id),
             notInArray(bookings.status, ["CANCELLED", "NO_SHOW"]),
-            lt(bookingCheckInSlotStart, booking.rentalEndAt.toISOString()),
+            lt(slotStart, booking.rentalEndAt.toISOString()),
             gt(bookings.rentalEndAt, booking.checkInSlotStart),
           ),
         )
-        .for("update");
+        .for("update", { of: [unitAssignments, bookings] });
 
       if (conflictingBooking) {
         return { error: "UNIT_ASSIGNMENT_CONFLICT" as const };
@@ -541,7 +672,7 @@ export class BookingsRepository {
     return this.db.transaction(async (tx) => {
       // 1. Lock and fetch booking
       const [booking] = await tx
-        .select({ ...getTableColumns(bookings), checkInSlotStart: bookingCheckInSlotStart })
+        .select()
         .from(bookings)
         .where(eq(bookings.id, bookingId))
         .for("update");

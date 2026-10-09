@@ -1,4 +1,13 @@
-import type { BookingQrVerificationInput } from "@metastorage/contracts";
+import {
+  AssignPhysicalUnitBodySchema,
+  AssignStaffBodySchema,
+  BookingIdParamsSchema,
+  BookingListQuerySchema,
+  type BookingQrVerificationInput,
+  FacilityBookingsParamsSchema,
+  StaffTasksQuerySchema,
+  VerifyQrBodySchema,
+} from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
@@ -8,15 +17,6 @@ import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/f
 import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
 import { BookingsRepository } from "./bookings.repository";
-import {
-  AssignPhysicalUnitBodySchema,
-  AssignStaffBodySchema,
-  BookingIdParamsSchema,
-  BookingListQuerySchema,
-  FacilityBookingsParamsSchema,
-  StaffTasksQuerySchema,
-  VerifyQrBodySchema,
-} from "./bookings.schema";
 import { BookingsService } from "./bookings.service";
 
 export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
