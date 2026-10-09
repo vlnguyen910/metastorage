@@ -1,4 +1,10 @@
-import { ApiErrorCode, type LoginInput, type SessionTokens } from "@metastorage/contracts";
+import {
+  ApiErrorCode,
+  CustomerSignUpInputSchema,
+  type LoginInput,
+  type SessionTokens,
+  UserRole,
+} from "@metastorage/contracts";
 import type MockAdapter from "axios-mock-adapter";
 import {
   createSession,
@@ -9,9 +15,37 @@ import {
   sessionUser,
   tokenUserId,
 } from "../core/http";
-import { getMockDatabase } from "../database";
+import { getMockDatabase, saveMockDatabase } from "../database";
+import { MOCK_MESSAGES as M } from "../mock.messages";
 
 export function registerAuthHandlers(mock: MockAdapter): void {
+  mock.onPost("/auth/customer-sign-up").reply((config) => {
+    const parsed = CustomerSignUpInputSchema.safeParse(parseBody(config.data));
+    const db = getMockDatabase();
+    if (
+      !parsed.success ||
+      db.users.some((u) => u.email.toLowerCase() === parsed.data.email.toLowerCase())
+    )
+      return [400, errorBody(ApiErrorCode.VALIDATION_ERROR, M.invalid)];
+    const { name, email, phone, password } = parsed.data;
+    db.users.push({
+      id: crypto.randomUUID(),
+      name,
+      email: email.toLowerCase(),
+      phone,
+      password,
+      role: UserRole.STORAGE_CUSTOMER,
+      status: "ACTIVE",
+      emailVerified: false,
+      image: null,
+      passwordHash: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      assignedFacilityIds: [],
+    });
+    saveMockDatabase(db);
+    return [201, { message: M.registered }];
+  });
   mock.onPost("/auth/login").reply((config) => {
     const database = getMockDatabase();
     const input = parseBody<LoginInput>(config.data);

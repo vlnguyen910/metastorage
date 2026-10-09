@@ -10,6 +10,9 @@ test-results/
 
 # Next.js
 .next/
+.next-dev/
+.next-playwright/
+.next-mock-playwright/
 out/
 
 # Expo & Mobile
