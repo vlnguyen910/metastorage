@@ -2,6 +2,17 @@ import { z } from "zod";
 import { FacilityStaffMemberSchema } from "./facilities";
 import { ReservationDraftContactSchema } from "./reservation-contact";
 
+export type { BookingDraft, BookingDraftPricing } from "./bookings.types";
+
+export const BookingDraftInputSchema = z.object({
+  facilityId: z.string().uuid(),
+  unitTypeId: z.string().uuid(),
+  checkInAt: z.string().datetime({ offset: true }),
+  durationMonths: z.number().int().min(1).max(12),
+});
+
+export type BookingDraftInput = z.infer<typeof BookingDraftInputSchema>;
+
 export const PaidBookingSchema = z.object({
   id: z.string().uuid(),
   bookingCode: z.string(),
