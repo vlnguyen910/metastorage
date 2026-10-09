@@ -1,12 +1,46 @@
 import type { CreateFacilityBody, UpdateFacilityBody } from "@metastorage/contracts";
 import type { Facility } from "@metastorage/database";
-import { ConflictError, ForbiddenError, NotFoundError } from "../../common/errors/app-error";
+import {
+  AppError,
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+} from "../../common/errors/app-error";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 import type { FacilitiesRepository } from "./facilities.repository";
 
 export class FacilitiesService {
   constructor(private readonly facilitiesRepository: FacilitiesRepository) {}
+
+  async requireActiveFacility(facilityId: string): Promise<Facility> {
+    const facility = await this.facilitiesRepository.findById(facilityId);
+    if (!facility?.isActive) throw new NotFoundError(FACILITY_MESSAGES.facilityUnavailable);
+    return facility;
+  }
+
+  async assertCheckInWithinOperatingHours(facilityId: string, checkInAt: Date): Promise<void> {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(checkInAt);
+    const get = (type: string) => parts.find((part) => part.type === type)?.value ?? "";
+    const dayOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(get("weekday"));
+    const time = `${get("hour")}:${get("minute")}:00`;
+    const hours = await this.facilitiesRepository.findOperatingHours(facilityId, dayOfWeek);
+    const openTime = hours?.openTime ?? "06:00:00";
+    const closeTime = hours?.closeTime ?? "22:00:00";
+    if (time < openTime || time > closeTime) {
+      throw new AppError(
+        FACILITY_MESSAGES.checkInOutsideOperatingHours(openTime, closeTime),
+        400,
+        "CHECK_IN_OUTSIDE_HOURS",
+      );
+    }
+  }
 
   async createFacility(input: CreateFacilityBody): Promise<Facility> {
     const existing = await this.facilitiesRepository.findByCode(input.code);

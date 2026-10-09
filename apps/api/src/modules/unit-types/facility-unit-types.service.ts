@@ -11,6 +11,12 @@ export class FacilityUnitTypesService {
     private readonly facilitiesRepository: FacilitiesRepository,
   ) {}
 
+  async requireActiveUnitType(facilityId: string, unitTypeId: string): Promise<UnitType> {
+    const unitType = await this.repository.findActiveUnitType(facilityId, unitTypeId);
+    if (!unitType) throw new NotFoundError(UNIT_TYPE_MESSAGES.unitTypeUnavailable);
+    return unitType;
+  }
+
   async listByFacility(facilityId: string, query: UnitTypeListQuery): Promise<UnitType[]> {
     const facility = await this.facilitiesRepository.findById(facilityId);
     if (!facility?.isActive) {

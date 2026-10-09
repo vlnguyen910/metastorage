@@ -1,4 +1,7 @@
 export const FACILITY_MESSAGES = {
+  facilityUnavailable: "Không tìm thấy cơ sở khả dụng",
+  checkInOutsideOperatingHours: (open: string, close: string) =>
+    `Giờ nhận kho phải từ ${open.slice(0, 5)} đến ${close.slice(0, 5)} (giờ Việt Nam) tại chi nhánh này.`,
   loginRequired: "Bạn cần đăng nhập để thực hiện thao tác này",
   facilityIdRequired: "Mã định danh cơ sở (facilityId) là bắt buộc",
   facilityListAccessDenied: "Bạn không có quyền xem danh sách cơ sở",
