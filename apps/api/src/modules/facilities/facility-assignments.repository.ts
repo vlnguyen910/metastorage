@@ -9,11 +9,13 @@ import {
   facilityAssignments,
   gt,
   isNull,
+  lte,
   type NewFacilityAssignment,
   or,
   sql,
   users,
 } from "@metastorage/database";
+import { ConflictError } from "../../common/errors/app-error";
 import type { AssignedFacilityScope, FacilityScope } from "./facilities.access";
 import { FACILITY_MESSAGES } from "./facilities.messages";
 
@@ -76,23 +78,55 @@ export class FacilityAssignmentsRepository {
   }
 
   async upsertAssignment(data: NewFacilityAssignment): Promise<FacilityAssignment> {
-    const [assignment] = await this.db
-      .insert(facilityAssignments)
-      .values(data)
-      .onConflictDoUpdate({
-        target: [facilityAssignments.userId, facilityAssignments.facilityId],
-        set: {
-          role: data.role,
-          isActive: true,
-          endedAt: null,
-          assignedAt: new Date(),
-        },
-      })
-      .returning();
-    if (!assignment) {
-      throw new Error(FACILITY_MESSAGES.failedToUpsertAssignment);
+    try {
+      return await this.db.transaction(async (tx) => {
+        // Serialize reassignments for a User, including when no assignment exists yet.
+        await tx
+          .select({ id: users.id })
+          .from(users)
+          .where(eq(users.id, data.userId))
+          .for("update");
+        const now = new Date();
+        await tx
+          .update(facilityAssignments)
+          .set({ isActive: false })
+          .where(
+            and(
+              eq(facilityAssignments.userId, data.userId),
+              eq(facilityAssignments.isActive, true),
+              lte(facilityAssignments.endedAt, now),
+            ),
+          );
+        const [assignment] = await tx
+          .insert(facilityAssignments)
+          .values(data)
+          .onConflictDoUpdate({
+            target: [facilityAssignments.userId, facilityAssignments.facilityId],
+            set: {
+              role: data.role,
+              isActive: true,
+              endedAt: null,
+              assignedAt: now,
+            },
+          })
+          .returning();
+        if (!assignment) throw new Error(FACILITY_MESSAGES.failedToUpsertAssignment);
+        return assignment;
+      });
+    } catch (error) {
+      const cause = error instanceof Error && error.cause ? error.cause : error;
+      if (
+        cause &&
+        typeof cause === "object" &&
+        "code" in cause &&
+        cause.code === "23505" &&
+        "constraint_name" in cause &&
+        cause.constraint_name === "facility_assignments_active_user_idx"
+      ) {
+        throw new ConflictError(FACILITY_MESSAGES.userAlreadyAssigned);
+      }
+      throw error;
     }
-    return assignment;
   }
 
   async deactivateAssignment(

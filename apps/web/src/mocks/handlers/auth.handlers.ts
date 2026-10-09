@@ -6,7 +6,7 @@ import {
   envelope,
   errorBody,
   parseBody,
-  publicUser,
+  sessionUser,
   tokenUserId,
 } from "../core/http";
 import { getMockDatabase } from "../database";
@@ -46,7 +46,7 @@ export function registerAuthHandlers(mock: MockAdapter): void {
     const database = getMockDatabase();
     const user = currentUser(config, database);
     return user
-      ? [200, envelope(publicUser(user))]
+      ? [200, envelope(sessionUser(user))]
       : [401, errorBody(ApiErrorCode.UNAUTHORIZED, "Vui lòng đăng nhập")];
   });
 

@@ -9,6 +9,8 @@ export const FACILITY_MESSAGES = {
   userNotFound: (id: string) => `Không tìm thấy người dùng với id "${id}"`,
   inactiveUserAssignment: "Không thể phân công cho tài khoản đang bị vô hiệu hóa",
   assignmentRoleMismatch: "Vai trò phân công phải trùng với vai trò của tài khoản",
+  userAlreadyAssigned:
+    "Người dùng đã được phân công tại một cơ sở khác; hãy kết thúc phân công hiện tại trước",
   staffAssignmentNotFound: "Không tìm thấy phân công nhân sự tương ứng",
   failedToCreateFacility: "Failed to create facility",
   failedToUpsertAssignment: "Failed to upsert assignment",
