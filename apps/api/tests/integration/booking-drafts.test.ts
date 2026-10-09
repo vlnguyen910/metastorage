@@ -140,7 +140,7 @@ describe.skipIf(!testUrl)("POST /api/bookings/drafts with PostgreSQL", () => {
     const [row] = await db.select().from(bookings).where(eq(bookings.id, data.id));
     expect(row).toMatchObject({
       status: "DRAFT",
-      customerId: null,
+      userId: null,
       contactName: null,
       contactEmail: null,
       contactPhone: null,

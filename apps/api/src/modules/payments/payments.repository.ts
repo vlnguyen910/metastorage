@@ -5,7 +5,6 @@ import {
   bookingConfirmationEmails,
   bookings,
   capacityAllocations,
-  customers,
   type Database,
   eq,
   facilities,
@@ -13,7 +12,6 @@ import {
   paymentProviderEvents,
   payments,
   reservationDrafts,
-  sql,
   unitTypes,
 } from "@metastorage/database";
 import { AppError } from "../../common/errors/app-error";
@@ -128,7 +126,6 @@ export class PaymentsRepository {
       })
       .from(payments)
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .innerJoin(customers, eq(customers.id, bookings.customerId))
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .where(
@@ -182,23 +179,7 @@ export class PaymentsRepository {
         );
       }
 
-      await tx
-        .insert(customers)
-        .values({
-          fullName: checkout.draft.contactName,
-          email: checkout.draft.contactEmail,
-          phone: checkout.draft.contactPhone,
-        })
-        .onConflictDoNothing();
-      const [businessCustomer] = await tx
-        .select()
-        .from(customers)
-        .where(sql`lower(btrim(${customers.email})) = lower(btrim(${checkout.draft.contactEmail}))`)
-        .for("update");
-      if (!businessCustomer) throw new Error(PAYMENT_MESSAGES.failedToCreateCustomer);
-
       const values = {
-        customerId: businessCustomer.id,
         draftId: input.draftId,
         holdTokenHash: input.holdTokenHash,
         provider: input.provider,
@@ -245,7 +226,6 @@ export class PaymentsRepository {
       })
       .from(payments)
       .innerJoin(bookings, eq(bookings.id, payments.bookingId))
-      .innerJoin(customers, eq(customers.id, bookings.customerId))
       .innerJoin(facilities, eq(facilities.id, bookings.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .where(eq(payments.id, paymentId));
@@ -393,7 +373,9 @@ export class PaymentsRepository {
         .insert(bookings)
         .values({
           bookingCode: bookingCode(),
-          customerId: payment.customerId,
+          contactName: checkout.draft.contactName,
+          contactEmail: checkout.draft.contactEmail,
+          contactPhone: checkout.draft.contactPhone,
           facilityId: checkout.draft.facilityId,
           unitTypeId: checkout.draft.unitTypeId,
           requestedMonths: checkout.draft.durationMonths,
@@ -449,7 +431,6 @@ export class PaymentsRepository {
       const [bookingRecord] = await tx
         .select(bookingReadFields)
         .from(bookings)
-        .innerJoin(customers, eq(customers.id, bookings.customerId))
         .where(eq(bookings.id, booking.id));
       if (!bookingRecord) throw new Error(PAYMENT_MESSAGES.paymentMissingBookingInformation);
 

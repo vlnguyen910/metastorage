@@ -2,7 +2,6 @@ import type { RentalDetail, RentalListItem } from "@metastorage/contracts";
 import {
   and,
   bookings,
-  customers,
   type Database,
   eq,
   facilities,
@@ -34,34 +33,25 @@ export class RentalsRepository {
       })
       .from(rentals)
       .innerJoin(bookings, eq(bookings.id, rentals.bookingId))
-      .innerJoin(customers, eq(customers.id, bookings.customerId))
       .innerJoin(facilities, eq(facilities.id, rentals.facilityId))
       .innerJoin(unitTypes, eq(unitTypes.id, bookings.unitTypeId))
       .leftJoin(storageUnits, eq(storageUnits.id, rentals.physicalUnitId));
   }
 
-  async findCustomerId(userId: string) {
-    const [customer] = await this.db
-      .select({ id: customers.id })
-      .from(customers)
-      .where(eq(customers.userId, userId));
-    return customer?.id ?? null;
-  }
-
-  async listByCustomerId(customerId: string): Promise<RentalListItem[]> {
-    const rows = await this.baseQuery().where(eq(rentals.customerId, customerId));
+  async listByUserId(userId: string): Promise<RentalListItem[]> {
+    const rows = await this.baseQuery().where(eq(bookings.userId, userId));
     return rows.map(toListItem);
   }
 
-  async findByIdAndCustomerId(rentalId: string, customerId: string): Promise<RentalDetail | null> {
+  async findByIdAndUserId(rentalId: string, userId: string): Promise<RentalDetail | null> {
     const [row] = await this.baseQuery().where(
-      and(eq(rentals.id, rentalId), eq(rentals.customerId, customerId)),
+      and(eq(rentals.id, rentalId), eq(bookings.userId, userId)),
     );
     return row ? toDetail(row) : null;
   }
 }
 
-type RentalRow = Awaited<ReturnType<RentalsRepository["listByCustomerId"]>>[number] extends never
+type RentalRow = Awaited<ReturnType<RentalsRepository["listByUserId"]>>[number] extends never
   ? never
   : {
       rental: typeof rentals.$inferSelect;

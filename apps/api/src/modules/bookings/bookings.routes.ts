@@ -11,7 +11,7 @@ import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { UnauthorizedError } from "../../common/errors/app-error";
 import { successResponse } from "../../common/response/api-response";
-import { requireAuth } from "../auth/auth.guard";
+import { optionalAuth, requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
 import { FacilitiesRepository } from "../facilities/facilities.repository";
@@ -44,9 +44,12 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     "/bookings/drafts",
     {
       schema: { body: BookingDraftInputSchema },
+      preHandler: [optionalAuth],
     },
     async (request, reply) => {
-      return reply.status(201).send(successResponse(await service.createDraft(request.body)));
+      return reply
+        .status(201)
+        .send(successResponse(await service.createDraft(request.body, request.user?.id)));
     },
   );
 

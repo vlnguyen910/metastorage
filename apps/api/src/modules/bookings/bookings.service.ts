@@ -29,7 +29,7 @@ export class BookingsService {
     private readonly storageUnitsService: StorageUnitsService,
   ) {}
 
-  async createDraft(input: BookingDraftInput): Promise<BookingDraft> {
+  async createDraft(input: BookingDraftInput, userId?: string): Promise<BookingDraft> {
     await this.facilitiesService.requireActiveFacility(input.facilityId);
     const unitType = await this.facilityUnitTypesService.requireActiveUnitType(
       input.facilityId,
@@ -67,6 +67,7 @@ export class BookingsService {
       currency: "VND",
     };
     const draft = await this.repository.createDraft({
+      userId: userId ?? null,
       facilityId: input.facilityId,
       unitTypeId: input.unitTypeId,
       checkInDate: slot.checkInDate,
