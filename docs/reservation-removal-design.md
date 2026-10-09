@@ -1,5 +1,8 @@
 # Reservation removal — thiết kế và dependency inventory (#113, task 1)
 
+> Quyết định hiện hành: xem **Guest identity decision — 1A / 2A** ở cuối tài liệu.
+> Phần audit bên dưới ghi baseline lịch sử; mô hình Customer đã được thay thế.
+
 ## Trạng thái và nguồn bằng chứng
 
 Audit ngày 2026-10-09, source tại commit `2d8311a0c166feaf04b7e9ac1332829145a9344d`.
@@ -203,3 +206,52 @@ Không chạy migration/clear/seed lên database dev đang dùng trong lượt n
 
 Khi reset dev theo schema đã hoàn tất: `bun run db:clear`, `bun run db:migrate`,
 `bun run db:seed`. Kiểm tra cấu hình kết nối trỏ đúng database dev trước khi chạy.
+
+## Endpoint 1 — tạo Booking DRAFT
+
+Đã thêm `POST /api/bookings/drafts` (guest, không cần đăng nhập). Input gồm
+`facilityId`, `unitTypeId`, `checkInAt` có timezone offset và `durationMonths` 1–12.
+Trả HTTP 201 với Booking ID (`data.id`), lịch đã normalize, pricing snapshot,
+`status: DRAFT` và `draftAccessToken`. Chỉ SHA-256 của token được lưu trên Booking.
+Contact vẫn null; Booking guest có userId null; chưa tạo Payment, QR, assignment hoặc capacity allocation.
+Không cần database migration: dùng các cột Booking đã chuẩn bị ở task 2.
+
+Booking điều phối các service Facilities (active/operating hours), Facility Unit Types
+(active offering và giá), Check-in Slots (resolve lịch), Storage Units (capacity preview).
+Giữ baseline giờ mặc định 06:00–22:00, timezone Asia/Ho_Chi_Minh, slot start inclusive/end
+exclusive, cộng tháng bằng setUTCMonth và giá rental + deposit một tháng. Capacity preview
+loại INACTIVE/LOCKED/MAINTENANCE và bỏ hold hết hạn; không bảo đảm capacity cho đến bước hold.
+
+Endpoint này chưa nối vào web checkout. Hold theo Booking ID và payment cùng-ID được
+triển khai ở các lượt sau; các route Reservation hiện tại chưa bị xóa hoặc đổi hành vi.
+
+Tests: `apps/api/tests/integration/booking-drafts.test.ts`. Chạy trên PostgreSQL cô lập
+đã migrate, chưa seed check-in slots, với `DATABASE_URL` và `BOOKING_TEST_DATABASE_URL`
+cùng trỏ đến database test, rồi chạy `bun test apps/api/tests/integration/booking-drafts.test.ts`.
+Khi không có biến test URL, suite này được skip trong lệnh test thông thường.
+
+## Guest identity decision — 1A / 2A
+
+The user supersedes the Customer identity model in #77/#92: remove `customers` and
+customer foreign keys. Booking contact is the transaction contact; repeated email
+never merges contact or implicitly links account history. `bookings.user_id` is
+nullable and only written from an authenticated session or a future explicit claim.
+
+1A: booking code + email → email OTP → scoped access before private details.
+2A: signed-in Booking creation saves it to that account; guest bookings require
+verification plus an explicit Save to account action. Login/email verification
+never scans or attaches bookings with a matching email. Claim conflicts are TBD.
+
+This change removes Customer reconciliation from Auth, reads contact from Booking
+in operations/payment/check-in, and reads Rental ownership through Booking.userId.
+Legacy Reservation payment copies draft contact when confirming its new Booking;
+it remains guest-only until the planned Booking payment migration. No backfill.
+OTP/claim endpoints and UI remain separate work, one endpoint per turn.
+
+Verification: generated migrations `0028_uneven_luminals.sql` (remove customer FKs/columns,
+add nullable Booking user ownership and contact constraint), then `0029_ambiguous_komodo.sql`
+(drop Customer). Two generated steps avoid Drizzle dropping already-cascaded FKs.
+Fresh PostgreSQL 18 migrations, seed → clear → seed, 46 API integration tests,
+47 web tests, all workspace type checks and Biome passed. The My Storage detail
+Playwright check passed with mock API; this does not verify the pending OTP/claim UI.
+Migrations have not been applied to the configured development database.
