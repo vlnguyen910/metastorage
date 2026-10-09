@@ -19,7 +19,7 @@ import {
 import { AppError } from "../../common/errors/app-error";
 import { bookingReadFields } from "../bookings/bookings.projection";
 import type { BookingReadRecord } from "../bookings/bookings.types";
-import { findLegacyCheckInSlot } from "../bookings/check-in-slot";
+import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
 import { PAYMENT_MESSAGES } from "./payments.messages";
 
 export type PricingSnapshot = {
@@ -95,7 +95,7 @@ export class PaymentsRepository {
       )
       .where(eq(reservationDrafts.id, draftId));
     if (!checkout) return undefined;
-    const slot = await findLegacyCheckInSlot(this.db, checkout.draft.checkInAt);
+    const slot = await new CheckInSlotsRepository(this.db).findForCheckIn(checkout.draft.checkInAt);
     if (!slot || slot.startsAt.getTime() !== checkout.draft.checkInAt.getTime()) {
       throw new AppError(
         PAYMENT_MESSAGES.checkoutScheduleRequiresNewDraft,
@@ -173,7 +173,7 @@ export class PaymentsRepository {
         .for("update");
       if (!checkout) return null;
 
-      const slot = await findLegacyCheckInSlot(tx, checkout.draft.checkInAt);
+      const slot = await new CheckInSlotsRepository(tx).findForCheckIn(checkout.draft.checkInAt);
       if (!slot || slot.startsAt.getTime() !== checkout.draft.checkInAt.getTime()) {
         throw new AppError(
           PAYMENT_MESSAGES.checkoutScheduleRequiresNewDraft,
@@ -376,7 +376,7 @@ export class PaymentsRepository {
 
       const pricing = checkout.draft.pricing;
       if (!pricing) throw new Error(PAYMENT_MESSAGES.pricingNotConfigured);
-      const slot = await findLegacyCheckInSlot(tx, checkout.draft.checkInAt);
+      const slot = await new CheckInSlotsRepository(tx).findForCheckIn(checkout.draft.checkInAt);
       if (!slot || slot.startsAt.getTime() !== checkout.draft.checkInAt.getTime()) {
         throw new AppError(
           PAYMENT_MESSAGES.checkoutScheduleRequiresNewDraft,

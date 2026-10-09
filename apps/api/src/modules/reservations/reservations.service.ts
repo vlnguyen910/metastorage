@@ -5,6 +5,7 @@ import type {
   ReservationHold,
 } from "@metastorage/contracts";
 import { AppError, NotFoundError } from "../../common/errors/app-error";
+import type { CheckInSlotsService } from "../bookings/check-in-slots.service";
 import { RESERVATION_MESSAGES } from "./reservations.messages";
 import type { ReservationsRepository } from "./reservations.repository";
 import type { CreateReservationDraftBody } from "./reservations.schema";
@@ -48,7 +49,10 @@ function hashToken(token: string): string {
 }
 
 export class ReservationsService {
-  constructor(private readonly repository: ReservationsRepository) {}
+  constructor(
+    private readonly repository: ReservationsRepository,
+    private readonly checkInSlotsService: CheckInSlotsService,
+  ) {}
 
   async createDraft(input: CreateReservationDraftBody): Promise<ReservationDraft> {
     const context = await this.repository.findActiveContext(input.facilityId, input.unitTypeId);
@@ -72,7 +76,7 @@ export class ReservationsService {
       );
     }
 
-    const slot = await this.repository.findCheckInSlot(checkInAt);
+    const slot = await this.checkInSlotsService.findForCheckIn(checkInAt);
     if (!slot) {
       throw new AppError(RESERVATION_MESSAGES.checkInOutsideSlots, 400, "CHECK_IN_OUTSIDE_SLOTS");
     }

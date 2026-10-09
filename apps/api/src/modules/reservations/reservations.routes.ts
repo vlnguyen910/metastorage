@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
 import { successResponse } from "../../common/response/api-response";
+import { CheckInSlotsRepository } from "../bookings/check-in-slots.repository";
+import { CheckInSlotsService } from "../bookings/check-in-slots.service";
 import { ReservationsRepository } from "./reservations.repository";
 import {
   type CreateReservationDraftBody,
@@ -11,7 +13,10 @@ import {
 import { ReservationsService } from "./reservations.service";
 
 export const reservationsRoutes: FastifyPluginAsync = async (fastify) => {
-  const service = new ReservationsService(new ReservationsRepository(fastify.db));
+  const service = new ReservationsService(
+    new ReservationsRepository(fastify.db),
+    new CheckInSlotsService(new CheckInSlotsRepository(fastify.db)),
+  );
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
 
   typedApp.post(
