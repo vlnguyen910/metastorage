@@ -10,18 +10,45 @@ import { successResponse } from "../../common/response/api-response";
 import { requireRole } from "../auth/auth.guard";
 import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
 import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
+import { requireFacilityAccess } from "./facilities.guard";
 import { FacilitiesRepository } from "./facilities.repository";
 import { FacilitiesService } from "./facilities.service";
+import { FacilityAssignmentsRepository } from "./facility-assignments.repository";
+import { FacilityAssignmentsService } from "./facility-assignments.service";
 
 export const facilitiesRoutes: FastifyPluginAsync = async (fastify) => {
   const facilitiesRepository = new FacilitiesRepository(fastify.db);
   const service = new FacilitiesService(facilitiesRepository);
+  const assignmentsService = new FacilityAssignmentsService(
+    new FacilityAssignmentsRepository(fastify.db),
+    facilitiesRepository,
+  );
   const unitTypesService = new FacilityUnitTypesService(
     new FacilityUnitTypesRepository(fastify.db),
     facilitiesRepository,
   );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  // GET /api/facilities/:facilityId/staff - Get active staff in facility
+  typedApp.get(
+    "/:facilityId/staff",
+    {
+      schema: {
+        params: facilityIdNestedParamSchema,
+      },
+      preHandler: [
+        requireFacilityAccess({
+          allowedFacilityRoles: ["FACILITY_MANAGER", "FACILITY_STAFF"],
+        }),
+      ],
+    },
+    async (request, reply) => {
+      const { facilityId } = request.params;
+      const staffList = await assignmentsService.getFacilityStaff(facilityId);
+      return reply.status(200).send(successResponse(staffList));
+    },
+  );
 
   // POST /api/facilities - Create new facility (Admin & BOM)
   typedApp.post(

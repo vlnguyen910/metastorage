@@ -1,3 +1,4 @@
+import { type FacilityStaffMember, UserRole } from "@metastorage/contracts";
 import {
   and,
   type Database,
@@ -21,6 +22,33 @@ import { FACILITY_MESSAGES } from "./facilities.messages";
 
 export class FacilityAssignmentsRepository {
   constructor(private readonly db: Database) {}
+
+  async findFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
+    const rows = await this.db
+      .select({
+        user: users,
+        assignment: facilityAssignments,
+      })
+      .from(users)
+      .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
+      .where(
+        and(
+          eq(facilityAssignments.facilityId, facilityId),
+          eq(facilityAssignments.role, "FACILITY_STAFF"),
+          eq(facilityAssignments.isActive, true),
+          eq(users.status, "ACTIVE"),
+        ),
+      );
+
+    return rows.map(({ user }) => ({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      phone: user.phone ?? null,
+      role: UserRole.FACILITY_STAFF,
+      isActive: true,
+    }));
+  }
 
   activeAssignmentExists(facilityId: string | typeof facilities.id, scope: AssignedFacilityScope) {
     const facilityCondition =

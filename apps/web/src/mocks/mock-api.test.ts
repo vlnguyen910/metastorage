@@ -108,7 +108,7 @@ describe("mock reservation API", () => {
     });
     tokens = staffSession;
 
-    const tasks = await client.bookings.getMyStaffTasks("fac-hcm-central");
+    const tasks = await client.bookings.listAssignedToMe("fac-hcm-central");
     expect(tasks.length).toBeGreaterThan(0);
     expect(tasks.some((t) => t.bookingCode === "BK-2026-0001")).toBe(true);
   });

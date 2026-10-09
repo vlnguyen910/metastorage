@@ -41,24 +41,6 @@ export const BookingConfirmationSchema = z.object({
 
 export type BookingConfirmation = z.infer<typeof BookingConfirmationSchema>;
 
-export const BookingQrVerificationInputSchema = z.object({
-  qrToken: z.string().min(32),
-});
-
-export type BookingQrVerificationInput = z.infer<typeof BookingQrVerificationInputSchema>;
-
-export const BookingQrVerificationResultSchema = z.object({
-  bookingId: z.string().uuid(),
-  bookingCode: z.string(),
-  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]),
-  facilityId: z.string().uuid(),
-  unitTypeId: z.string().uuid(),
-  checkInSlotStart: z.string().datetime(),
-  rentalEndAt: z.string().datetime(),
-});
-
-export type BookingQrVerificationResult = z.infer<typeof BookingQrVerificationResultSchema>;
-
 export const PhysicalUnitAssignmentSchema = z.object({
   id: z.string().uuid(),
   bookingId: z.string().uuid(),
@@ -114,8 +96,6 @@ export const AssignPhysicalUnitInputSchema = z.object({
 
 export type AssignPhysicalUnitInput = z.infer<typeof AssignPhysicalUnitInputSchema>;
 
-export const VerifyQrBodySchema = BookingQrVerificationInputSchema;
-
 export const FacilityBookingsParamsSchema = z.object({
   facilityId: z.string().uuid(),
 });
@@ -130,7 +110,7 @@ export const AssignPhysicalUnitBodySchema = AssignPhysicalUnitInputSchema;
 export type AssignPhysicalUnitBody = z.infer<typeof AssignPhysicalUnitBodySchema>;
 
 export const BookingListQuerySchema = z.object({
-  status: BookingQrVerificationResultSchema.shape.status.optional(),
+  status: z.enum(["CONFIRMED", "CANCELLED", "NO_SHOW", "CHECKED_IN"]).optional(),
 });
 export type BookingListQuery = z.infer<typeof BookingListQuerySchema>;
 

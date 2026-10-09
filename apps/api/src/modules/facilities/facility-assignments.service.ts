@@ -1,3 +1,4 @@
+import type { FacilityStaffMember } from "@metastorage/contracts";
 import type { FacilityAssignment, Role } from "@metastorage/database";
 import { ForbiddenError, NotFoundError } from "../../common/errors/app-error";
 import type { FacilityScope } from "./facilities.access";
@@ -10,6 +11,10 @@ export class FacilityAssignmentsService {
     private readonly assignmentsRepository: FacilityAssignmentsRepository,
     private readonly facilitiesRepository: FacilitiesRepository,
   ) {}
+
+  async getFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
+    return this.assignmentsRepository.findFacilityStaff(facilityId);
+  }
 
   async revokeAssignment(facilityId: string, userId: string): Promise<FacilityAssignment> {
     const existing = await this.assignmentsRepository.findAssignment(facilityId, userId);

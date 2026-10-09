@@ -2,6 +2,7 @@ import {
   ApiErrorCode,
   type CatalogFacility,
   type Facility,
+  type FacilityStaffMember,
   type PaginatedResult,
   UserRole,
 } from "@metastorage/contracts";
@@ -10,6 +11,30 @@ import { currentUser, envelope, errorBody, optionsForUnits } from "../core/http"
 import { getMockDatabase, hydrateFacility } from "../database";
 
 export function registerFacilityHandlers(mock: MockAdapter): void {
+  // GET /facilities/:facilityId/staff
+  mock.onGet(/\/facilities\/[^/]+\/staff/).reply((config) => {
+    const database = getMockDatabase();
+    const match = config.url?.match(/\/facilities\/([^/?]+)\/staff/);
+    const facilityId = match?.[1];
+
+    const staffList: FacilityStaffMember[] = database.users
+      .filter(
+        (u) =>
+          u.role === UserRole.FACILITY_STAFF &&
+          (!facilityId || facilityId === "all" || u.assignedFacilityIds.includes(facilityId)),
+      )
+      .map((u) => ({
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        phone: u.phone ?? null,
+        role: UserRole.FACILITY_STAFF,
+        isActive: true,
+      }));
+
+    return [200, envelope(staffList)];
+  });
+
   mock.onGet("/catalog/facilities").reply((config) => {
     const database = getMockDatabase();
     const search = String(config.params?.search ?? "")

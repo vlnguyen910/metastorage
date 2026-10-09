@@ -1,7 +1,5 @@
-import { createHash } from "node:crypto";
 import {
   type BookingListItem,
-  type BookingQrVerificationResult,
   type EligibleUnit,
   type FacilityStaffMember,
   type PhysicalUnitAssignment,
@@ -37,62 +35,6 @@ const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
-
-  async findByQrToken(qrToken: string): Promise<BookingQrVerificationResult | null> {
-    const slotStart = sql<Date>`(${bookings.checkInDate} + ${checkInSlots.startTime})
-      at time zone 'Asia/Ho_Chi_Minh'`.mapWith((value) => new Date(value));
-    const qrTokenHash = createHash("sha256").update(qrToken).digest("hex");
-    const [booking] = await this.db
-      .select({
-        id: bookings.id,
-        bookingCode: bookings.bookingCode,
-        status: bookings.status,
-        facilityId: bookings.facilityId,
-        unitTypeId: bookings.unitTypeId,
-        checkInSlotStart: slotStart,
-        rentalEndAt: bookings.rentalEndAt,
-      })
-      .from(bookings)
-      .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
-      .where(and(eq(bookings.qrTokenHash, qrTokenHash), ne(bookings.status, "DRAFT")));
-    if (!booking?.bookingCode) return null;
-    return {
-      bookingId: booking.id,
-      bookingCode: booking.bookingCode,
-      status: booking.status as BookingQrVerificationResult["status"],
-      facilityId: booking.facilityId,
-      unitTypeId: booking.unitTypeId,
-      checkInSlotStart: booking.checkInSlotStart.toISOString(),
-      rentalEndAt: booking.rentalEndAt.toISOString(),
-    };
-  }
-
-  async findFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
-    const rows = await this.db
-      .select({
-        user: users,
-        assignment: facilityAssignments,
-      })
-      .from(users)
-      .innerJoin(facilityAssignments, eq(users.id, facilityAssignments.userId))
-      .where(
-        and(
-          eq(facilityAssignments.facilityId, facilityId),
-          eq(facilityAssignments.role, "FACILITY_STAFF"),
-          eq(facilityAssignments.isActive, true),
-          eq(users.status, "ACTIVE"),
-        ),
-      );
-
-    return rows.map(({ user }) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      phone: user.phone ?? null,
-      role: UserRole.FACILITY_STAFF,
-      isActive: true,
-    }));
-  }
 
   async findFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     const conditions = [eq(bookings.facilityId, facilityId), ne(bookings.status, "DRAFT")];
