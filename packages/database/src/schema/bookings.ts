@@ -12,7 +12,6 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { checkInSlots } from "./check-in-slots";
-import { customers } from "./customers";
 import { facilities } from "./facilities";
 import { facilityUnitTypes } from "./facility-unit-types";
 import { users } from "./users";
@@ -31,7 +30,7 @@ export const bookings = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingCode: varchar({ length: 50 }).unique(),
-    customerId: uuid().references(() => customers.id),
+    userId: uuid().references(() => users.id, { onDelete: "set null" }),
     accessTokenHash: varchar({ length: 128 }),
     contactName: varchar({ length: 150 }),
     contactEmail: varchar({ length: 320 }),
@@ -62,8 +61,8 @@ export const bookings = pgTable(
       sql`${table.status} IN ('DRAFT', 'CONFIRMED', 'CANCELLED', 'NO_SHOW', 'CHECKED_IN')`,
     ),
     check(
-      "bookings_customer_after_draft",
-      sql`${table.status} = 'DRAFT' OR ${table.customerId} IS NOT NULL`,
+      "bookings_contact_after_draft",
+      sql`${table.status} = 'DRAFT' OR (${table.contactName} IS NOT NULL AND ${table.contactEmail} IS NOT NULL AND ${table.contactPhone} IS NOT NULL)`,
     ),
     check(
       "bookings_contact_complete",
@@ -75,7 +74,7 @@ export const bookings = pgTable(
       foreignColumns: [facilityUnitTypes.facilityId, facilityUnitTypes.unitTypeId],
     }).onDelete("restrict"),
     index("bookings_facility_status_idx").on(table.facilityId, table.status),
-    index("bookings_customer_idx").on(table.customerId),
+    index("bookings_user_idx").on(table.userId),
     index("bookings_assigned_staff_idx").on(table.assignedStaffId),
     index("bookings_dates_idx").on(table.checkInDate, table.rentalEndAt),
     index("bookings_check_in_slot_idx").on(table.checkInSlotId),

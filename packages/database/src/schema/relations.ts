@@ -5,7 +5,6 @@ import { bookings } from "./bookings";
 import { capacityAllocations } from "./capacity-allocations";
 import { checkInSlots } from "./check-in-slots";
 import { checkInVerifications } from "./checkin-verifications";
-import { customers } from "./customers";
 import { facilities } from "./facilities";
 import { facilityAssignments } from "./facility-assignments";
 import { facilityOperatingHours } from "./facility-operating-hours";
@@ -20,27 +19,18 @@ import { unitAssignments } from "./unit-assignments";
 import { unitTypes } from "./unit-types";
 import { users } from "./users";
 
-export const usersRelations = relations(users, ({ one, many }) => ({
-  customer: one(customers),
+export const usersRelations = relations(users, ({ many }) => ({
   sessions: many(sessions),
   accounts: many(accounts),
   facilityAssignments: many(facilityAssignments),
-  bookings: many(bookings),
+  bookings: many(bookings, { relationName: "bookingOwner" }),
+  assignedBookings: many(bookings, { relationName: "bookingStaff" }),
   assignedUnits: many(unitAssignments),
-  rentals: many(rentals),
   checkInVerifications: many(checkInVerifications),
-}));
-
-export const customersRelations = relations(customers, ({ one }) => ({
-  user: one(users, {
-    fields: [customers.userId],
-    references: [users.id],
-  }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one }) => ({
   booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
-  customer: one(customers, { fields: [payments.customerId], references: [customers.id] }),
 }));
 
 export const paymentProviderEventsRelations = relations(paymentProviderEvents, ({ one }) => ({
@@ -137,9 +127,10 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     fields: [bookings.checkInSlotId],
     references: [checkInSlots.id],
   }),
-  customer: one(customers, {
-    fields: [bookings.customerId],
-    references: [customers.id],
+  owner: one(users, {
+    fields: [bookings.userId],
+    references: [users.id],
+    relationName: "bookingOwner",
   }),
   facility: one(facilities, {
     fields: [bookings.facilityId],
@@ -150,6 +141,7 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
     references: [unitTypes.id],
   }),
   assignedStaff: one(users, {
+    relationName: "bookingStaff",
     fields: [bookings.assignedStaffId],
     references: [users.id],
   }),
@@ -207,10 +199,6 @@ export const rentalsRelations = relations(rentals, ({ one }) => ({
   booking: one(bookings, {
     fields: [rentals.bookingId],
     references: [bookings.id],
-  }),
-  customer: one(customers, {
-    fields: [rentals.customerId],
-    references: [customers.id],
   }),
   facility: one(facilities, {
     fields: [rentals.facilityId],

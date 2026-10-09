@@ -1,13 +1,12 @@
 # metastorage database diagram
 
 This diagram records every table and column currently declared in
-`packages/database/src/schema`. Rental and guest access remain future work;
+`packages/database/src/schema`. Guest access remains future work;
 Booking and Payment are introduced by issue #18.
 
 ```mermaid
 erDiagram
   check_in_slots ||--o{ bookings : schedules
-  users o|--o| customers : links_after_verification
   users ||--o{ accounts : authenticates_with
   users ||--o{ sessions : signs_in_with
   users ||--o{ facility_assignments : receives
@@ -25,9 +24,11 @@ erDiagram
   unit_types ||--o{ reservation_drafts : selects
   unit_types ||--o{ capacity_allocations : allocates
   facilities ||--o{ capacity_allocations : reserves
-  customers o|--o{ bookings : owns
+  users o|--o{ bookings : saves_history
   users o|--o{ bookings : assigned_to
-  customers ||--o{ payments : makes
+  bookings ||--o| rentals : becomes
+  facilities ||--o{ rentals : hosts
+  storage_units ||--o{ rentals : occupies
   bookings ||--o{ payments : records
   bookings ||--o{ booking_confirmation_emails : notifies
   bookings ||--o{ checkin_verifications : verifies
@@ -52,16 +53,6 @@ erDiagram
     varchar password_hash
     role role
     status status
-    timestamptz created_at
-    timestamptz updated_at
-  }
-
-  customers {
-    uuid id PK
-    uuid user_id FK,UK "nullable"
-    varchar full_name
-    varchar email UK "normalized lookup"
-    varchar phone
     timestamptz created_at
     timestamptz updated_at
   }
@@ -198,7 +189,7 @@ erDiagram
   bookings {
     uuid id PK
     varchar booking_code UK
-    uuid customer_id FK "nullable for DRAFT"
+    uuid user_id FK "nullable for guest; ON DELETE SET NULL"
     varchar access_token_hash "nullable"
     varchar contact_name "nullable before payment; booking-specific"
     varchar contact_email "nullable before payment; booking-specific"
@@ -220,11 +211,25 @@ erDiagram
     timestamptz updated_at
   }
 
+  rentals {
+    uuid id PK
+    uuid booking_id FK,UK
+    uuid facility_id FK
+    uuid physical_unit_id FK
+    varchar status
+    timestamptz start_at
+    timestamptz expected_end_at
+    timestamptz actual_return_at "nullable"
+    timestamptz closed_at "nullable"
+    numeric deposit_amount
+    timestamptz created_at
+    timestamptz updated_at
+  }
+
   payments {
     uuid id PK
     uuid booking_id FK "nullable for legacy checkout; required in target flow"
     uuid draft_id FK "nullable; legacy checkout only"
-    uuid customer_id FK
     varchar provider
     varchar provider_payment_id
     varchar payment_code UK
@@ -296,22 +301,19 @@ erDiagram
 
 ## Existing constraints and behavior
 
-- UUID primary keys on `users`, `customers`, `facilities`, `facility_assignments`,
+- UUID primary keys on `users`, `facilities`, `facility_assignments`,
   `unit_types`, `storage_units`, `facility_operating_hours`, `check_in_slots`, `reservation_drafts`
   and `capacity_allocations` default to generated random UUIDs. Auth tables
   `accounts`, `sessions` and `verifications` use text primary keys.
 - `users.email`, `users.phone`, `facilities.code`, `storage_units.code` and
-  `sessions.token` are unique. `users.phone` is nullable. `customers.user_id` is
-  nullable and unique. `customers.email` is unique by its trimmed, lowercase
-  value; its index is an expression index, not a plain column constraint.
+  `sessions.token` are unique. `users.phone` is nullable. Booking contact email is not unique.
 - Varchar limits are `users.email` 255, `users.phone` 20,
-  `users.password_hash` 255; `customers.full_name` 150, `customers.email` 320,
-  `customers.phone` 32; `facilities.code` 50, `facilities.name` 150;
+  `users.password_hash` 255; Booking contact name/email/phone 150/320/32; `facilities.code` 50, `facilities.name` 150;
   `unit_types.code` 80, `unit_types.name` 100, `unit_types.size_label` 50;
   `storage_units.code` 80; `facility_operating_hours.timezone` 64; and
   reservation draft contact name/email/phone 150/320/32.
 - Nullable columns are `users.image`, `users.phone`, `users.password_hash`,
-  `users.role`, `users.status`, `customers.user_id`, `facilities.description`,
+  `users.role`, `users.status`, `bookings.user_id`, `facilities.description`,
   `facility_assignments.ended_at`, `sessions.ip_address`,
   `sessions.user_agent`, and the optional token, expiry, scope and password
   fields in `accounts`. Every other column shown is required.
@@ -347,7 +349,7 @@ erDiagram
   `facility_unit_types(facility_id, unit_type_id)`. `capacity_allocations.reference_id` is a UUID
   reference value without a database foreign key at this stage.
 - User foreign keys use `ON DELETE CASCADE` for `accounts`, `sessions` and
-  `facility_assignments`, and `ON DELETE SET NULL` for `customers.user_id`.
+  `facility_assignments`, and `ON DELETE SET NULL` for `bookings.user_id`.
   Facility foreign keys use `ON DELETE CASCADE` for `facility_unit_types`,
   `storage_units`, `facility_operating_hours` and `facility_assignments`, and
   `ON DELETE RESTRICT` for reservation drafts and capacity allocations.
@@ -383,46 +385,33 @@ the selected facility and counts only `AVAILABLE` units. Reservation, hold and
 booking flows reference the Unit Type ID; a physical unit is assigned later by
 operations and is never selected by the customer.
 
-## M0 customer identity decision (#77)
+## Guest booking and optional account history (supersedes #77/#92 Customer model)
 
-`users` represents authentication identity. `customers` represents the renter in
-the business domain. A customer can exist without a User account, so
-`customers.user_id` is nullable. The nullable unique index allows at most one
-Customer to be linked to a User. Checkout reuses an existing Customer when the
-trimmed, lowercase email matches; otherwise it creates a Customer. The unique
-email index keeps this rule consistent under concurrent checkouts. Matching an
-email for checkout association does not itself prove the guest owns that email
-or authorize access to previous bookings. An unverified checkout must not
-overwrite an existing Customer's profile fields or `user_id`. The current
-checkout decision for #113 keeps contact on the client before payment. At the
-start of payment, the supplied name, email and phone are persisted on that
-Booking; they are used for that booking even when they differ from the reused
-Customer profile. Unverified checkout never overwrites the Customer profile.
-The new nullable Booking contact columns prepare this behavior; runtime readers
-still use Customer contact until the dependent modules are migrated. Deleting
-a User unlinks its Customer rather than deleting business history.
+There is no Customer table. A guest can rent without creating a User. Each Booking
+owns its contact name, email and phone; equal emails do not merge contacts or grant
+access to any other Booking. Contact remains on the client until payment starts.
 
-The current reservation draft stores the guest's name, email and phone without
-requiring a User or creating a Customer. Booking and Rental will reference
-`customers.id`, never `users.id`, when their tables are introduced by their
-respective issues. The booking schema now permits a customerless DRAFT and
-reserves access_token_hash for future guest draft access. A non-DRAFT booking
-must have a Customer. Customer creation is planned at the start of payment;
-contact remains client-side before this step and is sent with the payment request. The reservation/payment workflow
-still uses reservation_drafts and creates a Booking on success until its own
-module refactor is complete.
+`bookings.user_id` is nullable and references the authenticated account that saved
+this Booking. Creating a Booking while signed in records the session user, never a
+client-supplied user ID. Guest bookings have no account owner. Signing up, verifying
+an account email, or logging in never attaches guest bookings by email. To save a
+previous guest booking, the user must explicitly verify that booking and choose
+“Save to account”. OTP and claim endpoints remain separate implementation work;
+claim conflict behavior is TBD until that endpoint is designed.
 
-Linking a Customer to a User requires verified ownership of the contact channel;
-an authenticated session or an equal email string alone does not authorize a
-User link. Guest access to a Booking/Rental likewise requires contact
-verification and a short-lived, scoped session. Checkout association by email
-must never create a guest access session or a User link. Once the Customer is
-linked to a User, new bookings associated by that email will belong to the same
-Customer and become visible to that User; this is an accepted consequence of
-the chosen reuse policy. The MVP guest tracking mechanism is email OTP, as
-decided in #77 and #92; signed magic links are outside that scope. OTP expiry,
-attempt limits, resend cooldown, rate limits and guest-session TTL belong to
-#92 implementation configuration. Account-linking still requires verified ownership.
+Guest lookup uses booking code and contact email, followed by email OTP verification
+before private details are returned. The resulting guest session must be short-lived
+and scoped to the verified Booking. OTP expiry, retry limits, cooldown and session
+TTL belong to #92; account history ownership is independent of guest access.
+Deleting an account sets its Booking user IDs to NULL and preserves business history.
+Payments and Rentals derive account ownership through Booking, with no duplicated
+Customer or user foreign keys.
+
+The legacy reservation/payment workflow still creates a Booking at payment success.
+It now copies contact directly from that reservation draft and creates no Customer.
+Its account association is not implemented; authenticated ownership is supported by
+the new Booking draft endpoint, whose hold/payment consumers are still pending #113.
+The project uses disposable dev data: no backfill or historical synchronization.
 
 ## Payment and Booking notes (#18)
 
@@ -431,22 +420,18 @@ attempt limits, resend cooldown, rate limits and guest-session TTL belong to
   rate; total equals rental fee plus deposit, in VND. Payments use this stored
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
 
-- `bookings.customer_id` references `customers.id`, never `users.id`.
-- Booking keeps pricing snapshots and now has nullable booking-specific contact
-  fields for #113. Contact is saved at payment start; all three fields must be
-  null or all non-null. They remain nullable for legacy writer compatibility
-  during this expansion; non-DRAFT contact requirements are tightened after
-  consumer migration. Booking does not store currency or paid_at.
-  Operational DTOs still read contact from customers until the module migration, and paidAt
-  from the earliest non-null payments.paid_at with status SUCCEEDED or REFUNDED.
-  Booking repository queries join slots and customers and aggregate payment rows
-  per booking before joining, preventing multiple payment attempts from duplicating
-  bookings. Payment, check-in and rental readers still use the shared projection
-  with scalar subqueries until those consumers are refactored.
+- Booking stores per-booking contact and pricing snapshots. All three contact fields
+  are either NULL together or present together; every non-DRAFT state requires all
+  three. Operational readers use these fields directly and exclude DRAFT.
+- `bookings.user_id` is nullable, indexed and references users with ON DELETE SET NULL.
+  It controls saved account history, not guest access. Payment and Rental have no
+  customer_id columns.
+- paidAt comes from the earliest non-null payments.paid_at with status SUCCEEDED
+  or REFUNDED. Booking queries join slots and aggregate payments before joining,
+  preventing duplicate booking rows. Other consumers retain their timestamp
+  projection until their dedicated query refactors.
 - Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
-  CANCELLED, NO_SHOW or CHECKED_IN. Another CHECK requires customer_id for any
-  non-DRAFT state. The existing pricing columns remain required; support for
-  unpriced drafts is not decided yet.
+  CANCELLED, NO_SHOW or CHECKED_IN. Pricing columns remain required.
 - Bookings retain nullable unique booking_code/qr_token_hash, nullable
   assigned_staff_id and nullable access_token_hash. Operational lists/details
   exclude DRAFT; drafts cannot be assigned a unit/staff or verified through QR.
@@ -454,7 +439,7 @@ attempt limits, resend cooldown, rate limits and guest-session TTL belong to
   and paid_at; the monthly rate, rental fee and deposit breakdown belong to
   Booking. The legacy checkout obtains this breakdown from the immutable draft
   pricing snapshot when creating a confirmed Booking. Its readers project
-  customer contact and date/slot timestamps for the existing API contracts.
+  booking contact and date/slot timestamps for the existing API contracts.
   The payment simplification migration removes the redundant breakdown columns;
   apply it together with the compatible backend before using the checkout.
 - Payment provider integration is selected through a gateway adapter. The

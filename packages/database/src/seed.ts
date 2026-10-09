@@ -42,7 +42,7 @@ async function seed() {
 
   if (!facHcm) throw new Error("HCM facility was not created");
 
-  console.log("2. Seeding users and customer profile...");
+  console.log("2. Seeding users...");
   const [manager] = await queryClient`
     INSERT INTO users (email, phone, name, role, status, email_verified)
     VALUES ('manager@storex.vn', '0900000003', 'Lê Thu Hà (Facility Manager)', 'FACILITY_MANAGER', 'ACTIVE', true)
@@ -80,18 +80,6 @@ async function seed() {
   `;
 
   if (!manager || !customer || !staff) throw new Error("Seed users were not created");
-
-  const [customerProfile] = await queryClient`
-    INSERT INTO customers (user_id, full_name, email, phone)
-    VALUES (${customer.id}, 'Lê Thị Mai Linh', 'customer@storex.vn', '0900000001')
-    ON CONFLICT (user_id) DO UPDATE SET
-      full_name = EXCLUDED.full_name,
-      email = EXCLUDED.email,
-      phone = EXCLUDED.phone
-    RETURNING id
-  `;
-
-  if (!customerProfile) throw new Error("Customer profile was not created");
 
   console.log("3. Seeding facility assignments...");
   for (const assignment of [
@@ -372,14 +360,14 @@ async function seed() {
 
     const [booking] = await queryClient`
       INSERT INTO bookings (
-        booking_code, customer_id, contact_name, contact_email, contact_phone,
+        booking_code, user_id, contact_name, contact_email, contact_phone,
         facility_id, unit_type_id, requested_months,
         check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
         status
       )
       VALUES (
-        ${bookingSeed.code}, ${customerProfile.id},
+        ${bookingSeed.code}, ${customer.id},
         ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone},
         ${facHcm.id}, ${typeId}, ${bookingSeed.months},
         ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
@@ -387,7 +375,7 @@ async function seed() {
         ${bookingSeed.status}
       )
       ON CONFLICT (booking_code) DO UPDATE SET
-        customer_id = EXCLUDED.customer_id,
+        user_id = EXCLUDED.user_id,
         contact_name = EXCLUDED.contact_name,
         contact_email = EXCLUDED.contact_email,
         contact_phone = EXCLUDED.contact_phone,
@@ -410,12 +398,12 @@ async function seed() {
 
     await queryClient`
       INSERT INTO payments (
-        id, booking_id, draft_id, hold_token_hash, customer_id, provider, provider_payment_id,
+        id, booking_id, draft_id, hold_token_hash, provider, provider_payment_id,
         idempotency_key, payment_code, total_amount,
         currency, status, paid_at
       )
       VALUES (
-        ${paymentId}, ${booking.id}, NULL, ${`seed-hold-${bookingSeed.code}`}, ${customerProfile.id},
+        ${paymentId}, ${booking.id}, NULL, ${`seed-hold-${bookingSeed.code}`},
         'MOCK', ${`seed-payment-${bookingSeed.code}`}, ${`seed-idempotency-${bookingSeed.code}`}, ${`SEED${bookingSeed.code}`},
         ${totalAmount}, 'VND',
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}
