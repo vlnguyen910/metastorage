@@ -1,4 +1,11 @@
-import type { BookingListItem, EligibleUnit, PhysicalUnitAssignment } from "@metastorage/contracts";
+import { createHash, randomBytes } from "node:crypto";
+import type {
+  BookingDraft,
+  BookingDraftInput,
+  BookingListItem,
+  EligibleUnit,
+  PhysicalUnitAssignment,
+} from "@metastorage/contracts";
 import {
   AppError,
   BadRequestError,
@@ -6,11 +13,85 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../common/errors/app-error";
+import type { FacilitiesService } from "../facilities/facilities.service";
+import type { StorageUnitsService } from "../storage-units/storage-units.service";
+import type { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BOOKING_MESSAGES } from "./bookings.messages";
 import type { BookingsRepository } from "./bookings.repository";
+import type { CheckInSlotsService } from "./check-in-slots.service";
 
 export class BookingsService {
-  constructor(private readonly repository: BookingsRepository) {}
+  constructor(
+    private readonly repository: BookingsRepository,
+    private readonly facilitiesService: FacilitiesService,
+    private readonly facilityUnitTypesService: FacilityUnitTypesService,
+    private readonly checkInSlotsService: CheckInSlotsService,
+    private readonly storageUnitsService: StorageUnitsService,
+  ) {}
+
+  async createDraft(input: BookingDraftInput): Promise<BookingDraft> {
+    await this.facilitiesService.requireActiveFacility(input.facilityId);
+    const unitType = await this.facilityUnitTypesService.requireActiveUnitType(
+      input.facilityId,
+      input.unitTypeId,
+    );
+    const requestedAt = new Date(input.checkInAt);
+    const now = new Date();
+    if (Number.isNaN(requestedAt.getTime()) || requestedAt <= now) {
+      throw new AppError(BOOKING_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+    }
+    await this.facilitiesService.assertCheckInWithinOperatingHours(input.facilityId, requestedAt);
+    const slot = await this.checkInSlotsService.findForCheckIn(requestedAt);
+    if (!slot)
+      throw new AppError(BOOKING_MESSAGES.checkInOutsideSlots, 400, "CHECK_IN_OUTSIDE_SLOTS");
+    if (slot.startsAt <= now)
+      throw new AppError(BOOKING_MESSAGES.checkInInPast, 400, "CHECK_IN_IN_PAST");
+    await this.facilitiesService.assertCheckInWithinOperatingHours(input.facilityId, slot.startsAt);
+    const rentalEndAt = new Date(slot.startsAt);
+    rentalEndAt.setUTCMonth(rentalEndAt.getUTCMonth() + input.durationMonths);
+    const capacity = await this.storageUnitsService.getAvailableCapacity(
+      input.facilityId,
+      input.unitTypeId,
+      slot.startsAt,
+      rentalEndAt,
+    );
+    if (capacity < 1)
+      throw new AppError(BOOKING_MESSAGES.unitTypeCapacityUnavailable, 409, "CAPACITY_UNAVAILABLE");
+
+    const draftAccessToken = randomBytes(32).toString("hex");
+    const pricing: BookingDraft["pricing"] = {
+      monthlyRateSnapshot: String(unitType.monthlyPrice),
+      rentalFeeAmount: String(unitType.monthlyPrice * input.durationMonths),
+      depositAmount: String(unitType.monthlyPrice),
+      totalAmount: String(unitType.monthlyPrice * (input.durationMonths + 1)),
+      currency: "VND",
+    };
+    const draft = await this.repository.createDraft({
+      facilityId: input.facilityId,
+      unitTypeId: input.unitTypeId,
+      checkInDate: slot.checkInDate,
+      checkInSlotId: slot.id,
+      rentalEndAt,
+      requestedMonths: input.durationMonths,
+      status: "DRAFT",
+      accessTokenHash: createHash("sha256").update(draftAccessToken).digest("hex"),
+      monthlyRateSnapshot: pricing.monthlyRateSnapshot,
+      rentalFeeAmount: pricing.rentalFeeAmount,
+      depositAmount: pricing.depositAmount,
+      totalAmount: pricing.totalAmount,
+    });
+    return {
+      id: draft.id,
+      facilityId: draft.facilityId,
+      unitTypeId: draft.unitTypeId,
+      checkInAt: slot.startsAt.toISOString(),
+      rentalEndAt: draft.rentalEndAt.toISOString(),
+      durationMonths: draft.requestedMonths,
+      draftAccessToken,
+      status: "DRAFT",
+      pricing,
+    };
+  }
 
   async getFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     return this.repository.findFacilityBookings(facilityId, status);

@@ -1,6 +1,7 @@
 import {
   AssignPhysicalUnitBodySchema,
   AssignStaffBodySchema,
+  BookingDraftInputSchema,
   BookingIdParamsSchema,
   BookingListQuerySchema,
   FacilityBookingsParamsSchema,
@@ -13,16 +14,41 @@ import { successResponse } from "../../common/response/api-response";
 import { requireAuth } from "../auth/auth.guard";
 import { getFacilityAccessScope, requireAssignedFacility } from "../facilities/facilities.access";
 import { requireFacilityAccess } from "../facilities/facilities.guard";
+import { FacilitiesRepository } from "../facilities/facilities.repository";
+import { FacilitiesService } from "../facilities/facilities.service";
 import { FacilityAssignmentsRepository } from "../facilities/facility-assignments.repository";
+import { StorageUnitsRepository } from "../storage-units/storage-units.repository";
+import { StorageUnitsService } from "../storage-units/storage-units.service";
+import { FacilityUnitTypesRepository } from "../unit-types/facility-unit-types.repository";
+import { FacilityUnitTypesService } from "../unit-types/facility-unit-types.service";
 import { BookingsRepository } from "./bookings.repository";
 import { BookingsService } from "./bookings.service";
+import { CheckInSlotsRepository } from "./check-in-slots.repository";
+import { CheckInSlotsService } from "./check-in-slots.service";
 
 export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const bookingsRepository = new BookingsRepository(fastify.db);
   const assignmentsRepository = new FacilityAssignmentsRepository(fastify.db);
-  const service = new BookingsService(bookingsRepository);
+  const facilitiesRepository = new FacilitiesRepository(fastify.db);
+  const service = new BookingsService(
+    bookingsRepository,
+    new FacilitiesService(facilitiesRepository),
+    new FacilityUnitTypesService(new FacilityUnitTypesRepository(fastify.db), facilitiesRepository),
+    new CheckInSlotsService(new CheckInSlotsRepository(fastify.db)),
+    new StorageUnitsService(new StorageUnitsRepository(fastify.db)),
+  );
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
+
+  typedApp.post(
+    "/bookings/drafts",
+    {
+      schema: { body: BookingDraftInputSchema },
+    },
+    async (request, reply) => {
+      return reply.status(201).send(successResponse(await service.createDraft(request.body)));
+    },
+  );
 
   // GET /api/facilities/:facilityId/bookings - List bookings in facility (FM, Admin, BOM)
   typedApp.get(

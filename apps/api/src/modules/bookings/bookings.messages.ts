@@ -1,4 +1,8 @@
 export const BOOKING_MESSAGES = {
+  checkInInPast: "Ngày và giờ nhận kho phải sau thời điểm hiện tại (giờ Việt Nam).",
+  checkInOutsideSlots: "Giờ nhận kho phải nằm trong một ca nhận kho có sẵn.",
+  unitTypeCapacityUnavailable: "Unit Type không còn capacity trong kỳ thuê",
+  failedToCreateDraft: "Failed to create booking draft",
   bookingCannotAssignStaff: "Booking draft không thể phân công nhân viên",
   bookingDetailsNotFound: "Không tìm thấy thông tin đơn đặt chỗ (Booking)",
   bookingNotFound: "Không tìm thấy đơn đặt chỗ",

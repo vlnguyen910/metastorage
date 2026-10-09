@@ -19,6 +19,7 @@ import {
   gt,
   inArray,
   lt,
+  type NewBooking,
   ne,
   notInArray,
   payments,
@@ -35,6 +36,12 @@ const assignedStaffUsers = aliasedTable(users, "assigned_staff_users");
 
 export class BookingsRepository {
   constructor(private readonly db: Database) {}
+
+  async createDraft(data: NewBooking) {
+    const [draft] = await this.db.insert(bookings).values(data).returning();
+    if (!draft) throw new Error(BOOKING_MESSAGES.failedToCreateDraft);
+    return draft;
+  }
 
   async findFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     const conditions = [eq(bookings.facilityId, facilityId), ne(bookings.status, "DRAFT")];
