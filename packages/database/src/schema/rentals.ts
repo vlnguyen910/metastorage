@@ -1,6 +1,5 @@
 import { index, numeric, pgTable, timestamp, uuid, varchar } from "drizzle-orm/pg-core";
 import { bookings } from "./bookings";
-import { customers } from "./customers";
 import { facilities } from "./facilities";
 import { storageUnits } from "./storage-units";
 
@@ -12,9 +11,6 @@ export const rentals = pgTable(
       .notNull()
       .unique()
       .references(() => bookings.id),
-    customerId: uuid()
-      .notNull()
-      .references(() => customers.id),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id),
@@ -32,7 +28,6 @@ export const rentals = pgTable(
   },
   (table) => [
     index("rentals_facility_idx").on(table.facilityId),
-    index("rentals_customer_idx").on(table.customerId),
     index("rentals_active_unit_idx").on(table.physicalUnitId, table.status, table.expectedEndAt),
   ],
 );
