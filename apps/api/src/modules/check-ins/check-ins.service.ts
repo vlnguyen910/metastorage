@@ -63,7 +63,6 @@ function toResult(record: CheckInRecord, evaluation: CheckInPolicyEvaluation): C
     facilityName: record.facility.name,
     unitTypeName: record.unitType.name,
     unitTypeSizeLabel: record.unitType.sizeLabel,
-    customerId: record.booking.customerId,
     contactName: record.booking.contactName,
     contactEmail: record.booking.contactEmail,
     contactPhone: record.booking.contactPhone,

@@ -69,7 +69,6 @@ export const CheckInBookingSummarySchema = z.object({
   facilityName: z.string(),
   unitTypeName: z.string(),
   unitTypeSizeLabel: z.string(),
-  customerId: z.string().uuid(),
   contactName: z.string(),
   contactEmail: z.string(),
   contactPhone: z.string(),
