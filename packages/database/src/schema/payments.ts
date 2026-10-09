@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+  check,
   index,
   numeric,
   pgEnum,
@@ -20,9 +22,7 @@ export const payments = pgTable(
   {
     id: uuid().defaultRandom().primaryKey(),
     bookingId: uuid().references(() => bookings.id, { onDelete: "restrict" }),
-    draftId: uuid()
-      .notNull()
-      .references(() => reservationDrafts.id, { onDelete: "restrict" }),
+    draftId: uuid().references(() => reservationDrafts.id, { onDelete: "restrict" }),
     holdTokenHash: varchar({ length: 128 }).notNull(),
     customerId: uuid()
       .notNull()
@@ -39,6 +39,10 @@ export const payments = pgTable(
     updatedAt: timestamp({ withTimezone: true }).defaultNow().notNull(),
   },
   (table) => [
+    check(
+      "payments_checkout_reference",
+      sql`${table.bookingId} IS NOT NULL OR ${table.draftId} IS NOT NULL`,
+    ),
     uniqueIndex("payments_provider_payment_idx").on(table.provider, table.providerPaymentId),
     uniqueIndex("payments_idempotency_idx").on(table.idempotencyKey),
     index("payments_booking_idx").on(table.bookingId),

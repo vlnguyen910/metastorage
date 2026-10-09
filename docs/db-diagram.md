@@ -200,6 +200,9 @@ erDiagram
     varchar booking_code UK
     uuid customer_id FK "nullable for DRAFT"
     varchar access_token_hash "nullable"
+    varchar contact_name "nullable before payment; booking-specific"
+    varchar contact_email "nullable before payment; booking-specific"
+    varchar contact_phone "nullable before payment; booking-specific"
     uuid facility_id FK
     uuid unit_type_id FK
     integer requested_months
@@ -219,8 +222,8 @@ erDiagram
 
   payments {
     uuid id PK
-    uuid booking_id FK
-    uuid draft_id FK
+    uuid booking_id FK "nullable for legacy checkout; required in target flow"
+    uuid draft_id FK "nullable; legacy checkout only"
     uuid customer_id FK
     varchar provider
     varchar provider_payment_id
@@ -391,9 +394,12 @@ email index keeps this rule consistent under concurrent checkouts. Matching an
 email for checkout association does not itself prove the guest owns that email
 or authorize access to previous bookings. An unverified checkout must not
 overwrite an existing Customer's profile fields or `user_id`. The current
-booking decision removes contact snapshots: operational booking DTOs read the
-Customer's current full name, email and phone. Handling submitted contact that
-differs from an existing Customer remains TBD for checkout refactoring. Deleting
+checkout decision for #113 keeps contact on the client before payment. At the
+start of payment, the supplied name, email and phone are persisted on that
+Booking; they are used for that booking even when they differ from the reused
+Customer profile. Unverified checkout never overwrites the Customer profile.
+The new nullable Booking contact columns prepare this behavior; runtime readers
+still use Customer contact until the dependent modules are migrated. Deleting
 a User unlinks its Customer rather than deleting business history.
 
 The current reservation draft stores the guest's name, email and phone without
@@ -402,7 +408,7 @@ requiring a User or creating a Customer. Booking and Rental will reference
 respective issues. The booking schema now permits a customerless DRAFT and
 reserves access_token_hash for future guest draft access. A non-DRAFT booking
 must have a Customer. Customer creation is planned at the start of payment;
-contact storage before this step remains TBD. The reservation/payment workflow
+contact remains client-side before this step and is sent with the payment request. The reservation/payment workflow
 still uses reservation_drafts and creates a Booking on success until its own
 module refactor is complete.
 
@@ -413,9 +419,10 @@ verification and a short-lived, scoped session. Checkout association by email
 must never create a guest access session or a User link. Once the Customer is
 linked to a User, new bookings associated by that email will belong to the same
 Customer and become visible to that User; this is an accepted consequence of
-the chosen reuse policy. The tracking mechanism (email OTP or signed magic
-link), expiry and claim workflow are **TBD** for the dependent Booking,
-tracking and account-linking implementation.
+the chosen reuse policy. The MVP guest tracking mechanism is email OTP, as
+decided in #77 and #92; signed magic links are outside that scope. OTP expiry,
+attempt limits, resend cooldown, rate limits and guest-session TTL belong to
+#92 implementation configuration. Account-linking still requires verified ownership.
 
 ## Payment and Booking notes (#18)
 
@@ -425,10 +432,17 @@ tracking and account-linking implementation.
   quote even if catalog prices change later. Legacy unpriced drafts must be recreated.
 
 - `bookings.customer_id` references `customers.id`, never `users.id`.
-- Booking keeps pricing snapshots, but no longer stores contact snapshots,
-  currency or paid_at. Operational DTOs read contact from customers and paidAt
+- Booking keeps pricing snapshots and now has nullable booking-specific contact
+  fields for #113. Contact is saved at payment start; all three fields must be
+  null or all non-null. They remain nullable for legacy writer compatibility
+  during this expansion; non-DRAFT contact requirements are tightened after
+  consumer migration. Booking does not store currency or paid_at.
+  Operational DTOs still read contact from customers until the module migration, and paidAt
   from the earliest non-null payments.paid_at with status SUCCEEDED or REFUNDED.
-  A scalar subquery prevents multiple payment attempts from duplicating bookings.
+  Booking repository queries join slots and customers and aggregate payment rows
+  per booking before joining, preventing multiple payment attempts from duplicating
+  bookings. Payment, check-in and rental readers still use the shared projection
+  with scalar subqueries until those consumers are refactored.
 - Booking status defaults to DRAFT; a CHECK limits it to DRAFT, CONFIRMED,
   CANCELLED, NO_SHOW or CHECKED_IN. Another CHECK requires customer_id for any
   non-DRAFT state. The existing pricing columns remain required; support for
@@ -450,8 +464,16 @@ tracking and account-linking implementation.
   `HOLD` to `BOOKING` inside the same transaction. No physical unit is assigned
   at checkout.
 - `payments.idempotency_key` and `(provider, provider_payment_id)` are unique.
-- `payments.draft_id` and the hash of the hold token scope idempotent replay to
-  the original checkout; plaintext hold tokens are never stored.
+- `payments.draft_id` is nullable during the #113 expansion; a CHECK requires
+  booking_id or draft_id. Legacy writers keep draft_id, while the target workflow
+  references the DRAFT Booking from payment start. Existing booking_id FK/index
+  and idempotency/provider uniqueness remain unchanged. Legacy replay still uses
+  draft_id plus hold-token hash until Payment refactoring; target replay uses
+  booking_id plus hold-token hash. Plaintext tokens are never stored.
+- Task 2 deliberately retains reservation_drafts and its FK for current writers.
+  The project is in development: existing data may be cleared and seeded again.
+  No legacy-data mapping/backfill or checkout compatibility layer is required.
+  Dropping the table follows the consumer refactor in the final contract phase.
 
 Check-in slots are shared time-of-day definitions with exactly four required
 columns: `id`, `name`, `start_time`, `end_time`. A Booking stores a required

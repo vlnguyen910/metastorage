@@ -382,7 +382,7 @@ export class PaymentsService {
           })
         : undefined;
     const checkoutSession =
-      payment.status === "PENDING" && this.sepayGateway
+      payment.status === "PENDING" && this.sepayGateway && payment.draftId
         ? this.sepayGateway.createCheckoutSession({
             paymentCode: payment.paymentCode,
             amount: Number(payment.totalAmount),
