@@ -9,7 +9,6 @@ import { swaggerPlugin } from "./common/plugins/swagger";
 import { authPlugin } from "./modules/auth/auth.guard";
 import { authRoutes } from "./modules/auth/auth.routes";
 import { bookingsRoutes } from "./modules/bookings/bookings.routes";
-import { catalogRoutes } from "./modules/catalog/catalog.routes";
 import { checkInsRoutes } from "./modules/check-ins/check-ins.routes";
 import { facilityContextPlugin } from "./modules/facilities/facilities.guard";
 import { facilitiesRoutes } from "./modules/facilities/facilities.routes";
@@ -42,7 +41,6 @@ export function buildApp(): FastifyInstance {
   app.register(usersRoutes, { prefix: "/api/users" });
   app.register(authRoutes, { prefix: "/api/auth" });
   app.register(facilitiesRoutes, { prefix: "/api/facilities" });
-  app.register(catalogRoutes, { prefix: "/api/catalog" });
   app.register(reservationsRoutes, { prefix: "/api/reservations" });
   app.register(rentalsRoutes, { prefix: "/api/rentals" });
   app.register(bookingsRoutes, { prefix: "/api" });
