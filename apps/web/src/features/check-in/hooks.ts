@@ -109,7 +109,7 @@ export function useAssignStaffMutation() {
 export function useStaffTasks(facilityId?: string) {
   return useQuery({
     queryKey: bookingKeys.staffTasks(facilityId),
-    queryFn: () => api.bookings.getMyStaffTasks(facilityId),
+    queryFn: () => api.bookings.listAssignedToMe(facilityId),
     refetchInterval: 5000,
     refetchOnWindowFocus: true,
   });

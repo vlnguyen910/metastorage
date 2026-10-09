@@ -3,10 +3,8 @@ import {
   AssignStaffBodySchema,
   BookingIdParamsSchema,
   BookingListQuerySchema,
-  type BookingQrVerificationInput,
   FacilityBookingsParamsSchema,
   StaffTasksQuerySchema,
-  VerifyQrBodySchema,
 } from "@metastorage/contracts";
 import type { FastifyPluginAsync } from "fastify";
 import type { ZodTypeProvider } from "fastify-type-provider-zod";
@@ -25,26 +23,6 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
   const service = new BookingsService(bookingsRepository);
 
   const typedApp = fastify.withTypeProvider<ZodTypeProvider>();
-
-  // GET /api/facilities/:facilityId/staff - Get active staff in facility
-  typedApp.get(
-    "/facilities/:facilityId/staff",
-    {
-      schema: {
-        params: FacilityBookingsParamsSchema,
-      },
-      preHandler: [
-        requireFacilityAccess({
-          allowedFacilityRoles: ["FACILITY_MANAGER", "FACILITY_STAFF"],
-        }),
-      ],
-    },
-    async (request, reply) => {
-      const { facilityId } = request.params;
-      const staffList = await service.getFacilityStaff(facilityId);
-      return reply.status(200).send(successResponse(staffList));
-    },
-  );
 
   // GET /api/facilities/:facilityId/bookings - List bookings in facility (FM, Admin, BOM)
   typedApp.get(
@@ -68,26 +46,9 @@ export const bookingsRoutes: FastifyPluginAsync = async (fastify) => {
     },
   );
 
-  // POST /api/bookings/verify-qr - Verify QR check-in
-  typedApp.post(
-    "/bookings/verify-qr",
-    { schema: { body: VerifyQrBodySchema }, preHandler: [requireAuth] },
-    async (request, reply) => {
-      const user = request.user;
-      if (!user) throw new UnauthorizedError();
-      const result = await service.verifyQr((request.body as BookingQrVerificationInput).qrToken);
-      const scope = getFacilityAccessScope(user);
-      await requireAssignedFacility(assignmentsRepository, result.facilityId, scope, [
-        "FACILITY_MANAGER",
-        "FACILITY_STAFF",
-      ]);
-      return reply.status(200).send(successResponse(result));
-    },
-  );
-
-  // GET /api/staff/tasks - Get tasks assigned to current staff member
+  // GET /api/bookings/assigned-to-me - List bookings assigned to the current user
   typedApp.get(
-    "/staff/tasks",
+    "/bookings/assigned-to-me",
     {
       schema: {
         querystring: StaffTasksQuerySchema,

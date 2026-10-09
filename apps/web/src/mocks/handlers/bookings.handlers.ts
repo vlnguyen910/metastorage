@@ -5,7 +5,6 @@ import {
   type CheckInLookupInput,
   type CheckInLookupResult,
   type EligibleUnit,
-  type FacilityStaffMember,
   PaymentStatus,
   type PhysicalUnitAssignment,
   StorageUnitStatus,
@@ -16,30 +15,6 @@ import { currentUser, envelope, errorBody, parseBody } from "../core/http";
 import { getMockDatabase, saveMockDatabase } from "../database";
 
 export function registerBookingHandlers(mock: MockAdapter): void {
-  // GET /facilities/:facilityId/staff
-  mock.onGet(/\/facilities\/[^/]+\/staff/).reply((config) => {
-    const database = getMockDatabase();
-    const match = config.url?.match(/\/facilities\/([^/?]+)\/staff/);
-    const facilityId = match?.[1];
-
-    const staffList: FacilityStaffMember[] = database.users
-      .filter(
-        (u) =>
-          u.role === UserRole.FACILITY_STAFF &&
-          (!facilityId || facilityId === "all" || u.assignedFacilityIds.includes(facilityId)),
-      )
-      .map((u) => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        phone: u.phone ?? null,
-        role: UserRole.FACILITY_STAFF,
-        isActive: true,
-      }));
-
-    return [200, envelope(staffList)];
-  });
-
   // GET /facilities/:facilityId/bookings
   mock.onGet(/\/facilities\/[^/]+\/bookings/).reply((config) => {
     const database = getMockDatabase();
@@ -58,8 +33,8 @@ export function registerBookingHandlers(mock: MockAdapter): void {
     return [200, envelope(results)];
   });
 
-  // GET /staff/tasks
-  mock.onGet(/\/staff\/tasks/).reply((config) => {
+  // GET /bookings/assigned-to-me
+  mock.onGet("/bookings/assigned-to-me").reply((config) => {
     const database = getMockDatabase();
     let user = currentUser(config, database);
     if (!user) {

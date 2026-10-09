@@ -5,8 +5,6 @@ import type {
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
   BookingListItem,
-  BookingQrVerificationInput,
-  BookingQrVerificationResult,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
@@ -220,10 +218,6 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
     },
     bookings: {
-      verifyQr: (input: BookingQrVerificationInput) =>
-        http
-          .post<ApiEnvelope<BookingQrVerificationResult>>("/bookings/verify-qr", input)
-          .then(unwrap),
       listFacilityBookings: (facilityId: string, status?: string) =>
         http
           .get<ApiEnvelope<BookingListItem[]>>(`/facilities/${facilityId}/bookings`, {
@@ -242,9 +236,11 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
         http
           .post<ApiEnvelope<BookingListItem>>(`/bookings/${bookingId}/assign-staff`, input)
           .then(unwrap),
-      getMyStaffTasks: (facilityId?: string) =>
+      listAssignedToMe: (facilityId?: string) =>
         http
-          .get<ApiEnvelope<BookingListItem[]>>("/staff/tasks", { params: { facilityId } })
+          .get<ApiEnvelope<BookingListItem[]>>("/bookings/assigned-to-me", {
+            params: { facilityId },
+          })
           .then(unwrap),
     },
     checkIns: {

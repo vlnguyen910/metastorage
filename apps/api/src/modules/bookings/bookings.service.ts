@@ -1,9 +1,4 @@
-import type {
-  BookingListItem,
-  EligibleUnit,
-  FacilityStaffMember,
-  PhysicalUnitAssignment,
-} from "@metastorage/contracts";
+import type { BookingListItem, EligibleUnit, PhysicalUnitAssignment } from "@metastorage/contracts";
 import {
   AppError,
   BadRequestError,
@@ -16,19 +11,6 @@ import type { BookingsRepository } from "./bookings.repository";
 
 export class BookingsService {
   constructor(private readonly repository: BookingsRepository) {}
-
-  async verifyQr(qrToken: string) {
-    const booking = await this.repository.findByQrToken(qrToken);
-    if (!booking) throw new NotFoundError(BOOKING_MESSAGES.invalidQrOrBookingNotFound);
-    if (["DRAFT", "CANCELLED", "NO_SHOW"].includes(booking.status)) {
-      throw new ConflictError(BOOKING_MESSAGES.bookingCannotCheckIn);
-    }
-    return booking;
-  }
-
-  async getFacilityStaff(facilityId: string): Promise<FacilityStaffMember[]> {
-    return this.repository.findFacilityStaff(facilityId);
-  }
 
   async getFacilityBookings(facilityId: string, status?: string): Promise<BookingListItem[]> {
     return this.repository.findFacilityBookings(facilityId, status);
