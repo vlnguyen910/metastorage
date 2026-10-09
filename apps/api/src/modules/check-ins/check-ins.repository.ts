@@ -14,7 +14,6 @@ import {
   bookings,
   capacityAllocations,
   checkInVerifications,
-  customers,
   desc,
   eq,
   facilities,
@@ -70,7 +69,6 @@ export class CheckInsRepository {
         verification: checkInVerifications,
       })
       .from(bookings)
-      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
       .innerJoin(unitTypes, eq(bookings.unitTypeId, unitTypes.id))
       .leftJoin(payments, eq(payments.bookingId, bookings.id))

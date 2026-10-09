@@ -16,7 +16,6 @@ export type BookingDraftInput = z.infer<typeof BookingDraftInputSchema>;
 export const PaidBookingSchema = z.object({
   id: z.string().uuid(),
   bookingCode: z.string(),
-  customerId: z.string().uuid(),
   facilityId: z.string().uuid(),
   unitTypeId: z.string().uuid(),
   checkInAt: z.string().datetime(),
@@ -82,7 +81,6 @@ export const BookingListItemSchema = z.object({
   unitTypeId: z.string().uuid(),
   unitTypeName: z.string(),
   unitTypeSizeLabel: z.string(),
-  customerId: z.string().uuid(),
   contactName: z.string(),
   contactEmail: z.string(),
   contactPhone: z.string(),

@@ -10,7 +10,6 @@ import {
   and,
   bookings,
   checkInSlots,
-  customers,
   type Database,
   eq,
   facilities,
@@ -67,12 +66,11 @@ export class BookingsRepository {
 
     const rows = await this.db
       .select({
-        booking: bookings,
-        customer: {
-          id: customers.id,
-          fullName: customers.fullName,
-          email: customers.email,
-          phone: customers.phone,
+        booking: {
+          ...getTableColumns(bookings),
+          contactName: sql<string>`${bookings.contactName}`,
+          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
         checkInSlotEnd: slotEnd,
@@ -85,7 +83,6 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
-      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -103,7 +100,6 @@ export class BookingsRepository {
     return rows.map(
       ({
         booking,
-        customer,
         checkInSlotStart,
         checkInSlotEnd,
         paidAt,
@@ -150,10 +146,9 @@ export class BookingsRepository {
           unitTypeId: booking.unitTypeId,
           unitTypeName: unitType.name,
           unitTypeSizeLabel: unitType.sizeLabel,
-          customerId: customer.id,
-          contactName: customer.fullName,
-          contactEmail: customer.email,
-          contactPhone: customer.phone,
+          contactName: booking.contactName,
+          contactEmail: booking.contactEmail,
+          contactPhone: booking.contactPhone,
           checkInSlotStart: checkInSlotStart.toISOString(),
           checkInSlotEnd: checkInSlotEnd?.toISOString() ?? null,
           rentalEndAt: booking.rentalEndAt.toISOString(),
@@ -188,12 +183,11 @@ export class BookingsRepository {
 
     const [row] = await this.db
       .select({
-        booking: bookings,
-        customer: {
-          id: customers.id,
-          fullName: customers.fullName,
-          email: customers.email,
-          phone: customers.phone,
+        booking: {
+          ...getTableColumns(bookings),
+          contactName: sql<string>`${bookings.contactName}`,
+          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
         checkInSlotEnd: slotEnd,
@@ -206,7 +200,6 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
-      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -224,7 +217,6 @@ export class BookingsRepository {
 
     const {
       booking,
-      customer,
       checkInSlotStart,
       checkInSlotEnd,
       paidAt,
@@ -271,10 +263,9 @@ export class BookingsRepository {
       unitTypeId: booking.unitTypeId,
       unitTypeName: unitType.name,
       unitTypeSizeLabel: unitType.sizeLabel,
-      customerId: customer.id,
-      contactName: customer.fullName,
-      contactEmail: customer.email,
-      contactPhone: customer.phone,
+      contactName: booking.contactName,
+      contactEmail: booking.contactEmail,
+      contactPhone: booking.contactPhone,
       checkInSlotStart: checkInSlotStart.toISOString(),
       checkInSlotEnd: checkInSlotEnd?.toISOString() ?? null,
       rentalEndAt: booking.rentalEndAt.toISOString(),
@@ -312,12 +303,11 @@ export class BookingsRepository {
 
     const rows = await this.db
       .select({
-        booking: bookings,
-        customer: {
-          id: customers.id,
-          fullName: customers.fullName,
-          email: customers.email,
-          phone: customers.phone,
+        booking: {
+          ...getTableColumns(bookings),
+          contactName: sql<string>`${bookings.contactName}`,
+          contactEmail: sql<string>`${bookings.contactEmail}`,
+          contactPhone: sql<string>`${bookings.contactPhone}`,
         },
         checkInSlotStart: slotStart,
         checkInSlotEnd: slotEnd,
@@ -330,7 +320,6 @@ export class BookingsRepository {
         assignedStaff: assignedStaffUsers,
       })
       .from(bookings)
-      .innerJoin(customers, eq(bookings.customerId, customers.id))
       .innerJoin(checkInSlots, eq(bookings.checkInSlotId, checkInSlots.id))
       .leftJoin(paidPayments, eq(paidPayments.bookingId, bookings.id))
       .innerJoin(facilities, eq(bookings.facilityId, facilities.id))
@@ -348,7 +337,6 @@ export class BookingsRepository {
     return rows.map(
       ({
         booking,
-        customer,
         checkInSlotStart,
         checkInSlotEnd,
         paidAt,
@@ -395,10 +383,9 @@ export class BookingsRepository {
           unitTypeId: booking.unitTypeId,
           unitTypeName: unitType.name,
           unitTypeSizeLabel: unitType.sizeLabel,
-          customerId: customer.id,
-          contactName: customer.fullName,
-          contactEmail: customer.email,
-          contactPhone: customer.phone,
+          contactName: booking.contactName,
+          contactEmail: booking.contactEmail,
+          contactPhone: booking.contactPhone,
           checkInSlotStart: checkInSlotStart.toISOString(),
           checkInSlotEnd: checkInSlotEnd?.toISOString() ?? null,
           rentalEndAt: booking.rentalEndAt.toISOString(),
