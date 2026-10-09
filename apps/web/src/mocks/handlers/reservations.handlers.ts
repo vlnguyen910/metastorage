@@ -111,7 +111,6 @@ export function registerReservationHandlers(mock: MockAdapter): void {
         booking: {
           id: bookingId,
           bookingCode: confirmation.bookingCode,
-          customerId: crypto.randomUUID(),
           facilityId: crypto.randomUUID(),
           unitTypeId: crypto.randomUUID(),
           checkInAt: confirmation.checkInSlotStart,
@@ -214,7 +213,7 @@ export function registerReservationHandlers(mock: MockAdapter): void {
     const reservation: Reservation = {
       id: reservationId,
       code: `RS-${String(database.reservations.length + 1).padStart(5, "0")}`,
-      customerId: user.id,
+      userId: user.id,
       facility: hydrateFacility(database, facility),
       unitTypeId: quote.unitTypeId,
       unitType: quote.unitType,
@@ -244,7 +243,7 @@ export function registerReservationHandlers(mock: MockAdapter): void {
     if (user.role !== UserRole.STORAGE_CUSTOMER) {
       return [403, errorBody(ApiErrorCode.FORBIDDEN, "Bạn không có quyền xem dữ liệu này")];
     }
-    return [200, envelope(database.reservations.filter((item) => item.customerId === user.id))];
+    return [200, envelope(database.reservations.filter((item) => item.userId === user.id))];
   });
 
   mock.onGet(/\/reservations\/[^/]+$/).reply((config) => {
@@ -256,7 +255,7 @@ export function registerReservationHandlers(mock: MockAdapter): void {
     if (!reservation) {
       return [404, errorBody(ApiErrorCode.NOT_FOUND, "Không tìm thấy reservation")];
     }
-    if (reservation.customerId !== user.id) {
+    if (reservation.userId !== user.id) {
       return [403, errorBody(ApiErrorCode.FORBIDDEN, "Bạn không có quyền xem reservation này")];
     }
     return [200, envelope(reservation)];

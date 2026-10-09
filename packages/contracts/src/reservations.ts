@@ -30,7 +30,7 @@ export type ReservationQuote = z.infer<typeof ReservationQuoteSchema>;
 export const ReservationSchema = z.object({
   id: z.string(),
   code: z.string(),
-  customerId: z.string(),
+  userId: z.string().nullable(),
   facility: FacilitySchema,
   unitTypeId: z.string(),
   unitType: z.string(),
