@@ -271,6 +271,7 @@ export class PaymentsRepository {
   }
 
   async findActiveHoldForPayment(payment: typeof payments.$inferSelect) {
+    if (!payment.draftId) return null;
     const [hold] = await this.db
       .select({ id: capacityAllocations.id, expiresAt: capacityAllocations.expiresAt })
       .from(capacityAllocations)
@@ -333,10 +334,13 @@ export class PaymentsRepository {
   async completePendingPayment(input: {
     paymentId: string;
     providerPaymentId: string;
-    draftId: string;
+    draftId: string | null;
     holdId: string;
     paidAt: Date;
   }) {
+    // Booking-only checkout is finalized by the Payment refactor, not the legacy writer.
+    const draftId = input.draftId;
+    if (!draftId) return null;
     return this.db.transaction(async (tx) => {
       const [payment] = await tx
         .select()
@@ -344,7 +348,7 @@ export class PaymentsRepository {
         .where(
           and(
             eq(payments.id, input.paymentId),
-            eq(payments.draftId, input.draftId),
+            eq(payments.draftId, draftId),
             eq(payments.status, "PENDING"),
           ),
         )
@@ -370,7 +374,7 @@ export class PaymentsRepository {
             eq(capacityAllocations.status, "ACTIVE"),
           ),
         )
-        .where(eq(reservationDrafts.id, input.draftId))
+        .where(eq(reservationDrafts.id, draftId))
         .for("update");
       if (!checkout) return null;
 

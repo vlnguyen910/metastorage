@@ -368,44 +368,29 @@ async function seed() {
     const depositAmount = bookingSeed.monthlyRate;
     const totalAmount = rentalFeeAmount + depositAmount;
     const suffix = bookingSeed.code.slice(-4).padStart(12, "0");
-    const draftId = `00000000-0000-4000-8000-${suffix}`;
     const paymentId = `10000000-0000-4000-8000-${suffix}`;
-
-    await queryClient`
-      INSERT INTO reservation_drafts (
-        id, facility_id, unit_type_id, check_in_at, rental_end_at, duration_months,
-        contact_name, contact_email, contact_phone, status, pricing_status
-      )
-      VALUES (
-        ${draftId}, ${facHcm.id}, ${typeId}, ${checkInSlotStart.toISOString()}, ${rentalEndAt.toISOString()}, ${bookingSeed.months},
-        ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone}, 'DRAFT', 'PRICING_NOT_CONFIGURED'
-      )
-      ON CONFLICT (id) DO UPDATE SET
-        facility_id = EXCLUDED.facility_id,
-        unit_type_id = EXCLUDED.unit_type_id,
-        check_in_at = EXCLUDED.check_in_at,
-        rental_end_at = EXCLUDED.rental_end_at,
-        duration_months = EXCLUDED.duration_months,
-        contact_name = EXCLUDED.contact_name,
-        contact_email = EXCLUDED.contact_email,
-        contact_phone = EXCLUDED.contact_phone
-    `;
 
     const [booking] = await queryClient`
       INSERT INTO bookings (
-        booking_code, customer_id, facility_id, unit_type_id, requested_months,
+        booking_code, customer_id, contact_name, contact_email, contact_phone,
+        facility_id, unit_type_id, requested_months,
         check_in_date, check_in_slot_id,
         rental_end_at, monthly_rate_snapshot, rental_fee_amount, deposit_amount, total_amount,
         status
       )
       VALUES (
-        ${bookingSeed.code}, ${customerProfile.id}, ${facHcm.id}, ${typeId}, ${bookingSeed.months},
+        ${bookingSeed.code}, ${customerProfile.id},
+        ${bookingSeed.contactName}, ${bookingSeed.contactEmail}, ${bookingSeed.contactPhone},
+        ${facHcm.id}, ${typeId}, ${bookingSeed.months},
         ${checkInDate}, ${slotId}, ${rentalEndAt.toISOString()},
         ${bookingSeed.monthlyRate}, ${rentalFeeAmount}, ${depositAmount}, ${totalAmount},
         ${bookingSeed.status}
       )
       ON CONFLICT (booking_code) DO UPDATE SET
         customer_id = EXCLUDED.customer_id,
+        contact_name = EXCLUDED.contact_name,
+        contact_email = EXCLUDED.contact_email,
+        contact_phone = EXCLUDED.contact_phone,
         facility_id = EXCLUDED.facility_id,
         unit_type_id = EXCLUDED.unit_type_id,
         requested_months = EXCLUDED.requested_months,
@@ -430,7 +415,7 @@ async function seed() {
         currency, status, paid_at
       )
       VALUES (
-        ${paymentId}, ${booking.id}, ${draftId}, ${`seed-hold-${bookingSeed.code}`}, ${customerProfile.id},
+        ${paymentId}, ${booking.id}, NULL, ${`seed-hold-${bookingSeed.code}`}, ${customerProfile.id},
         'MOCK', ${`seed-payment-${bookingSeed.code}`}, ${`seed-idempotency-${bookingSeed.code}`}, ${`SEED${bookingSeed.code}`},
         ${totalAmount}, 'VND',
         ${bookingSeed.paymentStatus}, ${new Date(now + bookingSeed.paidOffset).toISOString()}

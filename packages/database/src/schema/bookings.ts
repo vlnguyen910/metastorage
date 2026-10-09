@@ -33,6 +33,9 @@ export const bookings = pgTable(
     bookingCode: varchar({ length: 50 }).unique(),
     customerId: uuid().references(() => customers.id),
     accessTokenHash: varchar({ length: 128 }),
+    contactName: varchar({ length: 150 }),
+    contactEmail: varchar({ length: 320 }),
+    contactPhone: varchar({ length: 32 }),
     facilityId: uuid()
       .notNull()
       .references(() => facilities.id),
@@ -61,6 +64,11 @@ export const bookings = pgTable(
     check(
       "bookings_customer_after_draft",
       sql`${table.status} = 'DRAFT' OR ${table.customerId} IS NOT NULL`,
+    ),
+    check(
+      "bookings_contact_complete",
+      sql`(${table.contactName} IS NULL AND ${table.contactEmail} IS NULL AND ${table.contactPhone} IS NULL)
+        OR (${table.contactName} IS NOT NULL AND ${table.contactEmail} IS NOT NULL AND ${table.contactPhone} IS NOT NULL)`,
     ),
     foreignKey({
       columns: [table.facilityId, table.unitTypeId],
