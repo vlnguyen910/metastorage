@@ -411,7 +411,6 @@ function toPaymentResult(
     BookingReadRecord,
     | "id"
     | "bookingCode"
-    | "customerId"
     | "facilityId"
     | "unitTypeId"
     | "checkInSlotStart"
@@ -431,7 +430,6 @@ function toPaymentResult(
   const result: PaidBooking = {
     id: booking.id,
     bookingCode: booking.bookingCode,
-    customerId: booking.customerId,
     facilityId: booking.facilityId,
     unitTypeId: booking.unitTypeId,
     checkInAt: booking.checkInSlotStart.toISOString(),
