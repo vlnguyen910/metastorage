@@ -13,6 +13,22 @@ import { UNIT_TYPE_MESSAGES } from "./unit-types.messages";
 export class FacilityUnitTypesRepository {
   constructor(private readonly db: Database) {}
 
+  async findActiveUnitType(facilityId: string, unitTypeId: string): Promise<UnitType | undefined> {
+    const [row] = await this.db
+      .select({ unitType: unitTypes })
+      .from(facilityUnitTypes)
+      .innerJoin(unitTypes, eq(unitTypes.id, facilityUnitTypes.unitTypeId))
+      .where(
+        and(
+          eq(facilityUnitTypes.facilityId, facilityId),
+          eq(facilityUnitTypes.unitTypeId, unitTypeId),
+          eq(facilityUnitTypes.isActive, true),
+          eq(unitTypes.isActive, true),
+        ),
+      );
+    return row?.unitType;
+  }
+
   async link(facilityId: string, unitTypeId: string): Promise<FacilityUnitType> {
     const [link] = await this.db
       .insert(facilityUnitTypes)

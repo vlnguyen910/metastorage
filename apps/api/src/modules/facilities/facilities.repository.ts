@@ -6,6 +6,7 @@ import {
   eq,
   type Facility,
   facilities,
+  facilityOperatingHours,
   type NewFacility,
 } from "@metastorage/database";
 import type { FacilityListScope, FacilityScope } from "./facilities.access";
@@ -17,6 +18,19 @@ export class FacilitiesRepository {
 
   constructor(private readonly db: Database) {
     this.assignmentsRepository = new FacilityAssignmentsRepository(db);
+  }
+
+  async findOperatingHours(facilityId: string, dayOfWeek: number) {
+    const [hours] = await this.db
+      .select()
+      .from(facilityOperatingHours)
+      .where(
+        and(
+          eq(facilityOperatingHours.facilityId, facilityId),
+          eq(facilityOperatingHours.dayOfWeek, dayOfWeek),
+        ),
+      );
+    return hours;
   }
 
   async createFacility(data: NewFacility): Promise<Facility> {
