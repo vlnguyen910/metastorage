@@ -5,6 +5,7 @@ import type {
   AssignBookingStaffInput,
   AssignPhysicalUnitInput,
   BookingListItem,
+  CatalogAvailabilityParams,
   CatalogFacility,
   CatalogFacilityListParams,
   CatalogUnitType,
@@ -187,9 +188,11 @@ function createMetastorageApiClientImpl(http: AxiosInstance, authMode: AuthMode)
           .then(unwrap),
       getFacility: (facilityId: string) =>
         http.get<ApiEnvelope<CatalogFacility>>(`/catalog/facilities/${facilityId}`).then(unwrap),
-      listUnitTypes: (facilityId: string) =>
+      listUnitTypes: (facilityId: string, params: CatalogAvailabilityParams = {}) =>
         http
-          .get<ApiEnvelope<CatalogUnitType[]>>(`/catalog/facilities/${facilityId}/unit-types`)
+          .get<ApiEnvelope<CatalogUnitType[]>>(`/catalog/facilities/${facilityId}/unit-types`, {
+            params,
+          })
           .then(unwrap),
     },
     reservations: {
